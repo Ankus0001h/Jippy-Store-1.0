@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-md mx-auto px-4 py-8 space-y-4">
+  <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-lg">
+    <h2 class="text-lg font-semibold mb-4 text-emerald-300">
+      Edit user
+    </h2>
+
+    {% if error %}
+      <div class="mb-4 text-xs text-rose-300 bg-rose-900/40 border border-rose-700 rounded-lg px-3 py-2">
+        {{ error }}
+      </div>
+    {% endif %}
+
+    <form method="post" class="space-y-4" id="edit-user-form">
+      <!-- Role -->
+      <div>
+        <label class="block text-xs font-semibold text-slate-200 mb-1">
+          Role
+        </label>
+        <select
+          name="role"
+          class="w-full border border-slate-700 bg-slate-800 text-slate-50 rounded-xl px-3 py-2 text-sm"
+          required
+        >
+          <option value="vendor" {% if user.role == 'vendor' %}selected{% endif %}>Vendor</option>
+          <option value="delivery" {% if user.role == 'delivery' %}selected{% endif %}>Delivery Boy</option>
+        </select>
+      </div>
+
+      <!-- Name -->
+      <div>
+        <label class="block text-xs font-semibold text-slate-200 mb-1">
+          Name
+        </label>
+        <input
+          type="text"
+          name="name"
+          value="{{ user.name }}"
+          placeholder="Name"
+          class="w-full border border-slate-700 bg-slate-800 text-slate-50 rounded-xl px-3 py-2 text-sm"
+          required
+        >
+      </div>
+
+      <!-- Email -->
+      <div>
+        <label class="block text-xs font-semibold text-slate-200 mb-1">
+          Email
+        </label>
+        <input
+          type="email"
+          name="email"
+          value="{{ user.email }}"
+          placeholder="Email"
+          class="w-full border border-slate-700 bg-slate-800 text-slate-50 rounded-xl px-3 py-2 text-sm"
+          required
+        >
+      </div>
+
+      <!-- New Password (optional) -->
+      <div>
+        <label class="block text-xs font-semibold text-slate-200 mb-1">
+          New password (optional)
+        </label>
+        <input
+          type="password"
+          name="new_password"
+          placeholder="Leave blank to keep current password"
+          class="w-full border border-slate-700 bg-slate-800 text-slate-50 rounded-xl px-3 py-2 text-sm"
+        >
+      </div>
+
+      <!-- Confirm New Password -->
+      <div>
+        <label class="block text-xs font-semibold text-slate-200 mb-1">
+          Confirm new password
+        </label>
+        <input
+          type="password"
+          name="confirm_password"
+          placeholder="Re-enter new password"
+          class="w-full border border-slate-700 bg-slate-800 text-slate-50 rounded-xl px-3 py-2 text-sm"
+        >
+        <p class="mt-1 text-[11px] text-slate-500">
+          If you don’t want to change the password, leave both password fields empty.
+        </p>
+      </div>
+
+      <!-- Vendor type -->
+      <div>
+        <label class="block text-xs font-semibold text-slate-200 mb-1">
+          Vendor type
+        </label>
+        {% set vt = user.vendor_type or '' %}
+        <select
+          name="vendor_type"
+          id="edit-vendor-type-select"
+          class="w-full border border-slate-700 bg-slate-800 text-slate-50 rounded-xl px-3 py-2 text-sm mb-2"
+        >
+          <option value="" {% if not vt %}selected{% endif %}>-- Select vendor type --</option>
+          <option value="grocery" {% if vt == 'grocery' %}selected{% endif %}>Grocery</option>
+          <option value="dairy" {% if vt == 'dairy' %}selected{% endif %}>Dairy</option>
+          <option value="vegetables" {% if vt == 'vegetables' %}selected{% endif %}>Vegetables</option>
+          <option value="fruits" {% if vt == 'fruits' %}selected{% endif %}>Fruits</option>
+          <option value="other" {% if vt and vt not in ['grocery','dairy','vegetables','fruits'] %}selected{% endif %}>Other</option>
+        </select>
+        <input
+          type="text"
+          name="vendor_type_other"
+          id="edit-vendor-type-other"
+          class="w-full border border-slate-700 bg-slate-800 text-slate-50 rounded-xl px-3 py-2 text-sm {% if vt and vt not in ['grocery','dairy','vegetables','fruits'] %}{% else %}hidden{% endif %}"
+          placeholder="Enter custom vendor type"
+          value="{% if vt and vt not in ['grocery','dairy','vegetables','fruits'] %}{{ vt }}{% endif %}"
+        >
+        <p class="mt-1 text-[11px] text-slate-500">
+          Vendor type is only applicable for vendor role.
+        </p>
+      </div>
+
+      <div class="flex items-center justify-between gap-2">
+        <a
+          href="{{ url_for('add_user') }}"
+          class="inline-flex items-center justify-center px-3 py-2 rounded-xl text-xs font-medium text-slate-200 bg-slate-800 hover:bg-slate-700"
+        >
+          Cancel
+        </a>
+        <button
+          type="submit"
+          id="edit-user-submit"
+          class="inline-flex items-center justify-center px-4 py-2 rounded-xl text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-500"
+        >
+          <span id="edit-user-submit-text">Save changes</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  // Vendor type "Other" toggle (edit)
+  const editVendorTypeSelect = document.getElementById("edit-vendor-type-select");
+  const editVendorTypeOther = document.getElementById("edit-vendor-type-other");
+
+  if (editVendorTypeSelect && editVendorTypeOther) {
+    editVendorTypeSelect.addEventListener("change", () => {
+      if (editVendorTypeSelect.value === "other") {
+        editVendorTypeOther.classList.remove("hidden");
+        editVendorTypeOther.required = true;
+      } else {
+        editVendorTypeOther.classList.add("hidden");
+        editVendorTypeOther.required = false;
+      }
+    });
+  }
+
+  // Prevent multiple submit on edit form
+  const editForm = document.getElementById("edit-user-form");
+  if (editForm) {
+    editForm.addEventListener("submit", () => {
+      const btn = document.getElementById("edit-user-submit");
+      const textSpan = document.getElementById("edit-user-submit-text");
+      if (btn) {
+        btn.disabled = true;
+        btn.classList.add("cursor-not-allowed", "opacity-70");
+      }
+      if (textSpan) {
+        textSpan.textContent = "Saving...";
+      }
+    });
+  }
+</script>
+{% endblock %}

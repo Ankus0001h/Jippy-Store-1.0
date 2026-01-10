@@ -1,0 +1,437 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Admin Orders - Grocery</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+  />
+</head>
+<body class="min-h-screen bg-slate-950 text-slate-50">
+
+  <div class="max-w-6xl mx-auto px-3 py-6 space-y-4">
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+      <div>
+        <p class="text-xs font-semibold text-emerald-400 uppercase tracking-wide">
+          Admin panel
+        </p>
+        <h1 class="text-3xl font-bold mt-1 tracking-tight">All orders</h1>
+        <p class="text-sm text-slate-400 mt-0.5">
+          Review orders, assign vendors & riders, and update status.
+        </p>
+      </div>
+      <a
+        href="{{ url_for('admin_dashboard') }}"
+        class="inline-flex items-center gap-1 text-sm text-emerald-400 hover:text-emerald-300"
+      >
+        <i class="fas fa-arrow-left text-[11px]"></i>
+        Back
+      </a>
+    </div>
+
+    {% if orders %}
+    <div class="bg-slate-900/80 border border-slate-800 rounded-2xl overflow-hidden">
+      <table class="w-full text-sm">
+        <thead class="bg-slate-900/90 border-b border-slate-800">
+          <tr>
+            <th class="px-4 py-2 text-left text-slate-300 w-[16%]">Order</th>
+            <th class="px-4 py-2 text-left text-slate-300 w-[18%]">Customer</th>
+            <th class="px-4 py-2 text-left text-slate-300 w-[14%]">Amount</th>
+            <th class="px-4 py-2 text-left text-slate-300 w-[16%]">Statuses</th>
+            <th class="px-4 py-2 text-left text-slate-300 w-[14%]">Rider</th>
+            <th class="px-4 py-2 text-left text-slate-300 w-[10%]">More</th>
+            <th class="px-4 py-2 text-left text-slate-300 w-[12%]">Delete</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-800">
+          {% for o in orders %}
+          {% set addr = o.get("address") %}
+          {% set raw_status = o.get("status", "") %}
+          {% set is_delivered = (raw_status|lower|trim == "delivered") %}
+
+          {# items + vendor assignment info for this order #}
+          {% set items_list = o["items"] if "items" in o else [] %}
+          {% set total_items = items_list|length %}
+          {% set assigned_items = items_list|selectattr("vendor_id")|list|length %}
+          {% set all_assigned = (total_items > 0 and assigned_items == total_items) %}
+          {% set partially_assigned = (total_items > 0 and 0 < assigned_items < total_items) %}
+
+          <tr class="align-top hover:bg-slate-900/80 {% if is_delivered %}opacity-80{% endif %}">
+            <!-- Order basic -->
+            <td class="px-4 py-3">
+              <div class="font-mono text-[13px] text-emerald-300">
+                #{{ o["order_id"] }}
+              </div>
+              <div class="text-xs text-slate-400">
+                {% if o.get("created_at") %}
+                  {{ o["created_at"].strftime("%d %b %Y %I:%M %p") }}
+                {% endif %}
+              </div>
+              {% if is_delivered %}
+              <div class="mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-900/40 text-[11px] text-emerald-300">
+                <i class="fas fa-lock text-[10px]"></i>
+                Locked
+              </div>
+              {% endif %}
+            </td>
+
+            <!-- Customer small -->
+            <td class="px-4 py-3 text-xs">
+              <div class="font-medium text-sm text-slate-50">
+                {{ o.get("user_name") }}
+              </div>
+              <div class="text-slate-300">
+                {% if addr is mapping %}
+                  {{ addr.get("phone") or o.get("user_phone") }}
+                {% else %}
+                  {{ o.get("user_phone") }}
+                {% endif %}
+              </div>
+            </td>
+
+            <!-- Amount -->
+            <td class="px-4 py-3 text-xs space-y-0.5">
+              <div class="font-semibold text-base text-emerald-300">
+                ₹{{ o.get("total") }}
+              </div>
+              <div class="text-slate-300">
+                {{ o.get("payment_method", "COD") }}
+              </div>
+            </td>
+
+            <!-- Statuses compact + vendor assignment state -->
+            <td class="px-4 py-3 text-xs space-y-0.5">
+              <div class="text-slate-400">
+                Order:
+                <span class="text-slate-50 font-medium">
+                  {{ o.get("status") or "pending" }}
+                </span>
+              </div>
+              <div class="text-slate-400">
+                Vendor:
+                <span class="text-slate-100">
+                  {{ o.get("vendor_status") or "pending" }}
+                </span>
+              </div>
+              <div class="text-slate-400">
+                Delivery:
+                <span class="text-slate-100">
+                  {{ o.get("delivery_status") or "pending" }}
+                </span>
+              </div>
+
+              {% if partially_assigned %}
+                <div class="text-[11px] text-amber-300">
+                  Partially assigned ({{ assigned_items }}/{{ total_items }} items)
+                </div>
+              {% elif all_assigned and not is_delivered %}
+                <div class="text-[11px] text-emerald-300">
+                  All items assigned ({{ total_items }})
+                </div>
+              {% endif %}
+            </td>
+
+            <!-- Rider assign (compact) -->
+            <td class="px-4 py-3 text-xs">
+              <form
+                method="post"
+                action="{{ url_for('admin_assign_delivery', order_id=o['order_id']) }}"
+                class="space-y-1"
+              >
+                <select
+                  name="delivery_id"
+                  class="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1.5 text-xs
+                         {% if is_delivered %}opacity-60 cursor-not-allowed{% endif %}"
+                  {% if o.get('delivery_id') or is_delivered %}disabled{% endif %}
+                >
+                  <option value="">Select rider</option>
+                  {% for d in delivery_boys %}
+                    <option
+                      value="{{ d['_id'] }}"
+                      {% if o.get('delivery_id') and o['delivery_id'] == d['_id'] %}selected{% endif %}
+                    >
+                      {{ d.get("name") }}
+                    </option>
+                  {% endfor %}
+                </select>
+                <button
+                  type="submit"
+                  class="w-full rounded px-2 py-1.5 text-white text-xs
+                         {% if o.get('delivery_id') or is_delivered %}
+                           bg-emerald-700 cursor-not-allowed opacity-70
+                         {% else %}
+                           bg-emerald-600 hover:bg-emerald-500
+                         {% endif %}"
+                  {% if o.get('delivery_id') or is_delivered %}disabled{% endif %}
+                >
+                  {% if o.get('delivery_id') %}Assigned{% elif is_delivered %}Locked{% else %}Save{% endif %}
+                </button>
+              </form>
+            </td>
+
+            <!-- More (expand details) -->
+            <td class="px-4 py-3 text-xs">
+              <button
+                type="button"
+                class="inline-flex items-center gap-1 px-2 py-1.5 bg-slate-800 hover:bg-slate-700 rounded text-xs text-slate-100"
+                onclick="toggleDetails('{{ o['order_id'] }}')"
+              >
+                <i class="fas fa-angle-down text-[11px]"></i>
+                Details
+              </button>
+            </td>
+
+            <!-- Delete -->
+            <td class="px-4 py-3 text-xs">
+              <form
+                method="post"
+                action="{{ url_for('admin_delete_order', order_id=o['order_id']) }}"
+                onsubmit="return confirm('Delete this order permanently?');"
+              >
+                <button
+                  type="submit"
+                  class="w-full bg-rose-600 hover:bg-rose-500 text-white rounded px-2 py-1.5 text-xs
+                         {% if is_delivered %}opacity-60 cursor-not-allowed{% endif %}"
+                  {% if is_delivered %}disabled{% endif %}
+                >
+                  Delete
+                </button>
+              </form>
+            </td>
+          </tr>
+
+          <!-- EXPANDED ROW: card layout, full width -->
+          <tr id="details-{{ o['order_id'] }}" class="hidden bg-slate-950/80">
+            <td colspan="7" class="px-4 pb-4">
+              <div class="mt-2 border border-slate-800 rounded-xl p-3.5 space-y-3">
+                <!-- Top: customer + address + map -->
+                <div class="grid md:grid-cols-3 gap-3 text-xs">
+                  <!-- Customer -->
+                  <div class="space-y-1">
+                    <p class="font-semibold text-slate-400 uppercase tracking-wide text-[11px]">
+                      Customer
+                    </p>
+                    <p class="text-sm text-slate-50 font-medium">
+                      {{ o.get("user_name") }}
+                    </p>
+                    <p class="text-slate-300">
+                      {% if addr is mapping %}
+                        {{ addr.get("phone") or o.get("user_phone") }}
+                      {% else %}
+                        {{ o.get("user_phone") }}
+                      {% endif %}
+                    </p>
+                    {% if addr is mapping and addr.get("alt_phone") %}
+                    <p class="text-slate-400">
+                      Alt: {{ addr.get("alt_phone") }}
+                    </p>
+                    {% endif %}
+                  </div>
+
+                  <!-- Address -->
+                  <div class="space-y-1">
+                    <p class="font-semibold text-slate-400 uppercase tracking-wide text-[11px]">
+                      Address
+                    </p>
+                    {% if addr is mapping %}
+                      <p class="text-xs text-slate-300 leading-snug">
+                        {{ addr.get("line1") }}<br>
+                        {% if addr.get("line2") %}{{ addr.get("line2") }}<br>{% endif %}
+                        {% if addr.get("city") or addr.get("pincode") %}
+                          {{ addr.get("city") }}{% if addr.get("pincode") %} - {{ addr.get("pincode") }}{% endif %}
+                        {% endif %}
+                      </p>
+                    {% else %}
+                      <p class="text-xs text-slate-300 leading-snug">
+                        {{ addr }}
+                      </p>
+                    {% endif %}
+                  </div>
+
+                  <!-- Map -->
+                  <div class="space-y-1">
+                    <p class="font-semibold text-slate-400 uppercase tracking-wide text-[11px]">
+                      Location
+                    </p>
+                    {% set coords = o.get("coords") %}
+                    {% if coords and coords.get("lat") and coords.get("lng") %}
+                      <a
+                        href="https://www.google.com/maps/search/?api=1&query={{ coords['lat'] }},{{ coords['lng'] }}"
+                        target="_blank"
+                        class="inline-flex items-center gap-1 text-xs text-emerald-400 hover:text-emerald-300 underline"
+                      >
+                        <i class="fas fa-location-dot text-[12px]"></i>
+                        Open in Maps
+                      </a>
+                      <p class="text-[11px] text-slate-500 leading-tight">
+                        Lat: {{ coords["lat"] }} · Lng: {{ coords["lng"] }}
+                      </p>
+                    {% else %}
+                      <p class="text-xs text-slate-500">No coords</p>
+                    {% endif %}
+                  </div>
+                </div>
+
+                <!-- Items + vendor assignment -->
+                <div class="border border-slate-800 rounded-xl p-3 bg-slate-950/80">
+                  <div class="flex items-center justify-between mb-2">
+                    <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">
+                      Items & vendors
+                    </p>
+                    {% if is_delivered %}
+                    <span class="text-[11px] text-emerald-300 inline-flex items-center gap-1">
+                      <i class="fas fa-lock text-[10px]"></i>
+                      Editing disabled
+                    </span>
+                    {% elif partially_assigned %}
+                    <span class="text-[11px] text-amber-300 inline-flex items-center gap-1">
+                      <i class="fas fa-circle-half-stroke text-[10px]"></i>
+                      Partially assigned ({{ assigned_items }}/{{ total_items }})
+                    </span>
+                    {% elif all_assigned %}
+                    <span class="text-[11px] text-emerald-300 inline-flex items-center gap-1">
+                      <i class="fas fa-check text-[10px]"></i>
+                      All items assigned
+                    </span>
+                    {% endif %}
+                  </div>
+
+                  {% if items_list %}
+                  <form
+                    method="post"
+                    action="{{ url_for('admin_assign_vendor_items', order_id=o['order_id']) }}"
+                    class="space-y-1.5"
+                  >
+                    {% for it in items_list %}
+                    <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-2 border border-slate-800/70 rounded-lg px-2 py-1.5 text-xs">
+                      <div class="flex-1">
+                        <p class="text-sm text-slate-100">
+                          {{ it["name"] }}
+                        </p>
+                        <p class="text-[11px] text-slate-400">
+                          Qty: {{ it["qty"] }} · ₹{{ it["price"] }}
+                        </p>
+                      </div>
+                      <div class="w-full md:w-44">
+                        <select
+                          name="item_vendor_{{ loop.index0 }}"
+                          class="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1.5 text-xs
+                                 {% if is_delivered %}opacity-60 cursor-not-allowed{% endif %}"
+                          {% if is_delivered %}disabled{% endif %}
+                        >
+                          <option value="">Select vendor</option>
+                          {% for v in vendors %}
+                            {% set current_vid = it.get("vendor_id") %}
+                            <option
+                              value="{{ v['_id'] }}"
+                              {% if current_vid and current_vid == v['_id'] %}selected{% endif %}
+                            >
+                              {{ v.get("name") }}
+                            </option>
+                          {% endfor %}
+                        </select>
+                        <input type="hidden" name="item_index_{{ loop.index0 }}" value="{{ loop.index0 }}">
+                        <input type="hidden" name="item_name_{{ loop.index0 }}" value="{{ it['name'] }}">
+                      </div>
+                    </div>
+                    {% endfor %}
+
+                    <div class="pt-2 border-t border-slate-800 mt-2 flex justify-end">
+                      <button
+                        type="submit"
+                        class="inline-flex items-center gap-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded px-3 py-1.5 text-xs
+                               {% if is_delivered %}opacity-60 cursor-not-allowed{% endif %}"
+                        {% if is_delivered %}disabled{% endif %}
+                      >
+                        <i class="fas fa-save text-[11px]"></i>
+                        Save vendors
+                      </button>
+                    </div>
+                  </form>
+                  {% else %}
+                    <p class="text-xs text-slate-500">
+                      No items found.
+                    </p>
+                  {% endif %}
+                </div>
+
+                <!-- Order status full control -->
+                <div class="grid md:grid-cols-2 gap-3 text-xs">
+                  <div class="border border-slate-800 rounded-xl p-3 bg-slate-950/70 space-y-1.5">
+                    <p class="font-semibold text-slate-400 uppercase tracking-wide text-[11px]">
+                      Order status
+                    </p>
+                    <form
+                      method="post"
+                      action="{{ url_for('admin_update_status', order_id=o['order_id']) }}"
+                      class="space-y-1.5"
+                    >
+                      <label class="text-slate-400">Set status</label>
+                      <select
+                        name="status"
+                        class="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1.5 text-xs
+                               {% if is_delivered %}opacity-60 cursor-not-allowed{% endif %}"
+                        {% if is_delivered %}disabled{% endif %}
+                      >
+                        {% set status_list = ["pending", "packed", "out_for_delivery", "delivered", "cancelled"] %}
+                        {% for s in status_list %}
+                          <option value="{{ s }}" {% if o.get('status') == s %}selected{% endif %}>
+                            {{ s }}
+                          </option>
+                        {% endfor %}
+                      </select>
+                      <button
+                        type="submit"
+                        class="w-full bg-emerald-600 hover:bg-emerald-500 rounded px-2 py-1.5 text-white text-xs
+                               {% if is_delivered %}opacity-60 cursor-not-allowed{% endif %}"
+                        {% if is_delivered %}disabled{% endif %}
+                      >
+                        Update
+                      </button>
+                    </form>
+                  </div>
+
+                  <div class="border border-slate-800 rounded-xl p-3 bg-slate-950/70 space-y-1">
+                    <p class="font-semibold text-slate-400 uppercase tracking-wide text-[11px]">
+                      Summary
+                    </p>
+                    <p class="text-xs text-slate-400">
+                      Subtotal: <span class="text-slate-100">₹{{ o.get("subtotal") }}</span>
+                    </p>
+                    <p class="text-xs text-slate-400">
+                      Delivery fee: <span class="text-slate-100">₹{{ o.get("delivery_fee") }}</span>
+                    </p>
+                    <p class="text-xs text-slate-400">
+                      Payment: <span class="text-slate-100">{{ o.get("payment_method", "COD") }}</span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </td>
+          </tr>
+
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+      <div class="py-10 text-center text-sm text-slate-400">
+        No orders found yet.
+      </div>
+    {% endif %}
+  </div>
+
+  <script>
+    function toggleDetails(orderId) {
+      const row = document.getElementById("details-" + orderId);
+      if (row) {
+        row.classList.toggle("hidden");
+      }
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,220 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 py-6 space-y-4">
+  <h1 class="text-xl font-bold text-slate-50 mb-2">Your Cart</h1>
+
+  <div id="cart-empty" class="text-sm text-slate-400 hidden">
+    Your cart is empty. Add some products to continue.
+  </div>
+
+  <div id="cart-container" class="space-y-3 hidden">
+    <div id="cart-items" class="space-y-3"></div>
+
+    <div class="border-t border-slate-800 pt-3 space-y-2">
+      <!-- Items subtotal -->
+      <div class="flex items-center justify-between text-sm text-slate-300">
+        <span>Items total</span>
+        <span id="cart-items-total" class="text-slate-100">₹0.00</span>
+      </div>
+
+      <!-- Platform fee (from admin/backend) -->
+      <div class="flex items-center justify-between text-sm text-slate-300">
+        <span>Platform fee</span>
+        <span id="platform-fee" class="text-slate-100">
+          ₹{{ platform_fee }}.00
+        </span>
+      </div>
+
+      <!-- Delivery -->
+      <div class="flex items-center justify-between text-sm text-slate-300">
+        <span>Delivery fee</span>
+        <span id="delivery-fee" class="text-slate-100">₹0.00</span>
+      </div>
+
+      <!-- Grand total -->
+      <div class="flex items-center justify-between text-sm text-slate-100 font-semibold">
+        <span>Total payable</span>
+        <span id="cart-total">₹0.00</span>
+      </div>
+
+      <!-- Hint box for free delivery -->
+      <div
+        id="delivery-hint"
+        class="mt-1 text-[11px] text-amber-300 bg-amber-900/30 border border-amber-700/70 rounded-lg px-3 py-1.5 hidden"
+      ></div>
+
+      <div class="flex items-center justify-end mt-2">
+        <button
+          id="checkout-btn"
+          type="button"
+          onclick="checkoutCart()"
+          class="inline-flex items-center px-4 py-2 rounded-xl text-sm font-semibold text-white transition-colors
+            {% if is_logged_in %}
+              bg-emerald-600 hover:bg-emerald-500
+            {% else %}
+              bg-slate-700 cursor-not-allowed
+            {% endif %}"
+          {% if not is_logged_in %}disabled{% endif %}
+        >
+          {% if is_logged_in %}
+            Proceed to checkout
+          {% else %}
+            Login to checkout
+          {% endif %}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // backend se aaya flags/values
+  const IS_LOGGED_IN = {{ 'true' if is_logged_in else 'false' }};
+  const PLATFORM_FEE = {{ platform_fee }};
+  const FREE_DELIVERY_THRESHOLD = {{ free_delivery_threshold }};
+  const DELIVERY_FEE = {{ delivery_fee }};
+
+  function changeQty(slug, delta) {
+    let cart = getCart();
+    const index = cart.findIndex((item) => item.slug === slug);
+    if (index === -1) return;
+
+    const currentQty = Number(cart[index].qty || 1);
+    const newQty = currentQty + delta;
+
+    if (newQty <= 0) {
+      cart.splice(index, 1);
+    } else {
+      cart[index].qty = newQty;
+    }
+
+    saveCart(cart);
+    renderCartPage();
+  }
+
+  function renderCartPage() {
+    const cart = getCart();
+    const emptyEl = document.getElementById("cart-empty");
+    const containerEl = document.getElementById("cart-container");
+    const itemsEl = document.getElementById("cart-items");
+    const itemsTotalEl = document.getElementById("cart-items-total");
+    const totalEl = document.getElementById("cart-total");
+    const platformFeeEl = document.getElementById("platform-fee");
+    const deliveryFeeEl = document.getElementById("delivery-fee");
+    const hintEl = document.getElementById("delivery-hint");
+
+    if (!emptyEl || !containerEl || !itemsEl || !totalEl) return;
+
+    if (!cart.length) {
+      emptyEl.classList.remove("hidden");
+      containerEl.classList.add("hidden");
+      totalEl.innerText = "₹0.00";
+      if (itemsTotalEl) itemsTotalEl.innerText = "₹0.00";
+      if (deliveryFeeEl) deliveryFeeEl.innerText = "₹0.00";
+      if (hintEl) hintEl.classList.add("hidden");
+      return;
+    }
+
+    emptyEl.classList.add("hidden");
+    containerEl.classList.remove("hidden");
+    itemsEl.innerHTML = "";
+
+    let subtotal = 0;
+
+    cart.forEach((item) => {
+      const qty = Number(item.qty || 1);
+      const price = Number(item.price || 0);
+      const lineTotal = price * qty;
+      subtotal += lineTotal;
+
+      const row = document.createElement("div");
+      row.className =
+        "flex items-center justify-between bg-slate-900/80 border border-slate-800 rounded-xl px-3 py-2.5";
+
+      row.innerHTML = `
+        <div class="flex items-center gap-3">
+          ${item.image ? `
+            <img src="${item.image}" alt="${item.name}" class="w-10 h-10 rounded-md object-cover border border-slate-700" />
+          ` : `
+            <div class="w-10 h-10 rounded-md bg-slate-800 flex items-center justify-center text-[11px] text-slate-500">No image</div>
+          `}
+          <div>
+            <div class="text-xs font-medium text-slate-50 line-clamp-1">${item.name}</div>
+            <div class="text-[11px] text-slate-400">₹${price.toFixed(2)}</div>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <button
+            type="button"
+            class="w-7 h-7 rounded-md bg-slate-800 text-slate-100 flex items-center justify-center text-xs"
+            onclick="changeQty('${item.slug}', -1)"
+          >-</button>
+          <span class="text-xs text-slate-100 min-w-[24px] text-center">${qty}</span>
+          <button
+            type="button"
+            class="w-7 h-7 rounded-md bg-emerald-500 text-white flex items-center justify-center text-xs"
+            onclick="changeQty('${item.slug}', 1)"
+          >+</button>
+        </div>
+      `;
+
+      itemsEl.appendChild(row);
+    });
+
+    // items subtotal
+    if (itemsTotalEl) {
+      itemsTotalEl.innerText = "₹" + subtotal.toFixed(2);
+    }
+
+    // platform fee (fixed from backend)
+    const platformFee = PLATFORM_FEE || 0;
+    if (platformFeeEl) {
+      platformFeeEl.innerText = "₹" + platformFee.toFixed(2);
+    }
+
+    // delivery fee: 0 if subtotal >= threshold, else DELIVERY_FEE
+    let deliveryFee = 0;
+    if (subtotal < FREE_DELIVERY_THRESHOLD) {
+      deliveryFee = DELIVERY_FEE;
+    }
+    if (deliveryFeeEl) {
+      deliveryFeeEl.innerText = "₹" + deliveryFee.toFixed(2);
+    }
+
+    // grand total = subtotal + platform + delivery
+    const grandTotal = subtotal + platformFee + deliveryFee;
+    totalEl.innerText = "₹" + grandTotal.toFixed(2);
+
+    // hint: "Add X more for free delivery"
+    if (hintEl) {
+      if (subtotal < FREE_DELIVERY_THRESHOLD) {
+        const remaining = FREE_DELIVERY_THRESHOLD - subtotal;
+        hintEl.textContent =
+          "Add ₹" + remaining.toFixed(2) + " more to get free delivery.";
+        hintEl.classList.remove("hidden");
+      } else {
+        hintEl.textContent = "Congratulations! You are eligible for free delivery.";
+        hintEl.classList.remove("hidden");
+      }
+    }
+  }
+
+  function checkoutCart() {
+    const cart = getCart();
+    if (!cart.length) {
+      alert("Cart is empty");
+      return;
+    }
+
+    if (!IS_LOGGED_IN) {
+      // customer login page
+      window.location.href = "{{ url_for('login') }}";
+      return;
+    }
+
+    window.location.href = "{{ url_for('address_page') }}";
+  }
+
+  document.addEventListener("DOMContentLoaded", renderCartPage);
+</script>
+{% endblock %}

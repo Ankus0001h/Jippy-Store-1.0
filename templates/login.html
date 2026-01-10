@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-md mx-auto px-4 py-8">
+  <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-lg shadow-emerald-500/10">
+    <h1 class="text-xl font-semibold text-slate-50 mb-1">Login with OTP</h1>
+    <p class="text-xs text-slate-400 mb-5">
+      Enter your registered phone number to receive a login code.
+    </p>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="space-y-2 mb-4">
+          {% for category, msg in messages %}
+            <div class="text-xs px-3 py-2 rounded-lg
+                        {% if category == 'success' %}
+                          bg-emerald-500/10 text-emerald-300 border border-emerald-500/40
+                        {% else %}
+                          bg-rose-500/10 text-rose-300 border border-rose-500/40
+                        {% endif %}">
+              {{ msg }}
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    {# STEP 1: Phone form #}
+    <form
+      method="post"
+      action="{{ url_for('login') }}"
+      class="space-y-4"
+      id="login-form"
+      {% if step != 'form' %}style="display:none"{% endif %}
+    >
+      <input type="hidden" name="action" value="send_otp" />
+
+      <div class="space-y-1.5">
+        <label for="phone" class="text-xs font-medium text-slate-300">Registered phone</label>
+        <input
+          type="tel"
+          id="phone"
+          name="phone"
+          required
+          class="w-full px-3 py-2 rounded-lg bg-slate-950/70 border border-slate-700 text-sm text-slate-100
+                 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/70 focus:border-emerald-500"
+          placeholder="10 digit mobile"
+          value="{{ session.get('login_phone', '') }}"
+        />
+      </div>
+
+      <button
+        type="submit"
+        id="login-send-btn"
+        class="w-full inline-flex items-center justify-center gap-2 mt-2 px-4 py-2.5 rounded-xl
+               text-sm font-semibold bg-[#20c65a] hover:bg-[#1ab153] text-slate-950
+               shadow-md shadow-emerald-500/30 transition-colors"
+      >
+        <i class="fas fa-sms text-xs"></i>
+        <span id="login-send-text">Send OTP</span>
+      </button>
+
+      <p class="mt-3 text-[11px] text-slate-400">
+        Not registered?
+        <a href="{{ url_for('register') }}" class="text-emerald-300 hover:text-emerald-200 underline-offset-2 hover:underline">
+          Create an account
+        </a>
+      </p>
+    </form>
+
+    {# STEP 2: OTP dialog #}
+    <form
+      method="post"
+      action="{{ url_for('login_verify') }}"
+      class="space-y-4"
+      id="login-otp-form"
+      {% if step != 'verify' %}style="display:none"{% endif %}
+    >
+      <p class="text-[11px] text-slate-400">
+        Enter the 6-digit code sent to
+        <span class="text-emerald-300">{{ session.get('login_phone', '') }}</span>.
+      </p>
+
+      <div class="flex items-center justify-between gap-2">
+        {% for i in range(1,7) %}
+          <input
+            type="text"
+            name="code{{ i }}"
+            maxlength="1"
+            pattern="[0-9]"
+            inputmode="numeric"
+            class="w-11 h-11 text-center text-base font-semibold rounded-lg bg-slate-950/70
+                   border border-slate-700 text-slate-50 focus:outline-none focus:ring-2
+                   focus:ring-emerald-500/70 focus:border-emerald-500"
+          />
+        {% endfor %}
+      </div>
+
+      <button
+        type="submit"
+        id="login-verify-btn"
+        class="w-full inline-flex items-center justify-center gap-2 mt-2 px-4 py-2.5 rounded-xl
+               text-sm font-semibold bg-[#20c65a] hover:bg-[#1ab153] text-slate-950
+               shadow-md shadow-emerald-500/30 transition-colors"
+      >
+        <i class="fas fa-check-circle text-xs"></i>
+        <span id="login-verify-text">Verify & Login</span>
+      </button>
+    </form>
+
+    <div
+      class="mt-4 flex items-center justify-between text-[11px] text-slate-400"
+      id="login-otp-footer"
+      {% if step != 'verify' %}style="display:none"{% endif %}
+    >
+      <form method="post" action="{{ url_for('login_resend') }}" id="login-resend-form">
+        <button
+          type="submit"
+          id="login-resend-btn"
+          class="text-emerald-300 hover:text-emerald-200 disabled:text-slate-500 disabled:cursor-not-allowed"
+        >
+          Resend OTP
+        </button>
+        <span id="login-resend-timer" class="ml-1 text-slate-500"></span>
+      </form>
+
+      <a href="{{ url_for('register') }}" class="hover:text-emerald-300">
+        Not registered? Register
+      </a>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Auto focus between OTP boxes
+  const loginOtpInputs = document.querySelectorAll('#login-otp-form input[type="text"]');
+  loginOtpInputs.forEach((input, idx) => {
+    input.addEventListener("input", (e) => {
+      if (e.target.value && idx < loginOtpInputs.length - 1) {
+        loginOtpInputs[idx + 1].focus();
+      }
+    });
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Backspace" && !e.target.value && idx > 0) {
+        loginOtpInputs[idx - 1].focus();
+      }
+    });
+  });
+
+  // Prevent multiple submit on Send OTP
+  const loginForm = document.getElementById("login-form");
+  if (loginForm) {
+    loginForm.addEventListener("submit", () => {
+      const btn = document.getElementById("login-send-btn");
+      const textSpan = document.getElementById("login-send-text");
+      if (btn) {
+        btn.disabled = true;
+        btn.classList.add("cursor-not-allowed", "opacity-70");
+      }
+      if (textSpan) {
+        textSpan.textContent = "Sending...";
+      }
+    });
+  }
+
+  // Prevent multiple submit on Verify & Login
+  const loginOtpForm = document.getElementById("login-otp-form");
+  if (loginOtpForm) {
+    loginOtpForm.addEventListener("submit", () => {
+      const btn = document.getElementById("login-verify-btn");
+      const textSpan = document.getElementById("login-verify-text");
+      if (btn) {
+        btn.disabled = true;
+        btn.classList.add("cursor-not-allowed", "opacity-70");
+      }
+      if (textSpan) {
+        textSpan.textContent = "Verifying...";
+      }
+    });
+  }
+
+  // 60s resend cooldown
+  const loginStep = "{{ step }}";
+  if (loginStep === "verify") {
+    const resendBtn = document.getElementById("login-resend-btn");
+    const timerEl = document.getElementById("login-resend-timer");
+    let remaining = 60;
+    let timerId = null;
+
+    function tick() {
+      if (remaining <= 0) {
+        resendBtn.disabled = false;
+        timerEl.textContent = "";
+        return;
+      }
+      resendBtn.disabled = true;
+      timerEl.textContent = `in ${remaining}s`;
+      remaining -= 1;
+      timerId = setTimeout(tick, 1000);
+    }
+
+    const resendForm = document.getElementById("login-resend-form");
+    resendForm.addEventListener("submit", () => {
+      if (timerId) {
+        clearTimeout(timerId);
+      }
+      remaining = 60;
+      tick();
+    });
+
+    tick();
+  }
+</script>
+{% endblock %}

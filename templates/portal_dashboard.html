@@ -1,0 +1,354 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 py-8 space-y-6">
+  <!-- Header -->
+  <div class="flex items-center justify-between mb-4">
+    <div>
+      <p class="text-xs font-semibold tracking-wide text-emerald-400 uppercase">
+        Portal
+      </p>
+      <h2 class="mt-1 text-2xl font-bold text-slate-50 tracking-tight">
+        Portal dashboard
+      </h2>
+      <p class="mt-1 text-sm text-slate-400">
+        Role:
+        <span class="font-semibold text-slate-100">{{ role }}</span>
+      </p>
+    </div>
+    <a
+      href="{{ url_for('portal_logout') }}"
+      class="text-xs font-medium text-rose-300 hover:text-rose-200"
+    >
+      Logout
+    </a>
+  </div>
+
+  {% if role == 'vendor' %}
+    <!-- VENDOR PANEL -->
+    <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-lg space-y-4">
+      <div>
+        <h3 class="text-lg font-semibold text-slate-50 mb-1">
+          Vendor panel
+        </h3>
+        <p class="text-sm text-slate-300">
+          Manage orders that contain your products. Vendor status yahin se set hoga,
+          jo admin panel me dikhega; customer ko nahi.
+        </p>
+      </div>
+
+      {% if vendor_orders|length == 0 %}
+        <p class="text-xs text-slate-500 mt-2">
+          No orders assigned to your products yet.
+        </p>
+      {% else %}
+        <div class="space-y-3 max-h-[420px] overflow-y-auto pr-1">
+          {% for o in vendor_orders %}
+            {% set vstatus = o.vendor_status or 'pending' %}
+            {% set raw_order_status = o.status or '' %}
+            {% set is_order_delivered = (raw_order_status|lower|trim == 'delivered') %}
+            {% set is_vendor_final = (vstatus == 'ready') %}
+            {% set lock_vendor_controls = is_order_delivered or is_vendor_final %}
+
+            <div class="border border-slate-800 rounded-xl p-3 bg-slate-950/80">
+              <div class="flex items-center justify-between mb-2">
+                <div>
+                  <p class="text-[11px] text-slate-400">
+                    Order:
+                    <span class="font-mono text-emerald-300">{{ o.order_id }}</span>
+                  </p>
+                  <p class="text-[11px] text-slate-500">
+                    {{ o.created_at.strftime('%d %b %Y, %I:%M %p') }}
+                  </p>
+                </div>
+                <div class="text-right">
+                  <p class="text-[11px] text-slate-400">
+                    User status:
+                    <span class="text-slate-100 font-medium">
+                      {{ o.status or 'pending' }}
+                    </span>
+                  </p>
+                  <p class="text-[11px] text-slate-500">
+                    Vendor status:
+                    <span class="text-emerald-300 font-medium">
+                      {{ vstatus }}
+                    </span>
+                  </p>
+                </div>
+              </div>
+
+              <p class="text-[11px] text-slate-400 mb-1">
+                Your items in this order
+              </p>
+              <ul class="space-y-1 text-[11px] text-slate-200 mb-3">
+                {% for it in o["items"] %}
+                  {% if it.vendor_id and it.vendor_id|string == session['portal_user_id'] %}
+                    <li class="flex items-center justify-between">
+                      <span class="truncate">{{ it.name }}</span>
+                      <span class="text-slate-400">
+                        ×{{ it.qty or 1 }} · ₹{{ '%.2f'|format(it.price or 0) }}
+                      </span>
+                    </li>
+                  {% endif %}
+                {% endfor %}
+              </ul>
+
+              <!-- Vendor-only internal status -->
+              <form
+                method="post"
+                action="{{ url_for('portal_update_vendor_status', order_id=o.order_id) }}"
+                class="flex flex-wrap gap-2 mt-1 text-[11px]"
+              >
+                <span class="text-slate-400 mr-2">Update vendor status:</span>
+
+                <button
+                  type="submit"
+                  name="vendor_status"
+                  value="received"
+                  class="px-3 py-1.5 rounded-lg
+                         {% if vstatus == 'received' %}
+                           bg-emerald-600 text-white
+                         {% else %}
+                           bg-slate-800 text-slate-200 hover:bg-slate-700
+                         {% endif %}
+                         {% if lock_vendor_controls %}opacity-60 cursor-not-allowed{% endif %}"
+                  {% if lock_vendor_controls %}disabled{% endif %}
+                >
+                  Received
+                </button>
+
+                <button
+                  type="submit"
+                  name="vendor_status"
+                  value="processing"
+                  class="px-3 py-1.5 rounded-lg
+                         {% if vstatus == 'processing' %}
+                           bg-emerald-600 text-white
+                         {% else %}
+                           bg-slate-800 text-slate-200 hover:bg-slate-700
+                         {% endif %}
+                         {% if lock_vendor_controls %}opacity-60 cursor-not-allowed{% endif %}"
+                  {% if lock_vendor_controls %}disabled{% endif %}
+                >
+                  Processing
+                </button>
+
+                <button
+                  type="submit"
+                  name="vendor_status"
+                  value="packed"
+                  class="px-3 py-1.5 rounded-lg
+                         {% if vstatus == 'packed' %}
+                           bg-emerald-600 text-white
+                         {% else %}
+                           bg-slate-800 text-slate-200 hover:bg-slate-700
+                         {% endif %}
+                         {% if lock_vendor_controls %}opacity-60 cursor-not-allowed{% endif %}"
+                  {% if lock_vendor_controls %}disabled{% endif %}
+                >
+                  Packed
+                </button>
+
+                <button
+                  type="submit"
+                  name="vendor_status"
+                  value="ready"
+                  class="px-3 py-1.5 rounded-lg
+                         {% if vstatus == 'ready' %}
+                           bg-emerald-600 text-white
+                         {% else %}
+                           bg-slate-800 text-slate-200 hover:bg-slate-700
+                         {% endif %}
+                         {% if lock_vendor_controls %}opacity-60 cursor-not-allowed{% endif %}"
+                  {% if lock_vendor_controls %}disabled{% endif %}
+                >
+                  Ready for pickup
+                </button>
+              </form>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </div>
+
+  {% elif role == 'delivery' %}
+    <!-- DELIVERY PANEL -->
+    <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-lg space-y-4">
+      <div>
+        <h3 class="text-lg font-semibold text-slate-50 mb-1">
+          Delivery panel
+        </h3>
+        <p class="text-sm text-slate-300">
+          Manage and track the orders assigned to you.
+        </p>
+      </div>
+
+      {% if delivery_orders|length == 0 %}
+        <p class="text-xs text-slate-500 mt-2">
+          No orders assigned to you yet.
+        </p>
+      {% else %}
+        <div class="space-y-3 max-h-[420px] overflow-y-auto pr-1">
+          {% for o in delivery_orders %}
+            {% set dstatus = o.delivery_status or 'pending' %}
+            {% set raw_order_status = o.status or '' %}
+            {% set is_order_delivered = (raw_order_status|lower|trim == 'delivered') %}
+            {% set is_delivery_delivered = (dstatus|lower|trim == 'delivered') %}
+            {% set lock_delivery_controls = is_order_delivered or is_delivery_delivered %}
+
+            <div class="border border-slate-800 rounded-xl p-3 bg-slate-950/80">
+              <div class="flex items-center justify-between mb-2">
+                <div>
+                  <p class="text-[11px] text-slate-400">
+                    Order:
+                    <span class="font-mono text-emerald-300">{{ o.order_id }}</span>
+                  </p>
+                  <p class="text-[11px] text-slate-500">
+                    {{ o.created_at.strftime('%d %b %Y, %I:%M %p') }}
+                  </p>
+                </div>
+                <div class="text-right">
+                  <p class="text-[11px] text-slate-400">
+                    Customer:
+                    <span class="text-slate-100">{{ o.user_name }}</span>
+                  </p>
+                  <p class="text-[11px] text-slate-500">
+                    Phone:
+                    <span class="text-slate-100">{{ o.user_phone }}</span>
+                  </p>
+                </div>
+              </div>
+
+              <!-- FULL ADDRESS FOR DELIVERY BOY -->
+              <div class="text-[11px] text-slate-400 mb-2">
+                Deliver to:
+                <div class="mt-0.5 text-slate-200 leading-snug">
+                  {% if o.address is mapping %}
+                    {{ o.address.line1 }}<br>
+                    {% if o.address.line2 %}{{ o.address.line2 }}<br>{% endif %}
+                    {% if o.address.landmark %}Landmark: {{ o.address.landmark }}<br>{% endif %}
+                    {{ o.address.city }}{% if o.address.pincode %} - {{ o.address.pincode }}{% endif %}<br>
+                    {% if o.address.state %}{{ o.address.state }}, {% endif %}India
+                  {% else %}
+                    {{ o.address }}
+                  {% endif %}
+                </div>
+              </div>
+
+              {% set coords = o.coords %}
+              {% if coords and coords.lat and coords.lng %}
+                <div class="text-[11px] text-emerald-300 mb-2">
+                  <a
+                    href="https://www.google.com/maps/search/?api=1&query={{ coords.lat }},{{ coords.lng }}"
+                    target="_blank"
+                    class="inline-flex items-center gap-1 underline hover:text-emerald-200"
+                  >
+                    <i class="fas fa-location-dot text-[11px]"></i>
+                    Open in Maps
+                  </a>
+                </div>
+              {% endif %}
+
+              <div class="flex items-center justify-between text-[11px] mb-2">
+                <span class="text-slate-400">
+                  Delivery status:
+                  <span class="text-emerald-300 font-medium">
+                    {{ dstatus }}
+                  </span>
+                  {% if is_order_delivered and not is_delivery_delivered %}
+                    <span class="ml-1 text-[10px] text-amber-300">
+                      (admin marked delivered)
+                    </span>
+                  {% endif %}
+                </span>
+                <span class="text-slate-400">
+                  Amount:
+                  <span class="text-emerald-300 font-semibold">
+                    ₹{{ '%.2f'|format(o.total or 0) }}
+                  </span>
+                </span>
+              </div>
+
+              <form
+                method="post"
+                action="{{ url_for('portal_update_delivery_status', order_id=o.order_id) }}"
+                class="flex flex-wrap gap-2 mt-2 text-[11px]"
+              >
+                <button
+                  type="submit"
+                  name="delivery_status"
+                  value="accepted"
+                  class="px-3 py-1.5 rounded-lg
+                         {% if dstatus == 'accepted' %}
+                           bg-emerald-600 text-white
+                         {% else %}
+                           bg-slate-800 text-slate-200 hover:bg-slate-700
+                         {% endif %}
+                         {% if lock_delivery_controls %}opacity-60 cursor-not-allowed{% endif %}"
+                  {% if lock_delivery_controls %}disabled{% endif %}
+                >
+                  Accept
+                </button>
+
+                <button
+                  type="submit"
+                  name="delivery_status"
+                  value="picked"
+                  class="px-3 py-1.5 rounded-lg
+                         {% if dstatus == 'picked' %}
+                           bg-emerald-600 text-white
+                         {% else %}
+                           bg-slate-800 text-slate-200 hover:bg-slate-700
+                         {% endif %}
+                         {% if lock_delivery_controls %}opacity-60 cursor-not-allowed{% endif %}"
+                  {% if lock_delivery_controls %}disabled{% endif %}
+                >
+                  Picked
+                </button>
+
+                <button
+                  type="submit"
+                  name="delivery_status"
+                  value="out_for_delivery"
+                  class="px-3 py-1.5 rounded-lg
+                         {% if dstatus == 'out_for_delivery' %}
+                           bg-emerald-600 text-white
+                         {% else %}
+                           bg-slate-800 text-slate-200 hover:bg-slate-700
+                         {% endif %}
+                         {% if lock_delivery_controls %}opacity-60 cursor-not-allowed{% endif %}"
+                  {% if lock_delivery_controls %}disabled{% endif %}
+                >
+                  Out for delivery
+                </button>
+
+                <button
+                  type="submit"
+                  name="delivery_status"
+                  value="delivered"
+                  class="px-3 py-1.5 rounded-lg
+                         {% if dstatus == 'delivered' %}
+                           bg-emerald-600 text-white
+                         {% else %}
+                           bg-slate-800 text-slate-200 hover:bg-slate-700
+                         {% endif %}
+                         {% if lock_delivery_controls %}opacity-60 cursor-not-allowed{% endif %}"
+                  {% if lock_delivery_controls %}disabled{% endif %}
+                >
+                  Delivered
+                </button>
+              </form>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </div>
+
+  {% else %}
+    <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-lg">
+      <p class="text-sm text-slate-300">
+        Unknown role. Please contact admin.
+      </p>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

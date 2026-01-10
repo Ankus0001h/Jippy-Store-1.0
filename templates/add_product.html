@@ -1,0 +1,395 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-5xl mx-auto px-4 py-8 space-y-8">
+
+  <!-- Card: Add Product -->
+  <div class="bg-slate-900/90 border border-slate-700 rounded-2xl shadow-lg p-6 md:p-7">
+    <div class="flex items-center justify-between mb-5">
+      <div>
+        <h2 class="text-xl font-bold text-slate-50">Add Product</h2>
+        <p class="text-xs text-slate-400 mt-1">
+          Create a new product with price, unit, category and image.
+        </p>
+      </div>
+    </div>
+
+    {% if error %}
+      <div class="mb-4 rounded-xl bg-rose-900/60 border border-rose-600 px-3 py-2 text-xs text-rose-100 flex items-start">
+        <i class="fas fa-exclamation-circle mr-2 mt-0.5"></i>
+        <span>{{ error }}</span>
+      </div>
+    {% endif %}
+
+    <form method="post" enctype="multipart/form-data" class="space-y-4" id="add-product-form">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Name -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-200 mb-1">Product Name</label>
+          <input
+            type="text"
+            name="name"
+            placeholder="e.g. Fresh Mango"
+            class="w-full border border-slate-600/80 bg-slate-800 text-slate-50 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/60 focus:border-emerald-500 placeholder-slate-500"
+            required
+          >
+        </div>
+
+        <!-- Price -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-200 mb-1">Price</label>
+          <input
+            type="number"
+            step="0.01"
+            name="price"
+            placeholder="e.g. 120.00"
+            class="w-full border border-slate-600/80 bg-slate-800 text-slate-50 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/60 focus:border-emerald-500 placeholder-slate-500"
+            required
+          >
+        </div>
+
+        <!-- Unit -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-200 mb-1">Unit</label>
+          <input
+            type="text"
+            name="unit"
+            placeholder="e.g. 1kg, 500g, 1L"
+            class="w-full border border-slate-600/80 bg-slate-800 text-slate-50 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/60 focus:border-emerald-500 placeholder-slate-500"
+            required
+          >
+        </div>
+
+        <!-- Category + Other -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-200 mb-1">Category</label>
+          <div class="flex gap-3">
+            <select
+              name="category"
+              id="categorySelect"
+              class="w-1/2 border border-slate-600/80 bg-slate-800 text-slate-50 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/60 focus:border-emerald-500"
+              required
+            >
+              <option value="">Select category</option>
+              <option value="Fruits">Fruits</option>
+              <option value="Vegetables">Vegetables</option>
+              <option value="Dairy">Dairy</option>
+              <option value="Bakery">Bakery</option>
+              <option value="Snacks">Snacks</option>
+              <option value="Beverages">Beverages</option>
+              <option value="Meat">Meat</option>
+              <option value="Seafood">Seafood</option>
+              <option value="Frozen">Frozen</option>
+              <option value="Grains">Grains</option>
+              <option value="Spices">Spices</option>
+              <option value="Household">Household</option>
+              <option value="Personal Care">Personal Care</option>
+              <option value="Other">Other</option>
+            </select>
+
+            <input
+              type="text"
+              name="other_category"
+              id="otherCategoryInput"
+              placeholder="Custom category"
+              class="w-1/2 border border-slate-600/80 bg-slate-800 text-slate-50 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/60 focus:border-emerald-500 placeholder-slate-500 hidden"
+            >
+          </div>
+          <p class="mt-1 text-[11px] text-slate-500">
+            Choose "Other" to enter a custom category name.
+          </p>
+        </div>
+      </div>
+
+      <!-- Image with crop -->
+      <div>
+        <label class="block text-xs font-semibold text-slate-200 mb-1">Product Image</label>
+
+        <!-- Hidden real file input -->
+        <input
+          type="file"
+          id="imageInput"
+          name="image"
+          accept="image/*"
+          class="hidden"
+          required
+        >
+
+        <!-- Visible button + preview -->
+        <div class="flex items-center gap-4">
+          <button
+            type="button"
+            id="triggerImageInput"
+            class="inline-flex items-center px-3 py-2 rounded-xl text-xs font-medium bg-slate-800 text-slate-100 border border-slate-600 hover:bg-slate-700"
+          >
+            <i class="fas fa-upload mr-2 text-[11px]"></i>
+            Upload image
+          </button>
+
+          <div
+            id="imagePreviewWrapper"
+            class="w-20 h-20 rounded-xl border border-dashed border-slate-600 flex items-center justify-center text-[11px] text-slate-500 bg-slate-900 overflow-hidden"
+          >
+            <span>Preview</span>
+          </div>
+        </div>
+        <p class="mt-1 text-[11px] text-slate-500">
+          Image will be cropped to a square (1000×1000) so it looks consistent in the product grid.
+        </p>
+
+        <!-- Crop modal -->
+        <div
+          id="cropModal"
+          class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-30 hidden"
+        >
+          <div class="bg-slate-900 border border-slate-700 rounded-2xl w-[90%] max-w-md shadow-2xl">
+            <div class="flex items-center justify-between px-4 py-3 border-b border-slate-800">
+              <h3 class="text-sm font-semibold text-slate-50">Crop image</h3>
+              <button
+                type="button"
+                class="text-slate-400 hover:text-slate-200 text-xs"
+                onclick="closeCropModal()"
+              >
+                ✕
+              </button>
+            </div>
+            <div class="px-4 py-3">
+              <div class="w-full max-h-72 bg-slate-800 rounded-xl overflow-hidden">
+                <img id="cropImage" alt="Crop" class="max-w-full block mx-auto">
+              </div>
+              <p class="mt-2 text-[11px] text-slate-500">
+                Drag to adjust the square crop. This matches the product cards on the site.
+              </p>
+            </div>
+            <div class="flex items-center justify-end gap-2 px-4 py-3 border-t border-slate-800">
+              <button
+                type="button"
+                class="px-3 py-1.5 rounded-lg text-[11px] font-medium bg-slate-800 text-slate-200 hover:bg-slate-700"
+                onclick="closeCropModal()"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                class="px-3 py-1.5 rounded-lg text-[11px] font-medium bg-emerald-600 text-white hover:bg-emerald-500"
+                onclick="applyCrop()"
+              >
+                Crop & save
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button
+        type="submit"
+        id="add-product-btn"
+        class="w-full bg-emerald-600 text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-emerald-500 transition-colors shadow-md hover:shadow-lg"
+      >
+        <span id="add-product-text">Add Product</span>
+      </button>
+    </form>
+  </div>
+
+  <!-- Card: Product List -->
+  <div class="bg-slate-900/90 border border-slate-700 rounded-2xl shadow-lg p-6 md:p-7">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-sm font-semibold text-slate-50">Products</h3>
+      <p class="text-[11px] text-slate-400">
+        Total: {{ products|length }} item{{ products|length != 1 and 's' or '' }}
+      </p>
+    </div>
+
+    {% if products %}
+      <div class="overflow-x-auto rounded-xl border border-slate-700/80">
+        <table class="min-w-full text-xs md:text-sm text-left text-slate-200 bg-slate-900">
+          <thead class="bg-slate-800/90 text-slate-400 uppercase text-[11px]">
+            <tr>
+              <th class="px-3 py-2 font-semibold">Name</th>
+              <th class="px-3 py-2 font-semibold">Category</th>
+              <th class="px-3 py-2 font-semibold">Unit</th>
+              <th class="px-3 py-2 font-semibold">Price</th>
+              <th class="px-3 py-2 font-semibold text-center">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-800">
+            {% for p in products %}
+            <tr class="hover:bg-slate-800/80">
+              <td class="px-3 py-2">
+                <div class="flex items-center gap-2">
+                  {% if p.image %}
+                    <img src="{{ p.image }}" alt="{{ p.name }}" class="w-8 h-8 rounded-md object-cover border border-slate-700">
+                  {% endif %}
+                  <span class="font-medium text-slate-50">{{ p.name }}</span>
+                </div>
+              </td>
+              <td class="px-3 py-2 text-slate-300">
+                {{ p.category }}
+              </td>
+              <td class="px-3 py-2 text-slate-300">
+                {{ p.unit }}
+              </td>
+              <td class="px-3 py-2 text-emerald-300 font-semibold">
+                ₹{{ "%.2f"|format(p.price) }}
+              </td>
+              <td class="px-3 py-2">
+                <div class="flex items-center justify-center gap-2">
+                  <a
+                    href="{{ url_for('edit_product', product_id=p._id) }}"
+                    class="inline-flex items-center px-2 py-1 rounded-lg text-[11px] font-medium text-emerald-200 bg-emerald-900/60 hover:bg-emerald-800/80 border border-emerald-700"
+                  >
+                    <i class="fas fa-pen mr-1 text-[10px]"></i>
+                    Edit
+                  </a>
+                  <form
+                    method="post"
+                    action="{{ url_for('delete_product', product_id=p._id) }}"
+                    onsubmit="return confirm('Delete this product?');"
+                  >
+                    <button
+                      type="submit"
+                      class="inline-flex items-center px-2 py-1 rounded-lg text-[11px] font-medium text-rose-200 bg-rose-900/60 hover:bg-rose-800/80 border border-rose-700"
+                    >
+                      <i class="fas fa-trash mr-1 text-[10px]"></i>
+                      Delete
+                    </button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="text-xs text-slate-500">No products added yet.</p>
+    {% endif %}
+  </div>
+</div>
+
+<!-- CropperJS CSS & JS -->
+<link
+  rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css"
+/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+
+<script>
+  // Category: show/hide "Other"
+  const categorySelect = document.getElementById("categorySelect");
+  const otherInput = document.getElementById("otherCategoryInput");
+
+  if (categorySelect && otherInput) {
+    categorySelect.addEventListener("change", () => {
+      if (categorySelect.value === "Other") {
+        otherInput.classList.remove("hidden");
+        otherInput.required = true;
+      } else {
+        otherInput.classList.add("hidden");
+        otherInput.required = false;
+        otherInput.value = "";
+      }
+    });
+  }
+
+  // Prevent multiple submit on Add Product
+  const addProductForm = document.getElementById("add-product-form");
+  if (addProductForm) {
+    addProductForm.addEventListener("submit", () => {
+      const btn = document.getElementById("add-product-btn");
+      const textSpan = document.getElementById("add-product-text");
+      if (btn) {
+        btn.disabled = true;
+        btn.classList.add("cursor-not-allowed", "opacity-70");
+      }
+      if (textSpan) {
+        textSpan.textContent = "Adding...";
+      }
+    });
+  }
+
+  // Image crop logic
+  const triggerBtn = document.getElementById("triggerImageInput");
+  const imageInput = document.getElementById("imageInput");
+  const cropModal = document.getElementById("cropModal");
+  const cropImage = document.getElementById("cropImage");
+  const previewWrapper = document.getElementById("imagePreviewWrapper");
+
+  let cropper = null;
+  let originalFile = null;
+
+  if (triggerBtn && imageInput) {
+    triggerBtn.addEventListener("click", () => {
+      imageInput.click();
+    });
+
+    imageInput.addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      originalFile = file;
+      const url = URL.createObjectURL(file);
+      cropImage.src = url;
+
+      openCropModal();
+    });
+  }
+
+  function openCropModal() {
+    cropModal.classList.remove("hidden");
+
+    cropImage.onload = () => {
+      if (cropper) {
+        cropper.destroy();
+      }
+      cropper = new Cropper(cropImage, {
+        aspectRatio: 1,
+        viewMode: 2,
+        autoCropArea: 1,
+        background: false,
+      });
+    };
+  }
+
+  function closeCropModal() {
+    cropModal.classList.add("hidden");
+    if (cropper) {
+      cropper.destroy();
+      cropper = null;
+    }
+  }
+
+  function applyCrop() {
+    if (!cropper) return;
+
+    const canvas = cropper.getCroppedCanvas({
+      width: 1000,
+      height: 1000,
+    });
+
+    if (!canvas) return;
+
+    canvas.toBlob((blob) => {
+      if (!blob) return;
+
+      const croppedFile = new File(
+        [blob],
+        originalFile ? originalFile.name : "product.jpg",
+        { type: blob.type, lastModified: Date.now() }
+      );
+
+      const dt = new DataTransfer();
+      dt.items.add(croppedFile);
+      imageInput.files = dt.files;
+
+      const previewUrl = URL.createObjectURL(blob);
+      previewWrapper.innerHTML = "";
+      const img = document.createElement("img");
+      img.src = previewUrl;
+      img.className = "w-full h-full object-cover";
+      previewWrapper.appendChild(img);
+
+      closeCropModal();
+    }, "image/jpeg", 0.9);
+  }
+</script>
+{% endblock %}

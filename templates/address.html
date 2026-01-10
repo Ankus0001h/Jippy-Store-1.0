@@ -1,0 +1,397 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-lg mx-auto px-4 py-6">
+  <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-lg shadow-emerald-500/10">
+    <h1 class="text-lg font-semibold text-slate-50 mb-1">Delivery address</h1>
+    <p class="text-xs text-slate-400 mb-4">
+      Share your location and fill your full address for fast delivery.
+    </p>
+
+    <div
+      id="addr-alert"
+      class="hidden mb-3 text-[11px] px-3 py-2 rounded-lg bg-rose-500/10 text-rose-300 border border-rose-500/40"
+    ></div>
+
+    <form id="address-form" class="space-y-4">
+      <!-- Delivery phone (from login, readonly) -->
+      <div class="space-y-1.5">
+        <label class="text-xs font-medium text-slate-300">Delivery phone</label>
+        <input
+          type="tel"
+          id="delivery-phone"
+          class="w-full px-3 py-2 rounded-lg bg-slate-950/70 border border-slate-700 text-sm text-slate-100
+                 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/70 focus:border-emerald-500"
+          value="{{ session.get('user_phone', '') }}"
+          readonly
+        />
+        <p class="text-[10px] text-slate-500">
+          Change phone from account only. Login number will be used for delivery updates.
+        </p>
+      </div>
+
+      <!-- Alternate number (optional, with +91) -->
+      <div class="space-y-1.5">
+        <label class="text-xs font-medium text-slate-300">
+          Alternate number <span class="text-[10px] text-slate-500">(optional)</span>
+        </label>
+        <div class="flex items-center gap-2">
+          <div
+            class="px-2.5 py-2 rounded-lg bg-slate-950/80 border border-slate-700 text-[11px] text-slate-300"
+          >
+            +91
+          </div>
+          <input
+            type="tel"
+            id="alt-phone"
+            maxlength="10"
+            pattern="[0-9]*"
+            inputmode="numeric"
+            class="flex-1 px-3 py-2 rounded-lg bg-slate-950/70 border border-slate-700 text-sm text-slate-100
+                   placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/70 focus:border-emerald-500"
+            placeholder="10 digit alternate mobile"
+          />
+        </div>
+      </div>
+
+      <!-- Exact location (must be GPS) -->
+      <div class="space-y-1.5">
+        <div class="flex items-center justify-between">
+          <label class="text-xs font-medium text-slate-300">
+            Exact location <span class="text-rose-400">*</span>
+          </label>
+          <button
+            type="button"
+            id="use-location-btn"
+            class="inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full border border-slate-700 text-emerald-300 hover:bg-slate-800/80"
+          >
+            <i class="fas fa-location-crosshairs text-[10px]"></i>
+            <span id="use-location-text">Use current location</span>
+          </button>
+        </div>
+
+        <!-- Readonly text, auto only -->
+        <input
+          type="text"
+          id="location-line"
+          class="w-full mt-1 px-3 py-2 rounded-lg bg-slate-950/70 border border-slate-700 text-sm text-slate-100
+                 placeholder:text-slate-500 focus:outline-none"
+          placeholder="Fetching location..."
+          required
+          readonly
+        />
+
+        <!-- Lat / Lng readonly, auto only -->
+        <div class="grid grid-cols-2 gap-2 mt-1">
+          <div class="space-y-1">
+            <label class="text-[10px] text-slate-400">Latitude</label>
+            <input
+              type="text"
+              id="lat"
+              class="w-full px-2.5 py-1.5 rounded-lg bg-slate-950/70 border border-slate-700 text-[11px] text-slate-100
+                     placeholder:text-slate-500 focus:outline-none"
+              placeholder="Auto from GPS"
+              readonly
+            />
+          </div>
+          <div class="space-y-1">
+            <label class="text-[10px] text-slate-400">Longitude</label>
+            <input
+              type="text"
+              id="lng"
+              class="w-full px-2.5 py-1.5 rounded-lg bg-slate-950/70 border border-slate-700 text-[11px] text-slate-100
+                     placeholder:text-slate-500 focus:outline-none"
+              placeholder="Auto from GPS"
+              readonly
+            />
+          </div>
+        </div>
+
+        <p class="text-[10px] text-slate-500">
+          Exact location is fetched automatically from GPS. If it fails, please enable location and tap
+          "Use current location".
+        </p>
+      </div>
+
+      <!-- Full address fields -->
+      <div class="space-y-1.5">
+        <label class="text-xs font-medium text-slate-300">
+          House / Flat / Floor <span class="text-rose-400">*</span>
+        </label>
+        <input
+          type="text"
+          id="addr-line1"
+          class="w-full px-3 py-2 rounded-lg bg-slate-950/70 border border-slate-700 text-sm text-slate-100
+                 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/70 focus:border-emerald-500"
+          placeholder="House number, flat, floor"
+          required
+        />
+      </div>
+
+      <div class="space-y-1.5">
+        <label class="text-xs font-medium text-slate-300">
+          Street & area <span class="text-rose-400">*</span>
+        </label>
+        <input
+          type="text"
+          id="addr-line2"
+          class="w-full px-3 py-2 rounded-lg bg-slate-950/70 border border-slate-700 text-sm text-slate-100
+                 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/70 focus:border-emerald-500"
+          placeholder="Street, locality"
+          required
+        />
+      </div>
+
+      <div class="space-y-1.5">
+        <label class="text-xs font-medium text-slate-300">
+          Landmark <span class="text-[10px] text-slate-500">(optional)</span>
+        </label>
+        <input
+          type="text"
+          id="addr-landmark"
+          class="w-full px-3 py-2 rounded-lg bg-slate-950/70 border border-slate-700 text-sm text-slate-100
+                 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/70 focus:border-emerald-500"
+          placeholder="Near temple, mall, signal etc."
+        />
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div class="space-y-1.5">
+          <label class="text-xs font-medium text-slate-300">
+            City <span class="text-rose-400">*</span>
+          </label>
+          <input
+            type="text"
+            id="addr-city"
+            class="w-full px-3 py-2 rounded-lg bg-slate-950/70 border border-slate-700 text-sm text-slate-100
+                   placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/70 focus:border-emerald-500"
+            placeholder="City"
+            required
+          />
+        </div>
+        <div class="space-y-1.5">
+          <label class="text-xs font-medium text-slate-300">
+            PIN code <span class="text-rose-400">*</span>
+          </label>
+          <input
+            type="text"
+            id="addr-pincode"
+            maxlength="6"
+            pattern="[0-9]*"
+            inputmode="numeric"
+            class="w-full px-3 py-2 rounded-lg bg-slate-950/70 border border-slate-700 text-sm text-slate-100
+                   placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/70 focus:border-emerald-500"
+            placeholder="6 digit PIN"
+            required
+          />
+        </div>
+      </div>
+
+      <!-- Payment (only COD) -->
+      <div class="mt-2 space-y-1.5">
+        <label class="text-xs font-medium text-slate-300">Payment method</label>
+        <div
+          class="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-slate-950/80 border border-emerald-500/50"
+        >
+          <div>
+            <input
+              type="radio"
+              id="pay-cod"
+              name="payment"
+              value="COD"
+              checked
+              class="h-3 w-3 text-emerald-500 border-slate-600 bg-slate-900"
+            />
+          </div>
+          <div class="flex items-center gap-2">
+            <div
+              class="flex items-center justify-center w-8 h-8 rounded-full bg-emerald-500/15 border border-emerald-500/40"
+            >
+              <i class="fas fa-money-bill-wave text-emerald-300 text-sm"></i>
+            </div>
+            <div class="flex flex-col">
+              <span class="text-xs font-semibold text-slate-100">
+                Cash on Delivery
+              </span>
+              <span class="text-[10px] text-slate-400">
+                Pay cash / UPI to delivery partner at your doorstep.
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Place order button -->
+      <button
+        type="submit"
+        id="place-order-btn"
+        class="w-full mt-4 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl
+               text-sm font-semibold bg-[#20c65a] hover:bg-[#1ab153] text-slate-950
+               shadow-md shadow-emerald-500/30 transition-colors"
+      >
+        <i class="fas fa-check text-xs"></i>
+        <span id="place-order-text">Place order</span>
+      </button>
+    </form>
+  </div>
+</div>
+
+<script>
+  const locBtn   = document.getElementById("use-location-btn");
+  const locText  = document.getElementById("use-location-text");
+  const locInput = document.getElementById("location-line");
+  const latInput = document.getElementById("lat");
+  const lngInput = document.getElementById("lng");
+  const alertBox = document.getElementById("addr-alert");
+
+  function showAlert(msg) {
+    if (!alertBox) return;
+    alertBox.textContent = msg;
+    alertBox.classList.remove("hidden");
+  }
+
+  function setLocationFromPosition(pos) {
+    const lat = pos.coords.latitude.toFixed(6);
+    const lng = pos.coords.longitude.toFixed(6);
+    latInput.value = lat;
+    lngInput.value = lng;
+    locInput.value = `Lat: ${lat}, Lng: ${lng}`;
+  }
+
+  // auto fetch on load
+  document.addEventListener("DOMContentLoaded", () => {
+    if (!navigator.geolocation) {
+      locInput.placeholder = "Location access not available in this browser";
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLocationFromPosition(pos);
+        locInput.placeholder = "";
+      },
+      (err) => {
+        console.warn("Initial GPS failed", err);
+        locInput.placeholder = "Press 'Use current location' to detect";
+      },
+      { enableHighAccuracy: true, timeout: 8000 }
+    );
+  });
+
+  // retry via button
+  if (locBtn && navigator.geolocation) {
+    locBtn.addEventListener("click", () => {
+      locBtn.disabled = true;
+      locBtn.classList.add("cursor-not-allowed", "opacity-70");
+      locText.textContent = "Detecting...";
+
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setLocationFromPosition(pos);
+          locText.textContent = "Location set";
+          locBtn.classList.remove("opacity-70");
+        },
+        (err) => {
+          console.error(err);
+          showAlert("Could not access location. Please enable GPS and try again.");
+          locBtn.disabled = false;
+          locBtn.classList.remove("cursor-not-allowed", "opacity-70");
+          locText.textContent = "Use current location";
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    });
+  }
+
+  // place order
+  const addressForm = document.getElementById("address-form");
+  if (addressForm) {
+    addressForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById("place-order-btn");
+      const textSpan = document.getElementById("place-order-text");
+      alertBox.classList.add("hidden");
+
+      const line1    = document.getElementById("addr-line1").value.trim();
+      const line2    = document.getElementById("addr-line2").value.trim();
+      const landmark = document.getElementById("addr-landmark").value.trim();
+      const city     = document.getElementById("addr-city").value.trim();
+      const pincode  = document.getElementById("addr-pincode").value.trim();
+      const phone    = document.getElementById("delivery-phone").value.trim();
+      const locLine  = locInput.value.trim();
+      const altRaw   = document.getElementById("alt-phone").value.trim();
+      const altPhone = altRaw ? "+91" + altRaw : null;
+      const lat      = latInput.value.trim();
+      const lng      = lngInput.value.trim();
+
+      if (!line1 || !line2 || !city || !pincode || !phone || !locLine || !lat || !lng) {
+        showAlert("Please set your exact location using GPS before placing the order.");
+        return;
+      }
+
+      let cart = [];
+      try {
+        cart = JSON.parse(localStorage.getItem("cart") || "[]");
+      } catch (err) {
+        cart = [];
+      }
+      if (!cart.length) {
+        showAlert("Your cart is empty.");
+        return;
+      }
+
+      const address = {
+        phone,
+        alt_phone: altPhone,
+        line1,
+        line2,
+        landmark: landmark || null,
+        city,
+        pincode,
+        location_text: locLine,
+        lat,
+        lng,
+      };
+
+      try {
+        if (btn) {
+          btn.disabled = true;
+          btn.classList.add("cursor-not-allowed", "opacity-70");
+        }
+        if (textSpan) {
+          textSpan.textContent = "Placing order...";
+        }
+
+        const resp = await fetch("{{ url_for('checkout') }}", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          // IMPORTANT: lat/lng top-level bhi bheje ja rahe hain
+          body: JSON.stringify({ cart, address, lat, lng }),
+        });
+
+        const data = await resp.json();
+        if (!resp.ok) {
+          showAlert(data.error || "Could not place order. Please try again.");
+        } else {
+          localStorage.removeItem("cart");
+          window.location.href =
+            "{{ url_for('order_confirmation') }}?order_id=" +
+            encodeURIComponent(data.order_id);
+        }
+      } catch (err) {
+        console.error(err);
+        showAlert("Something went wrong. Please try again.");
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.classList.remove("cursor-not-allowed", "opacity-70");
+        }
+        if (textSpan) {
+          textSpan.textContent = "Place order";
+        }
+      }
+    });
+  }
+</script>
+{% endblock %}

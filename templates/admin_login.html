@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Admin Login - Grocery Delivery</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    rel="stylesheet"
+  />
+</head>
+<body class="min-h-screen bg-slate-950 flex items-center justify-center px-4">
+
+  <div class="w-full max-w-md">
+    <div class="bg-slate-900/90 border border-slate-800 rounded-2xl shadow-xl shadow-black/40 p-6 sm:p-8">
+      <!-- Header -->
+      <div class="flex items-center justify-center mb-4">
+        <div class="w-10 h-10 rounded-xl bg-emerald-500 flex items-center justify-center text-slate-950 text-lg font-extrabold shadow-md shadow-emerald-400/40">
+          A
+        </div>
+      </div>
+      <h1 class="text-xl font-bold text-center mb-1 text-slate-50">
+        Admin login
+      </h1>
+      <p class="text-center text-xs text-slate-400 mb-4">
+        Grocery delivery dashboard access.
+      </p>
+
+      {% if error %}
+        <div class="mb-4 text-xs text-rose-300 bg-rose-900/40 border border-rose-700 rounded-lg px-3 py-2 flex items-start gap-2">
+          <i class="fas fa-exclamation-circle text-sm mt-0.5"></i>
+          <span>{{ error }}</span>
+        </div>
+      {% endif %}
+
+      <form method="post" id="admin-login-form" class="space-y-4">
+        <!-- Email -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-200 mb-1">
+            Email
+          </label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500 text-xs">
+              <i class="fas fa-envelope"></i>
+            </span>
+            <input
+              type="email"
+              name="email"
+              placeholder="admin@grocery.com"
+              required
+              autocomplete="email"
+              class="w-full border border-slate-700 bg-slate-900 text-slate-50 rounded-xl pl-8 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+            >
+          </div>
+        </div>
+
+        <!-- Password -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-200 mb-1">
+            Password
+          </label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500 text-xs">
+              <i class="fas fa-lock"></i>
+            </span>
+            <input
+              type="password"
+              name="password"
+              id="admin-password"
+              placeholder="Enter password"
+              required
+              autocomplete="current-password"
+              class="w-full border border-slate-700 bg-slate-900 text-slate-50 rounded-xl pl-8 pr-8 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+            >
+            <button
+              type="button"
+              id="admin-toggle-password"
+              class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-500 hover:text-emerald-400 text-xs"
+            >
+              <i class="fas fa-eye-slash"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- CAPTCHA -->
+        <div class="space-y-2">
+          <label class="block text-xs font-semibold text-slate-200">
+            Security check
+          </label>
+
+          <!-- Captcha display full width + separate refresh -->
+          <div class="flex items-center justify-between gap-3">
+            <!-- Captcha full-width look -->
+            <div class="flex-1 h-11 rounded-xl bg-slate-900 border border-slate-700 flex items-center justify-center px-3">
+              <div
+                id="admin-captcha-box"
+                class="w-full text-center text-xl font-mono tracking-[0.4em] text-slate-50 select-none"
+              >
+                {{ captcha_code }}
+              </div>
+            </div>
+
+            <!-- Refresh button clearly separated -->
+            <button
+              type="button"
+              id="admin-refresh-captcha"
+              class="shrink-0 inline-flex items-center justify-center h-11 px-3 rounded-xl border border-slate-700 bg-slate-800 text-[11px] font-medium text-slate-200 hover:bg-slate-700"
+            >
+              <i class="fas fa-rotate mr-1 text-[10px]"></i>
+              Refresh
+            </button>
+          </div>
+
+          <!-- 4-digit inputs centered with small gap -->
+          <div class="mt-2 flex items-center justify-center">
+            <div class="flex items-center gap-2">
+              {% for i in range(1,5) %}
+              <input
+                type="text"
+                inputmode="numeric"
+                maxlength="1"
+                name="captcha{{ i }}"
+                class="w-10 h-10 text-center text-sm font-semibold rounded-xl border border-slate-700 bg-slate-900 text-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 admin-captcha-input"
+              >
+              {% endfor %}
+            </div>
+          </div>
+
+          <p class="text-[11px] text-slate-500 mt-1 text-center">
+            Enter the 4-digit code shown above.
+          </p>
+        </div>
+
+        <button
+          type="submit"
+          id="admin-login-submit"
+          class="w-full bg-emerald-600 text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-emerald-500 transition-colors flex items-center justify-center gap-1.5"
+        >
+          <span id="admin-login-submit-text">Secure login</span>
+          <i class="fas fa-arrow-right text-[11px]"></i>
+        </button>
+      </form>
+
+      <div class="mt-4 text-center">
+        <p class="text-[11px] text-slate-500">
+          For issues, contact system administrator.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Auto-focus first captcha input
+    window.addEventListener("DOMContentLoaded", () => {
+      const firstBox = document.querySelector(".admin-captcha-input");
+      if (firstBox) firstBox.focus();
+    });
+
+    // Password show/hide
+    const adminPassword = document.getElementById("admin-password");
+    const adminTogglePassword = document.getElementById("admin-toggle-password");
+    if (adminPassword && adminTogglePassword) {
+      adminTogglePassword.addEventListener("click", () => {
+        const isHidden = adminPassword.type === "password";
+        adminPassword.type = isHidden ? "text" : "password";
+        const icon = adminTogglePassword.querySelector("i");
+        if (icon) {
+          icon.classList.toggle("fa-eye");
+          icon.classList.toggle("fa-eye-slash");
+        }
+      });
+    }
+
+    // Captcha inputs auto move
+    const adminCaptchaInputs = document.querySelectorAll(".admin-captcha-input");
+    adminCaptchaInputs.forEach((input, idx) => {
+      input.addEventListener("input", () => {
+        input.value = input.value.replace(/\D/g, "").slice(0, 1);
+        if (input.value && idx < adminCaptchaInputs.length - 1) {
+          adminCaptchaInputs[idx + 1].focus();
+        }
+      });
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "Backspace" && !input.value && idx > 0) {
+          adminCaptchaInputs[idx - 1].focus();
+        }
+      });
+    });
+
+    // Prevent multiple submit
+    const adminForm = document.getElementById("admin-login-form");
+    if (adminForm) {
+      adminForm.addEventListener("submit", (event) => {
+        const btn = document.getElementById("admin-login-submit");
+        const textSpan = document.getElementById("admin-login-submit-text");
+        let code = "";
+        adminCaptchaInputs.forEach(inp => code += inp.value);
+        if (code.length !== 4) {
+          event.preventDefault();
+          alert("Please enter all 4 digits of the verification code.");
+          const firstBox = adminCaptchaInputs[0];
+          if (firstBox) firstBox.focus();
+          return;
+        }
+        // add hidden input for combined captcha
+        const hidden = document.createElement("input");
+        hidden.type = "hidden";
+        hidden.name = "captcha";
+        hidden.value = code;
+        adminForm.appendChild(hidden);
+
+        if (btn) {
+          btn.disabled = true;
+          btn.classList.add("cursor-not-allowed", "opacity-70");
+        }
+        if (textSpan) {
+          textSpan.textContent = "Logging in...";
+        }
+      });
+    }
+
+    // Refresh captcha via admin endpoint
+    async function adminRefreshCaptcha() {
+      try {
+        const res = await fetch("{{ url_for('refresh_captcha') }}", {
+          method: "POST",
+          headers: { "X-Requested-With": "XMLHttpRequest" },
+        });
+        const data = await res.json();
+        const box = document.getElementById("admin-captcha-box");
+        if (box && data.captcha_code) {
+          box.textContent = data.captcha_code;
+        }
+        adminCaptchaInputs.forEach(inp => inp.value = "");
+        if (adminCaptchaInputs[0]) adminCaptchaInputs[0].focus();
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    const adminRefreshBtn = document.getElementById("admin-refresh-captcha");
+    if (adminRefreshBtn) {
+      adminRefreshBtn.addEventListener("click", adminRefreshCaptcha);
+    }
+  </script>
+</body>
+</html>

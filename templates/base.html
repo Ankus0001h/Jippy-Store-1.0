@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>FreshKart</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA=="
+    crossorigin="anonymous"
+    referrerpolicy="no-referrer"
+  />
+</head>
+<body class="relative min-h-screen flex flex-col text-slate-100 bg-slate-950">
+
+  <!-- Navbar -->
+  <nav class="sticky top-0 z-20 bg-slate-950/90 border-b border-slate-800/80 backdrop-blur-sm">
+    <div class="max-w-6xl mx-auto px-3 sm:px-4">
+      <div class="flex items-center justify-between h-14">
+        <a href="{{ url_for('index') }}" class="flex items-center gap-2">
+          <div class="w-9 h-9 rounded-xl bg-[#20c65a] flex items-center justify-center text-slate-950 text-lg font-extrabold shadow-md shadow-emerald-500/40">
+            F
+          </div>
+          <div class="hidden sm:flex flex-col leading-tight">
+            <span class="font-semibold text-sm sm:text-base text-slate-50">FreshKart</span>
+            <span class="text-[10px] text-slate-400">Groceries in minutes</span>
+          </div>
+        </a>
+
+        <div class="flex items-center gap-2 sm:gap-3">
+          <!-- Cart -->
+          <a
+            href="{{ url_for('cart_page') }}"
+            class="relative inline-flex items-center gap-1.5 text-[11px] font-medium text-slate-100 hover:text-emerald-300 bg-slate-900/90 hover:bg-slate-800/90 border border-slate-700 rounded-full pl-2.5 pr-3 py-1.5 transition-colors shadow-sm"
+          >
+            <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-[#20c65a] text-[11px] text-slate-950 font-semibold shadow-sm">
+              <i class="fas fa-shopping-cart"></i>
+            </span>
+            <span>Cart</span>
+            <span
+              id="cart-count"
+              class="absolute -top-1 -right-1 bg-[#20c65a] text-slate-950 text-[9px] px-1.5 py-0.5 rounded-full min-w-[16px] text-center border border-slate-950 font-semibold"
+            >
+              0
+            </span>
+          </a>
+
+          {# If customer logged in -> name + dropdown #}
+          {% if session.get('user_id') %}
+            <div class="relative user-menu">
+              <button
+                type="button"
+                class="inline-flex items-center gap-2 text-[11px] font-semibold text-slate-100 bg-slate-900/90 hover:bg-slate-800/90 border border-slate-700 rounded-full px-3 py-1.5 transition-colors"
+                onclick="toggleUserMenu()"
+              >
+                <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-[#20c65a] text-[11px] text-slate-950 font-bold">
+                  {{ session.get('user_name', 'U')[0] | upper }}
+                </span>
+                <span class="hidden sm:inline-block max-w-[80px] truncate">
+                  {{ session.get('user_name', 'User') }}
+                </span>
+                <i class="fas fa-chevron-down text-[9px] text-slate-400"></i>
+              </button>
+
+              <div
+                id="user-dropdown"
+                class="hidden absolute right-0 mt-1 w-40 rounded-xl border border-slate-800 bg-slate-950/95 shadow-lg shadow-black/40 py-1 text-[11px] z-30"
+              >
+                <a
+                  href="{{ url_for('my_orders') }}"
+                  class="flex items-center gap-2 px-3 py-1.5 text-slate-200 hover:bg-slate-800/80"
+                >
+                  <i class="fas fa-receipt text-[10px] text-emerald-300"></i>
+                  <span>My Orders</span>
+                </a>
+                <div class="h-px bg-slate-800 my-1"></div>
+                <a
+                  href="{{ url_for('logout') }}"
+                  class="flex items-center gap-2 px-3 py-1.5 text-rose-300 hover:bg-slate-800/80"
+                >
+                  <i class="fas fa-sign-out-alt text-[10px]"></i>
+                  <span>Logout</span>
+                </a>
+              </div>
+            </div>
+          {% else %}
+            {# Not logged in -> Login button #}
+            <a
+              href="{{ url_for('login') }}"
+              class="inline-flex items-center gap-2 text-[11px] font-semibold text-slate-950 bg-[#20c65a] hover:bg-[#1ab153] rounded-full px-4 py-1.5 transition-colors shadow-sm shadow-emerald-500/30"
+            >
+              <i class="fas fa-user text-xs"></i>
+              <span>Login</span>
+            </a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <main class="flex-1 py-6">
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- Footer with admin & portal links -->
+  <footer class="bg-slate-950 border-t border-slate-800/80">
+    <div class="max-w-6xl mx-auto px-4 py-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+      <p class="text-[11px] text-slate-500">
+        © {{ current_year if current_year is defined else "2026" }} FreshKart. All rights reserved.
+      </p>
+      <div class="flex items-center gap-3 text-[11px]">
+        <a
+          href="{{ url_for('admin_login') }}"
+          class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-slate-700 bg-slate-900/80 text-slate-300 hover:text-emerald-300 hover:border-emerald-500/60 transition-colors"
+        >
+          <i class="fas fa-user-shield text-[10px] text-emerald-300"></i>
+          <span>Admin login</span>
+        </a>
+        <a
+          href="{{ url_for('portal_login') }}"
+          class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-slate-700 bg-slate-900/80 text-slate-300 hover:text-sky-300 hover:border-sky-500/60 transition-colors"
+        >
+          <i class="fas fa-warehouse text-[10px] text-sky-300"></i>
+          <span>Vendor / Delivery portal</span>
+        </a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    function getCart() {
+      try {
+        return JSON.parse(localStorage.getItem("cart") || "[]");
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function saveCart(cart) {
+      localStorage.setItem("cart", JSON.stringify(cart));
+      updateCartBadge();
+      if (typeof updateCartButtons === "function") {
+        updateCartButtons();
+      }
+    }
+
+    function updateCartBadge() {
+      const cart = getCart();
+      const el = document.getElementById("cart-count");
+      if (el) {
+        const totalQty = cart.reduce((sum, item) => sum + Number(item.qty || 1), 0);
+        el.innerText = totalQty;
+      }
+    }
+
+    function addToCart(slug, name, price, image) {
+      let cart = getCart();
+      const index = cart.findIndex((item) => item.slug === slug);
+      const p = Number(price || 0);
+
+      if (index === -1) {
+        cart.push({ slug, name, price: p, image, qty: 1 });
+      } else {
+        cart[index].qty = Number(cart[index].qty || 1) + 1;
+      }
+
+      saveCart(cart);
+      alert(name + " added to cart!");
+    }
+
+    document.addEventListener("DOMContentLoaded", updateCartBadge);
+
+    // Simple dropdown toggle + outside click close
+    function toggleUserMenu() {
+      const dd = document.getElementById("user-dropdown");
+      if (!dd) return;
+      dd.classList.toggle("hidden");
+    }
+
+    document.addEventListener("click", (e) => {
+      const menu = document.getElementById("user-dropdown");
+      const wrapper = document.querySelector(".user-menu");
+      if (!menu || !wrapper) return;
+      if (!wrapper.contains(e.target)) {
+        menu.classList.add("hidden");
+      }
+    });
+  </script>
+</body>
+</html>

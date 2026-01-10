@@ -1,0 +1,229 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 py-8 space-y-6">
+
+  <!-- Header + search -->
+  <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+    <div>
+      <h1 class="text-2xl md:text-3xl font-bold text-slate-50 tracking-tight">
+        Cart · Products
+      </h1>
+      <p class="mt-1 text-sm text-slate-400">
+        Browse all items or filter by category and name.
+      </p>
+    </div>
+
+    <!-- Search box (live filter + backend submit) -->
+    <div class="w-full md:w-72">
+      <div class="relative">
+        <input
+          type="text"
+          id="product-search"
+          name="q"
+          value="{{ search }}"
+          placeholder="Search products..."
+          class="w-full pl-9 pr-3 py-2.5 text-xs md:text-sm rounded-xl bg-slate-900/70 border border-slate-700 text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/60 focus:border-emerald-500"
+          oninput="liveFilterProducts()"
+          onkeydown="if(event.key==='Enter'){event.preventDefault(); applySearchToUrl();}"
+        >
+        <span class="absolute inset-y-0 left-3 flex items-center text-slate-500 text-xs">
+          <i class="fas fa-search"></i>
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Category filter pills -->
+  <div class="flex flex-wrap gap-2 mt-1">
+    <!-- All pill -->
+    <a
+      href="{{ url_for('index') }}{% if search %}?q={{ search|urlencode }}{% endif %}"
+      class="inline-flex items-center px-3 py-1.5 rounded-full text-[11px] font-medium border transition-colors
+             {% if not selected_category %}
+               bg-emerald-500 text-white border-emerald-400
+             {% else %}
+               bg-slate-900/70 text-slate-200 border-slate-700 hover:bg-slate-800 hover:border-slate-500
+             {% endif %}"
+    >
+      <i class="fas fa-layer-group mr-1 text-[10px]"></i>
+      All
+    </a>
+
+    {% for c in categories %}
+    {% set url = url_for('index') ~ '?category=' ~ c|urlencode ~ (search and '&q=' ~ search|urlencode or '') %}
+    <a
+      href="{{ url }}"
+      class="inline-flex items-center px-3 py-1.5 rounded-full text-[11px] font-medium border transition-colors
+             {% if selected_category == c %}
+               bg-emerald-500 text-white border-emerald-400
+             {% else %}
+               bg-slate-900/70 text-slate-200 border-slate-700 hover:bg-slate-800 hover:border-slate-500
+             {% endif %}"
+    >
+      <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-1.5"></span>
+      {{ c }}
+    </a>
+    {% endfor %}
+  </div>
+
+  <!-- Products grid (bigger images, 2/3 columns) -->
+  {% if items %}
+    <div id="products-grid" class="grid grid-cols-2 md:grid-cols-3 gap-5 mt-4">
+      {% for p in items %}
+      <div
+        class="product-card group bg-slate-900/90 border border-slate-800 rounded-2xl overflow-hidden hover:-translate-y-1 hover:shadow-2xl transition-all duration-200"
+        data-name="{{ p.name|lower }}"
+      >
+        {% if p.image %}
+          <img
+            src="{{ p.image }}"
+            alt="{{ p.name }}"
+            class="w-full h-40 md:h-44 object-cover"
+          >
+        {% else %}
+          <div class="w-full h-40 md:h-44 bg-slate-800 flex items-center justify-center text-slate-500 text-[11px]">
+            No image
+          </div>
+        {% endif %}
+        <div class="p-3.5 space-y-1.5">
+          <h3 class="text-[13px] md:text-sm font-semibold text-slate-50 line-clamp-2">
+            {{ p.name }}
+          </h3>
+          <p class="text-[11px] text-slate-400">
+            {{ p.unit }} · <span class="text-emerald-300 font-medium">₹{{ "%.2f"|format(p.price) }}</span>
+          </p>
+
+          <!-- Blinkit-style cart control -->
+          <button
+            type="button"
+            class="cart-btn mt-1.5 w-full inline-flex items-center justify-center px-3 py-1.5 rounded-full text-[11px] font-medium bg-emerald-500 text-white hover:bg-emerald-400"
+            data-slug="{{ p.slug }}"
+            data-name="{{ p.name }}"
+            data-price="{{ p.price }}"
+            data-image="{{ p.image|default('', true) }}"
+            onclick="handleCartClick(this)"
+          >
+            <i class="fas fa-plus mr-1 text-[10px]"></i>
+            Add to cart
+          </button>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="mt-6 text-sm text-slate-400">
+      No products found. Try changing the search or category filter.
+    </p>
+  {% endif %}
+</div>
+
+<script>
+  // Apply search to URL on Enter (single request)
+  function applySearchToUrl() {
+    const input = document.getElementById("product-search");
+    if (!input) return;
+    const q = encodeURIComponent(input.value.trim());
+    const params = new URLSearchParams(window.location.search);
+    if (q) {
+      params.set("q", q);
+    } else {
+      params.delete("q");
+    }
+    const cat = params.get("category");
+    let url = "{{ url_for('index') }}";
+    const qs = params.toString();
+    if (qs) url += "?" + qs;
+    window.location.href = url;
+  }
+
+  // Live front-end filter
+  function liveFilterProducts() {
+    const input = document.getElementById("product-search");
+    if (!input) return;
+    const filter = input.value.trim().toLowerCase();
+    const cards = document.querySelectorAll(".product-card");
+
+    cards.forEach(card => {
+      const name = (card.dataset.name || "").toLowerCase();
+      if (!filter || name.includes(filter)) {
+        card.classList.remove("hidden");
+      } else {
+        card.classList.add("hidden");
+      }
+    });
+  }
+
+  // Cart UI helpers for + / - buttons
+  function handleCartClick(btn) {
+    const slug = btn.dataset.slug;
+    const name = btn.dataset.name;
+    const price = parseFloat(btn.dataset.price);
+    const image = btn.dataset.image || "";
+
+    let cart = getCart();
+    const index = cart.findIndex((item) => item.slug === slug);
+
+    if (index === -1) {
+      cart.push({ slug, name, price, image, qty: 1 });
+    } else {
+      cart[index].qty = (cart[index].qty || 1) + 1;
+    }
+
+    saveCart(cart);
+  }
+
+  function changeQty(slug, delta) {
+    let cart = getCart();
+    const index = cart.findIndex((item) => item.slug === slug);
+    if (index === -1) return;
+
+    cart[index].qty = (cart[index].qty || 1) + delta;
+    if (cart[index].qty <= 0) {
+      cart.splice(index, 1);
+    }
+    saveCart(cart);
+  }
+
+  function updateCartButtons() {
+    const cart = getCart();
+    const buttons = document.querySelectorAll(".cart-btn");
+
+    buttons.forEach((btn) => {
+      const slug = btn.dataset.slug;
+      const item = cart.find((i) => i.slug === slug);
+
+      if (!item) {
+        // Not in cart -> Add to cart
+        btn.className =
+          "cart-btn mt-1.5 w-full inline-flex items-center justify-center px-3 py-1.5 rounded-full text-[11px] font-medium bg-emerald-500 text-white hover:bg-emerald-400";
+        btn.innerHTML =
+          '<i class="fas fa-plus mr-1 text-[10px]"></i> Add to cart';
+      } else {
+        // In cart -> - qty +
+        btn.className =
+          "cart-btn mt-1.5 w-full inline-flex items-center justify-between px-3 py-1.5 rounded-full text-[11px] font-medium bg-slate-900 text-slate-100 border border-emerald-500";
+        btn.innerHTML = `
+          <button type="button"
+            class="w-6 h-6 rounded-md bg-slate-800 text-slate-100 flex items-center justify-center text-xs"
+            onclick="changeQty('${slug}', -1); event.stopPropagation();">
+            -
+          </button>
+          <span class="px-2 text-[11px]">
+            Qty: <span class="font-semibold text-emerald-300">${item.qty || 1}</span>
+          </span>
+          <button type="button"
+            class="w-6 h-6 rounded-md bg-emerald-500 text-white flex items-center justify-center text-xs"
+            onclick="changeQty('${slug}', 1); event.stopPropagation();">
+            +
+          </button>
+        `;
+      }
+    });
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    liveFilterProducts();
+    updateCartButtons();
+  });
+</script>
+{% endblock %}
