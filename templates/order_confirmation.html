@@ -42,7 +42,7 @@
         </div>
         <div class="flex justify-between items-center text-sm">
             <span class="font-bold text-slate-400 uppercase tracking-wider text-[11px]">Placed At</span>
-            <span class="font-black text-slate-800">{{ order.created_at.strftime('%d %b, %I:%M %p') }}</span>
+            <span class="font-black text-slate-800">{{ order.created_at|ist_time }}</span>
         </div>
         
         <div class="bg-slate-50 rounded-2xl p-5 border border-slate-100">
