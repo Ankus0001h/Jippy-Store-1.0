@@ -2,97 +2,84 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>FreshKart</title>
+  <title>FreshKart | Freshness Delivered</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <script src="https://cdn.tailwindcss.com"></script>
-  <link
-    rel="stylesheet"
-    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
-    integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA=="
-    crossorigin="anonymous"
-    referrerpolicy="no-referrer"
-  />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    /* Solid background, no transparency, always visible */
+    .nav-solid { background-color: #ffffff; }
+    .card-shadow { box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.04), 0 4px 12px -4px rgba(0, 0, 0, 0.03); }
+    .btn-gradient { background: linear-gradient(135deg, #10b981 0%, #84cc16 100%); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+    .btn-gradient:hover { transform: translateY(-1px); box-shadow: 0 12px 20px -8px rgba(16, 185, 129, 0.5); }
+    
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    .toast-animate { animation: slideIn 0.3s ease-out forwards; }
+  </style>
 </head>
-<body class="relative min-h-screen flex flex-col text-slate-100 bg-slate-950">
 
-  <!-- Navbar -->
-  <nav class="sticky top-0 z-20 bg-slate-950/90 border-b border-slate-800/80 backdrop-blur-sm">
-    <div class="max-w-6xl mx-auto px-3 sm:px-4">
-      <div class="flex items-center justify-between h-14">
-        <a href="{{ url_for('index') }}" class="flex items-center gap-2">
-          <div class="w-9 h-9 rounded-xl bg-[#20c65a] flex items-center justify-center text-slate-950 text-lg font-extrabold shadow-md shadow-emerald-500/40">
+<body class="relative min-h-screen flex flex-col text-slate-900 bg-[#f8fafc]">
+
+  <div class="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+    <div class="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] rounded-full bg-emerald-100/50 blur-[120px]"></div>
+    <div class="absolute top-[20%] -right-[5%] w-[30%] h-[30%] rounded-full bg-lime-100/40 blur-[100px]"></div>
+    <div class="absolute bottom-[10%] left-[20%] w-[25%] h-[25%] rounded-full bg-sky-100/50 blur-[90px]"></div>
+  </div>
+
+  <nav class="sticky top-0 z-50 nav-solid border-b border-slate-200 shadow-md">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        
+        <a href="{{ url_for('index') }}" class="group flex items-center gap-3 shrink-0">
+          <div class="w-10 h-10 rounded-xl btn-gradient flex items-center justify-center text-white text-xl font-black shadow-lg">
             F
           </div>
-          <div class="hidden sm:flex flex-col leading-tight">
-            <span class="font-semibold text-sm sm:text-base text-slate-50">FreshKart</span>
-            <span class="text-[10px] text-slate-400">Groceries in minutes</span>
+          <div class="flex flex-col leading-none">
+            <span class="font-extrabold text-lg tracking-tight text-slate-800">FreshKart</span>
+            <span class="text-[10px] font-medium text-emerald-600 uppercase tracking-widest">Express</span>
           </div>
         </a>
 
-        <div class="flex items-center gap-2 sm:gap-3">
-          <!-- Cart -->
-          <a
-            href="{{ url_for('cart_page') }}"
-            class="relative inline-flex items-center gap-1.5 text-[11px] font-medium text-slate-100 hover:text-emerald-300 bg-slate-900/90 hover:bg-slate-800/90 border border-slate-700 rounded-full pl-2.5 pr-3 py-1.5 transition-colors shadow-sm"
-          >
-            <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-[#20c65a] text-[11px] text-slate-950 font-semibold shadow-sm">
-              <i class="fas fa-shopping-cart"></i>
-            </span>
-            <span>Cart</span>
-            <span
-              id="cart-count"
-              class="absolute -top-1 -right-1 bg-[#20c65a] text-slate-950 text-[9px] px-1.5 py-0.5 rounded-full min-w-[16px] text-center border border-slate-950 font-semibold"
-            >
-              0
-            </span>
+        <div class="flex items-center gap-3 sm:gap-4">
+          <a href="{{ url_for('cart_page') }}" class="group relative flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-2xl px-3 py-2 hover:border-emerald-200 hover:bg-emerald-50/50 transition-all duration-300 card-shadow">
+            <div class="relative">
+              <i class="fas fa-shopping-basket text-slate-600 group-hover:text-emerald-500 transition-colors"></i>
+              <span id="cart-count" class="absolute -top-3 -right-3 bg-rose-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border-2 border-white">0</span>
+            </div>
+            <span class="hidden sm:block text-xs font-bold text-slate-700">Cart</span>
           </a>
 
-          {# If customer logged in -> name + dropdown #}
           {% if session.get('user_id') %}
             <div class="relative user-menu">
-              <button
-                type="button"
-                class="inline-flex items-center gap-2 text-[11px] font-semibold text-slate-100 bg-slate-900/90 hover:bg-slate-800/90 border border-slate-700 rounded-full px-3 py-1.5 transition-colors"
-                onclick="toggleUserMenu()"
-              >
-                <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-[#20c65a] text-[11px] text-slate-950 font-bold">
+              <button onclick="toggleUserMenu()" class="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-2xl p-1 pr-3 hover:bg-slate-100 transition-all card-shadow">
+                <div class="w-8 h-8 rounded-xl bg-white flex items-center justify-center text-emerald-600 font-bold border border-slate-200">
                   {{ session.get('user_name', 'U')[0] | upper }}
-                </span>
-                <span class="hidden sm:inline-block max-w-[80px] truncate">
-                  {{ session.get('user_name', 'User') }}
-                </span>
-                <i class="fas fa-chevron-down text-[9px] text-slate-400"></i>
+                </div>
+                <i class="fas fa-chevron-down text-[10px] text-slate-400"></i>
               </button>
 
-              <div
-                id="user-dropdown"
-                class="hidden absolute right-0 mt-1 w-40 rounded-xl border border-slate-800 bg-slate-950/95 shadow-lg shadow-black/40 py-1 text-[11px] z-30"
-              >
-                <a
-                  href="{{ url_for('my_orders') }}"
-                  class="flex items-center gap-2 px-3 py-1.5 text-slate-200 hover:bg-slate-800/80"
-                >
-                  <i class="fas fa-receipt text-[10px] text-emerald-300"></i>
-                  <span>My Orders</span>
+              <div id="user-dropdown" class="hidden absolute right-0 mt-3 w-48 bg-white border border-slate-200 rounded-2xl shadow-xl py-2 z-50 overflow-hidden">
+                <div class="px-4 py-2 border-b border-slate-50 mb-1">
+                    <p class="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Account</p>
+                    <p class="text-sm font-semibold truncate text-slate-700">{{ session.get('user_name') }}</p>
+                </div>
+                <a href="{{ url_for('my_orders') }}" class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-emerald-50 hover:text-emerald-600 transition-colors">
+                  <i class="fas fa-box-open text-emerald-500"></i> My Orders
                 </a>
-                <div class="h-px bg-slate-800 my-1"></div>
-                <a
-                  href="{{ url_for('logout') }}"
-                  class="flex items-center gap-2 px-3 py-1.5 text-rose-300 hover:bg-slate-800/80"
-                >
-                  <i class="fas fa-sign-out-alt text-[10px]"></i>
-                  <span>Logout</span>
+                <a href="{{ url_for('logout') }}" class="flex items-center gap-3 px-4 py-2.5 text-sm text-rose-500 hover:bg-rose-50 transition-colors">
+                  <i class="fas fa-power-off"></i> Logout
                 </a>
               </div>
             </div>
           {% else %}
-            {# Not logged in -> Login button #}
-            <a
-              href="{{ url_for('login') }}"
-              class="inline-flex items-center gap-2 text-[11px] font-semibold text-slate-950 bg-[#20c65a] hover:bg-[#1ab153] rounded-full px-4 py-1.5 transition-colors shadow-sm shadow-emerald-500/30"
-            >
-              <i class="fas fa-user text-xs"></i>
-              <span>Login</span>
+            <a href="{{ url_for('login') }}" class="btn-gradient text-white text-xs font-bold px-5 py-2.5 rounded-2xl shadow-emerald-200 flex items-center gap-2">
+              <i class="fas fa-user-circle text-sm"></i> <span>Login</span>
             </a>
           {% endif %}
         </div>
@@ -100,50 +87,50 @@
     </div>
   </nav>
 
-  <main class="flex-1 py-6">
+  <main class="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
     {% block content %}{% endblock %}
   </main>
 
-  <!-- Footer with admin & portal links -->
-  <footer class="bg-slate-950 border-t border-slate-800/80">
-    <div class="max-w-6xl mx-auto px-4 py-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-      <p class="text-[11px] text-slate-500">
-        © {{ current_year if current_year is defined else "2026" }} FreshKart. All rights reserved.
-      </p>
-      <div class="flex items-center gap-3 text-[11px]">
-        <a
-          href="{{ url_for('admin_login') }}"
-          class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-slate-700 bg-slate-900/80 text-slate-300 hover:text-emerald-300 hover:border-emerald-500/60 transition-colors"
-        >
-          <i class="fas fa-user-shield text-[10px] text-emerald-300"></i>
-          <span>Admin login</span>
-        </a>
-        <a
-          href="{{ url_for('portal_login') }}"
-          class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-slate-700 bg-slate-900/80 text-slate-300 hover:text-sky-300 hover:border-sky-500/60 transition-colors"
-        >
-          <i class="fas fa-warehouse text-[10px] text-sky-300"></i>
-          <span>Vendor / Delivery portal</span>
-        </a>
+  <div id="toast-container" class="fixed bottom-6 right-6 z-[100] flex flex-col gap-3"></div>
+
+  <footer class="bg-white border-t border-slate-200 pt-10 pb-6">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex flex-col md:flex-row justify-between items-center gap-6">
+        <div>
+          <div class="flex items-center gap-2 mb-2">
+            <div class="w-6 h-6 rounded-lg btn-gradient flex items-center justify-center text-white text-[10px] font-black">F</div>
+            <span class="font-bold text-slate-800">FreshKart</span>
+          </div>
+          <p class="text-xs text-slate-500">Quality groceries delivered to your doorstep in minutes.</p>
+        </div>
+        
+        <div class="flex flex-wrap justify-center gap-4">
+          <a href="{{ url_for('admin_login') }}" class="text-[11px] font-semibold text-slate-500 hover:text-emerald-600 px-4 py-2 bg-slate-50 rounded-xl transition-colors">
+            <i class="fas fa-user-shield mr-1.5"></i> Admin
+          </a>
+          <a href="{{ url_for('portal_login') }}" class="text-[11px] font-semibold text-slate-500 hover:text-sky-600 px-4 py-2 bg-slate-50 rounded-xl transition-colors">
+            <i class="fas fa-truck-fast mr-1.5"></i> Vendor Portal
+          </a>
+        </div>
+      </div>
+      <div class="mt-8 pt-6 border-t border-slate-100 text-center">
+        <p class="text-[11px] text-slate-400 font-medium">
+          © {{ current_year if current_year is defined else "2026" }} FreshKart Inc.
+        </p>
       </div>
     </div>
   </footer>
 
   <script>
     function getCart() {
-      try {
-        return JSON.parse(localStorage.getItem("cart") || "[]");
-      } catch (e) {
-        return [];
-      }
+      try { return JSON.parse(localStorage.getItem("cart") || "[]"); } 
+      catch (e) { return []; }
     }
 
     function saveCart(cart) {
       localStorage.setItem("cart", JSON.stringify(cart));
       updateCartBadge();
-      if (typeof updateCartButtons === "function") {
-        updateCartButtons();
-      }
+      if (typeof updateCartButtons === "function") updateCartButtons();
     }
 
     function updateCartBadge() {
@@ -152,41 +139,41 @@
       if (el) {
         const totalQty = cart.reduce((sum, item) => sum + Number(item.qty || 1), 0);
         el.innerText = totalQty;
+        el.classList.add('scale-125');
+        setTimeout(() => el.classList.remove('scale-125'), 200);
       }
     }
 
-    function addToCart(slug, name, price, image) {
-      let cart = getCart();
-      const index = cart.findIndex((item) => item.slug === slug);
-      const p = Number(price || 0);
-
-      if (index === -1) {
-        cart.push({ slug, name, price: p, image, qty: 1 });
-      } else {
-        cart[index].qty = Number(cart[index].qty || 1) + 1;
-      }
-
-      saveCart(cart);
-      alert(name + " added to cart!");
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      const icon = type === 'success' ? 'fa-check-circle' : 'fa-info-circle';
+      const color = type === 'success' ? 'text-emerald-500' : 'text-sky-500';
+      
+      toast.className = `toast-animate flex items-center gap-3 bg-white border border-slate-100 p-4 rounded-2xl shadow-2xl min-w-[280px] card-shadow`;
+      toast.innerHTML = `
+        <i class="fas ${icon} ${color} text-lg"></i>
+        <div class="flex-1">
+          <p class="text-sm font-bold text-slate-800">${message}</p>
+        </div>
+        <button onclick="this.parentElement.remove()" class="text-slate-300 hover:text-slate-500"><i class="fas fa-times"></i></button>
+      `;
+      
+      container.appendChild(toast);
+      setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 500); }, 3000);
     }
 
-    document.addEventListener("DOMContentLoaded", updateCartBadge);
-
-    // Simple dropdown toggle + outside click close
     function toggleUserMenu() {
-      const dd = document.getElementById("user-dropdown");
-      if (!dd) return;
-      dd.classList.toggle("hidden");
+      document.getElementById("user-dropdown").classList.toggle("hidden");
     }
 
-    document.addEventListener("click", (e) => {
+    window.addEventListener("click", (e) => {
       const menu = document.getElementById("user-dropdown");
       const wrapper = document.querySelector(".user-menu");
-      if (!menu || !wrapper) return;
-      if (!wrapper.contains(e.target)) {
-        menu.classList.add("hidden");
-      }
+      if (menu && wrapper && !wrapper.contains(e.target)) menu.classList.add("hidden");
     });
+
+    document.addEventListener("DOMContentLoaded", updateCartBadge);
   </script>
 </body>
 </html>
