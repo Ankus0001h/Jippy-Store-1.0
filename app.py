@@ -21,6 +21,8 @@ import cloudinary.uploader
 from flask_bcrypt import Bcrypt
 from flask_login import LoginManager, UserMixin, current_user
 import uuid
+import pytz
+IST = pytz.timezone("Asia/Kolkata")
 load_dotenv()
 
 app = Flask(__name__)
@@ -77,9 +79,20 @@ def slugify(text: str) -> str:
 
 def generate_order_id() -> str:
     # Example: FK-20250111-AB12CD34
-    date_part = datetime.datetime.utcnow().strftime("%Y%m%d")
+    # हमेशा UTC से date लो ताकि consistent रहे
+    date_part = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%d")
     random_part = uuid.uuid4().hex[:8].upper()
     return f"FK-{date_part}-{random_part}"
+
+
+@app.template_filter('ist_time')
+def ist_time_filter(dt):
+    if dt is None:
+        return ""
+    # अगर tzinfo नहीं है तो UTC मान लो
+    if dt.tzinfo is None:
+        dt = pytz.utc.localize(dt)
+    return dt.astimezone(IST).strftime('%d %b %Y, %I:%M %p')
 
 def send_otp(phone: str) -> str:
     v = twilio_client.verify.v2.services(verify_sid).verifications.create(
@@ -718,7 +731,9 @@ def register_verify():
                 "email": email,
                 "phone": phone,
                 "role": "customer",
-                "created_at": datetime.datetime.utcnow(),
+                "created_at": datetime.datetime.now(datetime.timezone.utc),
+
+
             }
             users.insert_one(doc)
             created = users.find_one({"phone": phone, "role": "customer"})
@@ -862,6 +877,7 @@ def checkout():
     cart = data.get("cart", [])
     user_phone = session.get("user_phone", "guest")
     user_name = session.get("user_name", "Guest")
+    user_id   = session.get("user_id")
 
     if not cart:
         return jsonify({"error": "Cart is empty"}), 400
@@ -900,6 +916,7 @@ def checkout():
     order_id = generate_order_id()
 
     order = {
+        "user_id": user_id,
         "order_id": order_id,
         "user_phone": user_phone,
         "user_name": user_name,
@@ -911,7 +928,8 @@ def checkout():
         "status": "pending",
         "payment_method": "COD",
         "address": address,
-        "created_at": datetime.datetime.utcnow(),
+        "created_at": datetime.datetime.now(datetime.timezone.utc),
+
     }
 
     # coords field add karo agar valid lat/lng aaye hon
@@ -960,11 +978,24 @@ def address_page():
 
 @app.route("/my-orders")
 def my_orders():
-    if not session.get("user_phone"):
+    # Agar user login nahi hai to login par bhejo
+    user_id = session.get("user_id")
+    user_phone = session.get("user_phone")
+
+    if not user_id and not user_phone:
         return redirect(url_for("login"))
-    user_phone = session["user_phone"]
-    orders_cursor = orders.find({"user_phone": user_phone}).sort("created_at", -1)
+
+    query = {}
+    # Pehle user_id se match karo (zyada reliable)
+    if user_id:
+        query["user_id"] = user_id
+    # Safety ke liye phone bhi include kar sakte ho (same number se purane orders)
+    if user_phone:
+        query["user_phone"] = user_phone
+
+    orders_cursor = orders.find(query).sort("created_at", -1)
     orders_list = list(orders_cursor)
+
     return render_template("my_orders.html", orders=orders_list)
 
 @app.route("/logout")
@@ -1206,3 +1237,4 @@ def portal_update_delivery_status(order_id):
 
 if __name__ == "__main__":
     app.run(debug=True)
+
