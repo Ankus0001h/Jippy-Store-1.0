@@ -10,7 +10,6 @@
   
   <style>
     body { font-family: 'Plus Jakarta Sans', sans-serif; }
-    /* Solid background, no transparency, always visible */
     .nav-solid { background-color: #ffffff; }
     .card-shadow { box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.04), 0 4px 12px -4px rgba(0, 0, 0, 0.03); }
     .btn-gradient { background: linear-gradient(135deg, #10b981 0%, #84cc16 100%); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
@@ -87,36 +86,28 @@
     </div>
   </nav>
 
-  <main class="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
+  <main class="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6">
     {% block content %}{% endblock %}
   </main>
 
   <div id="toast-container" class="fixed bottom-6 right-6 z-[100] flex flex-col gap-3"></div>
 
-  <footer class="bg-white border-t border-slate-200 pt-10 pb-6">
+  <footer class="bg-white border-t border-slate-200 py-3">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="flex flex-col md:flex-row justify-between items-center gap-6">
-        <div>
-          <div class="flex items-center gap-2 mb-2">
-            <div class="w-6 h-6 rounded-lg btn-gradient flex items-center justify-center text-white text-[10px] font-black">F</div>
-            <span class="font-bold text-slate-800">FreshKart</span>
-          </div>
-          <p class="text-xs text-slate-500">Quality groceries delivered to your doorstep in minutes.</p>
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
+        <div class="flex items-center gap-2">
+          <span class="font-bold text-slate-800 text-sm">FreshKart</span>
+          <span class="hidden sm:block w-px h-3 bg-slate-300"></span>
+          <p class="text-[11px] text-slate-500">Groceries delivered in minutes.</p>
         </div>
         
-        <div class="flex flex-wrap justify-center gap-4">
-          <a href="{{ url_for('admin_login') }}" class="text-[11px] font-semibold text-slate-500 hover:text-emerald-600 px-4 py-2 bg-slate-50 rounded-xl transition-colors">
-            <i class="fas fa-user-shield mr-1.5"></i> Admin
-          </a>
-          <a href="{{ url_for('portal_login') }}" class="text-[11px] font-semibold text-slate-500 hover:text-sky-600 px-4 py-2 bg-slate-50 rounded-xl transition-colors">
-            <i class="fas fa-truck-fast mr-1.5"></i> Vendor Portal
-          </a>
+        <div class="flex items-center gap-4">
+          <div class="flex gap-3">
+            <a href="{{ url_for('admin_login') }}" class="text-[10px] font-bold text-slate-400 hover:text-emerald-600 uppercase tracking-tighter transition-colors">Admin</a>
+            <a href="{{ url_for('portal_login') }}" class="text-[10px] font-bold text-slate-400 hover:text-sky-600 uppercase tracking-tighter transition-colors">Vendor</a>
+          </div>
+          <p class="text-[10px] text-slate-400 font-medium">© 2026 FreshKart Inc.</p>
         </div>
-      </div>
-      <div class="mt-8 pt-6 border-t border-slate-100 text-center">
-        <p class="text-[11px] text-slate-400 font-medium">
-          © {{ current_year if current_year is defined else "2026" }} FreshKart Inc.
-        </p>
       </div>
     </div>
   </footer>
