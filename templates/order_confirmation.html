@@ -1,57 +1,143 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="max-w-lg mx-auto px-4 py-8">
-  <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-lg shadow-emerald-500/10">
-    <div class="flex items-center gap-3 mb-4">
-      <div class="w-9 h-9 rounded-full bg-emerald-500/20 flex items-center justify-center">
-        <i class="fas fa-check text-emerald-400 text-sm"></i>
-      </div>
-      <div>
-        <h1 class="text-lg font-semibold text-slate-50">Order confirmed</h1>
-        <p class="text-[11px] text-slate-400">
-          Thank you for ordering from FreshKart.
-        </p>
-      </div>
-    </div>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
-    <div class="text-xs text-slate-300 space-y-1 mb-4">
-      <p>
-        <span class="text-slate-400">Order ID:</span>
-        <span class="font-mono text-emerald-300">{{ order.order_id }}</span>
-      </p>
-      <p>
-        <span class="text-slate-400">Payment:</span>
-        <span>Cash on delivery</span>
-      </p>
-      <p>
-        <span class="text-slate-400">Order received:</span>
-        <span>{{ order.created_at.strftime('%d %b %Y, %I:%M %p') }}</span>
-      </p>
-      <p>
-        <span class="text-slate-400">Status:</span>
-        <span class="text-emerald-300">Order confirmed</span>
-      </p>
+<div id="paytm-overlay" class="fixed inset-0 z-[100] bg-emerald-500 flex flex-col items-center justify-center transition-all duration-700">
+    <div class="relative">
+        <div class="absolute inset-0 bg-white/20 rounded-full animate-ping scale-150"></div>
+        <div class="relative w-32 h-32 bg-white rounded-full flex items-center justify-center shadow-2xl tick-pop">
+            <i class="fas fa-check text-6xl text-emerald-500"></i>
+        </div>
     </div>
-
-    <div class="border border-slate-800 rounded-xl p-3 mb-4">
-      <p class="text-[11px] text-slate-400 mb-1">Delivery address</p>
-      <p class="text-xs text-slate-200">
-        {{ order.address.line1 }}<br>
-        {{ order.address.line2 }}<br>
-        {{ order.address.city }} - {{ order.address.pincode }}<br>
-        Phone: {{ order.address.phone }}
-      </p>
-    </div>
-
-    <a
-      href="{{ url_for('index') }}"
-      class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl
-             text-sm font-semibold bg-[#20c65a] hover:bg-[#1ab153] text-slate-950
-             shadow-md shadow-emerald-500/30 transition-colors"
-    >
-      <i class="fas fa-arrow-left text-xs"></i>
-      <span>Back to home</span>
-    </a>
-  </div>
+    <h2 class="mt-8 text-2xl font-black text-white tracking-widest uppercase animate-bounce">Order Successful</h2>
 </div>
+
+<div id="main-content" class="fixed inset-0 z-[60] bg-[#f8fafc] flex flex-col items-center justify-start overflow-y-auto pt-12 pb-10 px-4 opacity-0 transition-opacity duration-1000">
+  
+  <div class="relative mb-6">
+    <div class="w-20 h-20 bg-emerald-500 rounded-full flex items-center justify-center shadow-xl border-4 border-white">
+      <i class="fas fa-check text-2xl text-white"></i>
+    </div>
+  </div>
+
+  <div class="text-center mb-8">
+    <h1 class="text-3xl font-black text-slate-900 tracking-tight leading-none mb-2">Order Confirmed!</h1>
+    <p class="text-sm font-bold text-emerald-600 uppercase tracking-[0.2em]">Transaction Successful</p>
+  </div>
+
+  <div class="w-full max-w-md bg-white border border-slate-100 rounded-[2.5rem] p-8 shadow-2xl shadow-slate-200/50 space-y-6">
+    
+    <div class="flex flex-col items-center justify-center border-b border-slate-50 pb-6 text-center">
+        <span class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">Total Amount</span>
+        <h2 class="text-4xl font-black text-slate-900 tracking-tighter">₹{{ "{:,.2f}".format(order.total) }}</h2>
+        <div class="mt-3 px-4 py-1.5 bg-emerald-50 text-emerald-700 rounded-full text-[10px] font-black uppercase tracking-widest border border-emerald-100">
+            Cash on Delivery
+        </div>
+    </div>
+
+    <div class="space-y-4 pt-2">
+        <div class="flex justify-between items-center text-sm">
+            <span class="font-bold text-slate-400 uppercase tracking-wider text-[11px]">Order ID</span>
+            <span class="font-black text-slate-800 font-mono tracking-tighter bg-slate-50 px-2 py-1 rounded">{{ order.order_id }}</span>
+        </div>
+        <div class="flex justify-between items-center text-sm">
+            <span class="font-bold text-slate-400 uppercase tracking-wider text-[11px]">Placed At</span>
+            <span class="font-black text-slate-800">{{ order.created_at.strftime('%d %b, %I:%M %p') }}</span>
+        </div>
+        
+        <div class="bg-slate-50 rounded-2xl p-5 border border-slate-100">
+            <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] mb-2 flex items-center gap-2">
+                <i class="fas fa-map-marker-alt text-emerald-500"></i> Delivery Address
+            </p>
+            <p class="text-xs font-bold text-slate-600 leading-relaxed">
+                {{ order.address.line1 }}, {{ order.address.line2 }}<br>
+                {{ order.address.city }} - {{ order.address.pincode }}
+            </p>
+        </div>
+    </div>
+
+    <div class="pt-2 space-y-3">
+        <a href="{{ url_for('my_orders') }}" class="w-full py-4.5 rounded-2xl bg-slate-900 text-white text-base font-black flex items-center justify-center gap-3 shadow-xl hover:bg-emerald-600 transition-all active:scale-95">
+            <i class="fas fa-truck-fast text-sm"></i>
+            <span>Track My Order</span>
+        </a>
+        <a href="{{ url_for('index') }}" class="w-full py-4.5 rounded-2xl bg-white border-2 border-slate-100 text-slate-500 text-sm font-black flex items-center justify-center gap-3 hover:bg-slate-50 transition-all">
+            <span>Go to Homepage</span>
+        </a>
+    </div>
+  </div>
+
+  <p class="mt-8 text-[11px] font-black text-slate-400 uppercase tracking-widest">
+    © 2026 FreshKart Express
+  </p>
+</div>
+
+<style>
+  body { overflow: hidden; }
+
+  /* Custom Padding for Buttons */
+  .py-4\.5 { padding-top: 1.125rem; padding-bottom: 1.125rem; }
+
+  @keyframes pop {
+    0% { transform: scale(0.5); opacity: 0; }
+    80% { transform: scale(1.1); }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  .tick-pop {
+    animation: pop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  }
+
+  /* Smooth reveal of background content */
+  .reveal-content {
+    opacity: 1 !important;
+  }
+
+  .hide-overlay {
+    opacity: 0;
+    pointer-events: none;
+    transform: scale(1.2);
+  }
+</style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const overlay = document.getElementById('paytm-overlay');
+    const mainContent = document.getElementById('main-content');
+
+    // 1. Logic for Transition: Overlay to Content
+    setTimeout(() => {
+        overlay.classList.add('hide-overlay');
+        mainContent.classList.add('reveal-content');
+        
+        // Trigger Confetti after overlay fades
+        setTimeout(fireConfetti, 300);
+    }, 2200); // 2.2 seconds par transition hoga
+
+    function fireConfetti() {
+        const duration = 3 * 1000;
+        const animationEnd = Date.now() + duration;
+        const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 200 };
+
+        function randomInRange(min, max) {
+            return Math.random() * (max - min) + min;
+        }
+
+        const interval = setInterval(function() {
+            const timeLeft = animationEnd - Date.now();
+            if (timeLeft <= 0) return clearInterval(interval);
+
+            const particleCount = 40 * (timeLeft / duration);
+            confetti(Object.assign({}, defaults, { 
+                particleCount, 
+                origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } 
+            }));
+            confetti(Object.assign({}, defaults, { 
+                particleCount, 
+                origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } 
+            }));
+        }, 250);
+    }
+  });
+</script>
 {% endblock %}
