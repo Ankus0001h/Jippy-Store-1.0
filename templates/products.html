@@ -1,229 +1,219 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="max-w-6xl mx-auto px-4 py-8 space-y-6">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-12">
 
-  <!-- Header + search -->
-  <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-    <div>
-      <h1 class="text-2xl md:text-3xl font-bold text-slate-50 tracking-tight">
-        Cart · Products
+  <div class="flex flex-col items-center text-center space-y-8 pt-4">
+    <div class="space-y-3">
+      <h1 class="text-4xl md:text-6xl font-black text-slate-900 tracking-tight leading-tight">
+        Daily <span class="text-emerald-600">Groceries</span> Delivered
       </h1>
-      <p class="mt-1 text-sm text-slate-400">
-        Browse all items or filter by category and name.
+      <p class="text-base md:text-xl text-slate-500 max-w-2xl mx-auto font-medium">
+        Shop fresh essentials, household items, and snacks from the comfort of your home.
       </p>
     </div>
 
-    <!-- Search box (live filter + backend submit) -->
-    <div class="w-full md:w-72">
-      <div class="relative">
-        <input
-          type="text"
-          id="product-search"
-          name="q"
-          value="{{ search }}"
-          placeholder="Search products..."
-          class="w-full pl-9 pr-3 py-2.5 text-xs md:text-sm rounded-xl bg-slate-900/70 border border-slate-700 text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/60 focus:border-emerald-500"
-          oninput="liveFilterProducts()"
-          onkeydown="if(event.key==='Enter'){event.preventDefault(); applySearchToUrl();}"
-        >
-        <span class="absolute inset-y-0 left-3 flex items-center text-slate-500 text-xs">
-          <i class="fas fa-search"></i>
-        </span>
+    <div class="w-full max-w-4xl px-2">
+      <div class="relative group">
+        <div class="absolute -inset-1 bg-emerald-500/10 rounded-3xl blur-lg opacity-0 group-focus-within:opacity-100 transition duration-500"></div>
+        
+        <div class="relative flex items-center bg-white border-2 border-slate-300 rounded-[1.5rem] shadow-sm transition-all duration-300 group-focus-within:border-slate-900 group-focus-within:shadow-xl">
+          <span class="pl-6 text-slate-400 group-focus-within:text-emerald-600 transition-colors">
+            <i class="fas fa-search text-xl"></i>
+          </span>
+          <input
+            type="text"
+            id="product-search"
+            name="q"
+            value="{{ search }}"
+            placeholder="Search for items (e.g. Milk, Bread, Apples...)"
+            class="w-full pl-4 pr-10 py-5 bg-transparent text-lg font-bold text-slate-800 placeholder-slate-400 outline-none"
+            oninput="liveFilterProducts()"
+            onkeydown="if(event.key==='Enter'){event.preventDefault(); applySearchToUrl();}"
+          >
+          <div class="hidden md:flex pr-6">
+            <span class="text-[10px] font-bold text-slate-300 border border-slate-200 px-2 py-1 rounded-md">SEARCH</span>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- Category filter pills -->
-  <div class="flex flex-wrap gap-2 mt-1">
-    <!-- All pill -->
-    <a
-      href="{{ url_for('index') }}{% if search %}?q={{ search|urlencode }}{% endif %}"
-      class="inline-flex items-center px-3 py-1.5 rounded-full text-[11px] font-medium border transition-colors
-             {% if not selected_category %}
-               bg-emerald-500 text-white border-emerald-400
-             {% else %}
-               bg-slate-900/70 text-slate-200 border-slate-700 hover:bg-slate-800 hover:border-slate-500
-             {% endif %}"
-    >
-      <i class="fas fa-layer-group mr-1 text-[10px]"></i>
-      All
-    </a>
+  <div class="space-y-6">
+    <div class="flex items-center gap-4">
+      <span class="text-xs font-black uppercase tracking-[0.2em] text-slate-400 whitespace-nowrap">Shop by Category</span>
+      <div class="h-px w-full bg-slate-200"></div>
+    </div>
+    
+    <div class="flex flex-wrap gap-3">
+      <a href="{{ url_for('index') }}{% if search %}?q={{ search|urlencode }}{% endif %}"
+        class="flex items-center px-8 py-3.5 rounded-2xl text-sm font-black transition-all border-2
+               {% if not selected_category %}
+                 bg-slate-900 text-white border-slate-900 shadow-lg scale-105
+               {% else %}
+                 bg-white text-slate-600 border-slate-100 hover:border-slate-300 hover:text-slate-900
+               {% endif %}"
+      >
+        All Items
+      </a>
 
-    {% for c in categories %}
-    {% set url = url_for('index') ~ '?category=' ~ c|urlencode ~ (search and '&q=' ~ search|urlencode or '') %}
-    <a
-      href="{{ url }}"
-      class="inline-flex items-center px-3 py-1.5 rounded-full text-[11px] font-medium border transition-colors
-             {% if selected_category == c %}
-               bg-emerald-500 text-white border-emerald-400
-             {% else %}
-               bg-slate-900/70 text-slate-200 border-slate-700 hover:bg-slate-800 hover:border-slate-500
-             {% endif %}"
-    >
-      <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-1.5"></span>
-      {{ c }}
-    </a>
-    {% endfor %}
+      {% for c in categories %}
+      <a href="{{ url_for('index') ~ '?category=' ~ c|urlencode ~ (search and '&q=' ~ search|urlencode or '') }}"
+        class="flex items-center px-8 py-3.5 rounded-2xl text-sm font-black transition-all border-2
+               {% if selected_category == c %}
+                 bg-emerald-600 text-white border-emerald-600 shadow-md scale-105
+               {% else %}
+                 bg-white text-slate-600 border-slate-100 hover:border-emerald-500 hover:text-emerald-600
+               {% endif %}"
+      >
+        {{ c }}
+      </a>
+      {% endfor %}
+    </div>
   </div>
 
-  <!-- Products grid (bigger images, 2/3 columns) -->
   {% if items %}
-    <div id="products-grid" class="grid grid-cols-2 md:grid-cols-3 gap-5 mt-4">
+    <div id="products-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 md:gap-8 mt-4">
       {% for p in items %}
       <div
-        class="product-card group bg-slate-900/90 border border-slate-800 rounded-2xl overflow-hidden hover:-translate-y-1 hover:shadow-2xl transition-all duration-200"
+        class="product-card group bg-white rounded-[2rem] border border-slate-100 p-3 transition-all duration-300 hover:shadow-2xl flex flex-col relative"
         data-name="{{ p.name|lower }}"
       >
-        {% if p.image %}
-          <img
-            src="{{ p.image }}"
-            alt="{{ p.name }}"
-            class="w-full h-40 md:h-44 object-cover"
-          >
-        {% else %}
-          <div class="w-full h-40 md:h-44 bg-slate-800 flex items-center justify-center text-slate-500 text-[11px]">
-            No image
+        <div class="relative overflow-hidden rounded-[1.5rem] bg-slate-50 aspect-square mb-4">
+          {% if p.image %}
+            <img src="{{ p.image }}" alt="{{ p.name }}" 
+                 class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110">
+          {% else %}
+            <div class="w-full h-full flex items-center justify-center text-slate-200">
+              <i class="fas fa-shopping-basket text-6xl"></i>
+            </div>
+          {% endif %}
+          
+          <div class="absolute top-3 right-3 bg-white/95 backdrop-blur px-3 py-1.5 rounded-xl text-slate-900 font-black text-base shadow-sm border border-slate-100">
+            ₹{{ "%.0f"|format(p.price) }}
           </div>
-        {% endif %}
-        <div class="p-3.5 space-y-1.5">
-          <h3 class="text-[13px] md:text-sm font-semibold text-slate-50 line-clamp-2">
-            {{ p.name }}
-          </h3>
-          <p class="text-[11px] text-slate-400">
-            {{ p.unit }} · <span class="text-emerald-300 font-medium">₹{{ "%.2f"|format(p.price) }}</span>
-          </p>
+        </div>
 
-          <!-- Blinkit-style cart control -->
-          <button
-            type="button"
-            class="cart-btn mt-1.5 w-full inline-flex items-center justify-center px-3 py-1.5 rounded-full text-[11px] font-medium bg-emerald-500 text-white hover:bg-emerald-400"
-            data-slug="{{ p.slug }}"
-            data-name="{{ p.name }}"
-            data-price="{{ p.price }}"
-            data-image="{{ p.image|default('', true) }}"
-            onclick="handleCartClick(this)"
-          >
-            <i class="fas fa-plus mr-1 text-[10px]"></i>
-            Add to cart
-          </button>
+        <div class="px-2 pb-2 flex flex-col flex-1">
+          <div class="mb-4">
+            <h3 class="text-lg font-black text-slate-800 leading-tight group-hover:text-emerald-600 transition-colors line-clamp-1">
+              {{ p.name }}
+            </h3>
+            <p class="text-xs font-bold text-slate-400 mt-1 uppercase tracking-tighter">{{ p.unit }}</p>
+          </div>
+
+          <div class="mt-auto">
+            <div class="cart-btn-wrapper" data-slug="{{ p.slug }}" data-name="{{ p.name }}" data-price="{{ p.price }}" data-image="{{ p.image|default('', true) }}">
+              <button type="button" 
+                      class="w-full py-4 rounded-2xl text-sm font-black bg-slate-100 text-slate-800 border border-slate-200 hover:bg-slate-900 hover:text-white transition-all duration-300 flex items-center justify-center gap-2"
+                      onclick="handleCartClick(this.parentElement)">
+                <i class="fas fa-plus-circle"></i> Add to Cart
+              </button>
+            </div>
+          </div>
         </div>
       </div>
       {% endfor %}
     </div>
   {% else %}
-    <p class="mt-6 text-sm text-slate-400">
-      No products found. Try changing the search or category filter.
-    </p>
+    <div class="flex flex-col items-center justify-center py-24 text-center bg-white rounded-[3rem] border border-slate-100">
+      <div class="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-6">
+        <i class="fas fa-search text-3xl text-slate-200"></i>
+      </div>
+      <h3 class="text-2xl font-black text-slate-800">No items found</h3>
+      <p class="text-slate-500 mt-2 max-w-xs">We couldn't find anything matching your search. Please try a different name.</p>
+      <a href="{{ url_for('index') }}" class="mt-6 text-emerald-600 font-bold hover:underline">Clear all filters</a>
+    </div>
   {% endif %}
 </div>
 
+<style>
+  /* Aesthetic scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+  
+  .line-clamp-1 {
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;  
+    overflow: hidden;
+  }
+</style>
+
 <script>
-  // Apply search to URL on Enter (single request)
   function applySearchToUrl() {
     const input = document.getElementById("product-search");
-    if (!input) return;
-    const q = encodeURIComponent(input.value.trim());
+    const q = input?.value.trim() || "";
     const params = new URLSearchParams(window.location.search);
-    if (q) {
-      params.set("q", q);
-    } else {
-      params.delete("q");
-    }
-    const cat = params.get("category");
-    let url = "{{ url_for('index') }}";
-    const qs = params.toString();
-    if (qs) url += "?" + qs;
-    window.location.href = url;
+    q ? params.set("q", q) : params.delete("q");
+    window.location.href = "{{ url_for('index') }}?" + params.toString();
   }
 
-  // Live front-end filter
   function liveFilterProducts() {
-    const input = document.getElementById("product-search");
-    if (!input) return;
-    const filter = input.value.trim().toLowerCase();
-    const cards = document.querySelectorAll(".product-card");
-
-    cards.forEach(card => {
-      const name = (card.dataset.name || "").toLowerCase();
-      if (!filter || name.includes(filter)) {
-        card.classList.remove("hidden");
-      } else {
-        card.classList.add("hidden");
-      }
+    const filter = document.getElementById("product-search").value.toLowerCase();
+    document.querySelectorAll(".product-card").forEach(card => {
+      card.style.display = card.dataset.name.includes(filter) ? "flex" : "none";
     });
   }
 
-  // Cart UI helpers for + / - buttons
-  function handleCartClick(btn) {
-    const slug = btn.dataset.slug;
-    const name = btn.dataset.name;
-    const price = parseFloat(btn.dataset.price);
-    const image = btn.dataset.image || "";
-
+  function handleCartClick(wrapper) {
+    const { slug, name, price, image } = wrapper.dataset;
     let cart = getCart();
-    const index = cart.findIndex((item) => item.slug === slug);
+    const index = cart.findIndex(i => i.slug === slug);
 
     if (index === -1) {
-      cart.push({ slug, name, price, image, qty: 1 });
+      cart.push({ slug, name, price: parseFloat(price), image, qty: 1 });
+      showToast(`${name} added!`, 'success');
     } else {
-      cart[index].qty = (cart[index].qty || 1) + 1;
+      cart[index].qty++;
     }
-
     saveCart(cart);
   }
 
-  function changeQty(slug, delta) {
+  function changeQty(slug, delta, event) {
+    event.stopPropagation();
     let cart = getCart();
-    const index = cart.findIndex((item) => item.slug === slug);
+    const index = cart.findIndex(i => i.slug === slug);
     if (index === -1) return;
 
-    cart[index].qty = (cart[index].qty || 1) + delta;
-    if (cart[index].qty <= 0) {
-      cart.splice(index, 1);
-    }
+    cart[index].qty += delta;
+    if (cart[index].qty <= 0) cart.splice(index, 1);
     saveCart(cart);
   }
 
   function updateCartButtons() {
     const cart = getCart();
-    const buttons = document.querySelectorAll(".cart-btn");
-
-    buttons.forEach((btn) => {
-      const slug = btn.dataset.slug;
-      const item = cart.find((i) => i.slug === slug);
+    document.querySelectorAll(".cart-btn-wrapper").forEach(wrapper => {
+      const { slug } = wrapper.dataset;
+      const item = cart.find(i => i.slug === slug);
 
       if (!item) {
-        // Not in cart -> Add to cart
-        btn.className =
-          "cart-btn mt-1.5 w-full inline-flex items-center justify-center px-3 py-1.5 rounded-full text-[11px] font-medium bg-emerald-500 text-white hover:bg-emerald-400";
-        btn.innerHTML =
-          '<i class="fas fa-plus mr-1 text-[10px]"></i> Add to cart';
+        wrapper.innerHTML = `
+          <button type="button" class="w-full py-4 rounded-2xl text-sm font-black bg-slate-900 text-white shadow-md hover:bg-emerald-600 transition-all duration-300" onclick="handleCartClick(this.parentElement)">
+            Add to Cart
+          </button>`;
       } else {
-        // In cart -> - qty +
-        btn.className =
-          "cart-btn mt-1.5 w-full inline-flex items-center justify-between px-3 py-1.5 rounded-full text-[11px] font-medium bg-slate-900 text-slate-100 border border-emerald-500";
-        btn.innerHTML = `
-          <button type="button"
-            class="w-6 h-6 rounded-md bg-slate-800 text-slate-100 flex items-center justify-center text-xs"
-            onclick="changeQty('${slug}', -1); event.stopPropagation();">
-            -
-          </button>
-          <span class="px-2 text-[11px]">
-            Qty: <span class="font-semibold text-emerald-300">${item.qty || 1}</span>
-          </span>
-          <button type="button"
-            class="w-6 h-6 rounded-md bg-emerald-500 text-white flex items-center justify-center text-xs"
-            onclick="changeQty('${slug}', 1); event.stopPropagation();">
-            +
-          </button>
-        `;
+        wrapper.innerHTML = `
+          <div class="flex items-center justify-between bg-emerald-600 p-1 rounded-2xl shadow-lg border border-emerald-500">
+            <button onclick="changeQty('${slug}', -1, event)" class="w-10 h-10 flex items-center justify-center rounded-xl bg-white/20 text-white hover:bg-white/40 transition-all">
+              <i class="fas fa-minus text-xs"></i>
+            </button>
+            <span class="text-white font-black text-lg">${item.qty}</span>
+            <button onclick="changeQty('${slug}', 1, event)" class="w-10 h-10 flex items-center justify-center rounded-xl bg-white/20 text-white hover:bg-white/40 transition-all">
+              <i class="fas fa-plus text-xs"></i>
+            </button>
+          </div>`;
       }
     });
   }
 
-  document.addEventListener("DOMContentLoaded", () => {
-    liveFilterProducts();
+  // Hook into global save function to trigger UI update
+  const originalSaveCart = window.saveCart;
+  window.saveCart = (cart) => {
+    originalSaveCart(cart);
     updateCartButtons();
-  });
+  };
+
+  document.addEventListener("DOMContentLoaded", updateCartButtons);
 </script>
 {% endblock %}
