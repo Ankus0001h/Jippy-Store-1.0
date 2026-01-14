@@ -4,8 +4,8 @@
   <div class="bg-white border-2 border-slate-100 rounded-[2rem] p-6 sm:p-8 shadow-2xl shadow-slate-200/60">
     
     <div class="text-center mb-6">
-      <div class="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto mb-3 border border-emerald-100 shadow-inner">
-        <i class="fas fa-shield-check text-emerald-600 text-2xl"></i>
+      <div class="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto mb-4 border-2 border-emerald-100 shadow-sm">
+        <i class="fas fa-shield-halved text-emerald-600 text-2xl animate-pulse"></i>
       </div>
       <h1 class="text-xl font-black text-slate-900 tracking-tight leading-none">Welcome Back</h1>
       <p class="text-[11px] font-bold text-slate-400 mt-2 uppercase tracking-wider">
@@ -52,7 +52,7 @@
             id="phone"
             name="phone"
             required
-            class="w-full pl-11 pr-4 py-3 rounded-2xl bg-slate-50 border-2 border-slate-300 text-sm font-black text-slate-800
+            class="w-full pl-11 pr-4 py-3.5 rounded-2xl bg-slate-50 border-2 border-slate-300 text-sm font-black text-slate-800
                    placeholder:text-slate-400 focus:outline-none focus:bg-white focus:border-emerald-600 focus:ring-4 focus:ring-emerald-500/10 transition-all"
             placeholder="10-digit mobile number"
             value="{{ session.get('login_phone', '') }}"
@@ -146,7 +146,7 @@
   input::-webkit-outer-spin-button,
   input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
   
-  /* Focus state highlighting */
+  /* Focus highlight */
   input:focus {
     transform: translateY(-2px);
   }
