@@ -21,12 +21,9 @@
           <input
             type="text"
             id="product-search"
-            name="q"
-            value="{{ search }}"
-            placeholder="Search milk, bread, snacks..."
+            placeholder="Search items..."
             class="w-full pl-3 pr-4 py-4 bg-transparent text-base font-bold text-slate-800 placeholder-slate-400 outline-none"
             oninput="liveFilterProducts()"
-            onkeydown="if(event.key==='Enter'){event.preventDefault(); applySearchToUrl();}"
           >
         </div>
       </div>
@@ -34,27 +31,16 @@
   </div>
 
   <div class="space-y-3">
-    <h3 class="text-xs font-black uppercase tracking-widest text-slate-400 px-1">Categories</h3>
     <div class="flex overflow-x-auto pb-4 scrollbar-hide gap-2 snap-x px-1 sm:px-0">
-      <a href="{{ url_for('index') }}{% if search %}?q={{ search|urlencode }}{% endif %}"
+      <a href="{{ url_for('index') }}"
         class="flex-none snap-start px-6 py-2.5 rounded-xl text-sm font-black transition-all border-2
-               {% if not selected_category %}
-                 bg-slate-900 text-white border-slate-900 shadow-lg
-               {% else %}
-                 bg-white text-slate-600 border-slate-100 hover:border-emerald-500
-               {% endif %}"
-      >
+               {% if not selected_category %} bg-slate-900 text-white border-slate-900 shadow-lg {% else %} bg-white text-slate-600 border-slate-100 hover:border-emerald-500 {% endif %}">
         All Items
       </a>
       {% for c in categories %}
-      <a href="{{ url_for('index') ~ '?category=' ~ c|urlencode ~ (search and '&q=' ~ search|urlencode or '') }}"
+      <a href="{{ url_for('index') ~ '?category=' ~ c|urlencode }}"
         class="flex-none snap-start px-6 py-2.5 rounded-xl text-sm font-black transition-all border-2
-               {% if selected_category == c %}
-                 bg-emerald-600 text-white border-emerald-600 shadow-lg
-               {% else %}
-                 bg-white text-slate-600 border-slate-100 hover:border-emerald-500
-               {% endif %}"
-      >
+               {% if selected_category == c %} bg-emerald-600 text-white border-emerald-600 shadow-lg {% else %} bg-white text-slate-600 border-slate-100 hover:border-emerald-500 {% endif %}">
         {{ c }}
       </a>
       {% endfor %}
@@ -68,7 +54,7 @@
         class="product-card group bg-white rounded-[2rem] border border-slate-100 p-3 sm:p-5 transition-all duration-300 shadow-sm hover:shadow-2xl flex flex-col relative active:scale-95 sm:active:scale-100"
         data-name="{{ p.name|lower }}"
       >
-        <div class="relative overflow-hidden rounded-[1.5rem] bg-slate-50 aspect-square mb-4">
+        <div class="relative overflow-hidden rounded-[1.5rem] bg-slate-50 aspect-square mb-2">
           {% if p.image %}
             <img src="{{ p.image }}" alt="{{ p.name }}" 
                  class="w-full h-full object-cover transition-transform duration-500 lg:group-hover:scale-110">
@@ -80,23 +66,22 @@
         </div>
 
         <div class="px-1 flex flex-col flex-1">
-          <div class="mb-3">
-            <h3 class="text-base sm:text-lg lg:text-xl font-bold text-slate-800 leading-tight line-clamp-2 min-h-[2.8rem] group-hover:text-emerald-600 transition-colors">
+          <div class="space-y-0"> <h3 class="text-base sm:text-lg lg:text-xl font-bold text-slate-800 leading-[1.2] line-clamp-1 group-hover:text-emerald-600 transition-colors">
               {{ p.name }}
             </h3>
-            <p class="text-xs sm:text-sm font-bold text-slate-400 mt-1 uppercase tracking-tighter">{{ p.unit }}</p>
+            <p class="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-tighter leading-none py-1">
+              {{ p.unit }}
+            </p>
           </div>
 
-          <div class="flex items-center justify-between mb-4">
-            <div class="flex flex-col">
+          <div class="flex items-center justify-between mb-2">
               <span class="text-xl sm:text-2xl font-black text-slate-900 tracking-tighter">₹{{ "%.0f"|format(p.price) }}</span>
-            </div>
           </div>
 
           <div class="mt-auto">
             <div class="cart-btn-wrapper" data-slug="{{ p.slug }}" data-name="{{ p.name }}" data-price="{{ p.price }}" data-image="{{ p.image|default('', true) }}">
               <button type="button" 
-                      class="w-full py-3.5 sm:py-4 rounded-2xl text-xs sm:text-sm font-black bg-slate-900 text-white shadow-lg active:bg-emerald-600 transition-all flex items-center justify-center gap-2"
+                      class="w-full py-3 rounded-2xl text-xs sm:text-sm font-black bg-slate-900 text-white shadow-lg active:bg-emerald-600 transition-all flex items-center justify-center gap-2"
                       onclick="handleCartClick(this.parentElement)">
                 <i class="fas fa-plus"></i> ADD TO CART
               </button>
@@ -110,7 +95,6 @@
     <div class="flex flex-col items-center justify-center py-24 text-center">
       <i class="fas fa-search text-3xl text-slate-200 mb-4"></i>
       <h3 class="text-xl font-black text-slate-800 tracking-tight">No items found</h3>
-      <p class="text-sm text-slate-500 mt-1 px-4">Try searching for something else or browse categories.</p>
     </div>
   {% endif %}
 </div>
@@ -119,10 +103,10 @@
   .scrollbar-hide::-webkit-scrollbar { display: none; }
   .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 
-  /* Better clamping for wider titles */
-  .line-clamp-2 {
+  /* Tight clamping */
+  .line-clamp-1 {
     display: -webkit-box;
-    -webkit-line-clamp: 2;
+    -webkit-line-clamp: 1;
     -webkit-box-orient: vertical;  
     overflow: hidden;
   }
@@ -148,7 +132,6 @@
     const { slug, name, price, image } = wrapper.dataset;
     let cart = getCart();
     const index = cart.findIndex(i => i.slug === slug);
-
     if (index === -1) {
       cart.push({ slug, name, price: parseFloat(price), image, qty: 1 });
       if (typeof showToast === 'function') showToast(`${name} added!`, 'success');
@@ -163,7 +146,6 @@
     let cart = getCart();
     const index = cart.findIndex(i => i.slug === slug);
     if (index === -1) return;
-
     cart[index].qty += delta;
     if (cart[index].qty <= 0) cart.splice(index, 1);
     saveCart(cart);
@@ -174,10 +156,9 @@
     document.querySelectorAll(".cart-btn-wrapper").forEach(wrapper => {
       const { slug } = wrapper.dataset;
       const item = cart.find(i => i.slug === slug);
-
       if (!item) {
         wrapper.innerHTML = `
-          <button type="button" class="w-full py-3.5 sm:py-4 rounded-2xl text-xs sm:text-sm font-black bg-slate-900 text-white shadow-lg active:bg-emerald-600 transition-all" onclick="handleCartClick(this.parentElement)">
+          <button type="button" class="w-full py-3 rounded-2xl text-xs sm:text-sm font-black bg-slate-900 text-white shadow-lg active:bg-emerald-600 transition-all" onclick="handleCartClick(this.parentElement)">
             ADD TO CART
           </button>`;
       } else {
@@ -200,7 +181,6 @@
     originalSaveCart(cart);
     updateCartButtons();
   };
-
   document.addEventListener("DOMContentLoaded", updateCartButtons);
 </script>
 {% endblock %}
