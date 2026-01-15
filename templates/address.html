@@ -1,0 +1,244 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-3xl mx-auto px-2 sm:px-4 py-6 sm:py-10 animate-fade-in">
+  
+  <div class="bg-white border-2 border-slate-100 rounded-[2rem] sm:rounded-[3rem] p-5 sm:p-10 shadow-2xl shadow-slate-200/50">
+    
+    <div class="mb-8 text-center sm:text-left">
+      <div class="flex items-center justify-center sm:justify-start gap-4 mb-3">
+        <div class="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600 border border-emerald-100 shadow-sm">
+          <i class="fas fa-map-location-dot text-xl"></i>
+        </div>
+        <h1 class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Delivery Address</h1>
+      </div>
+      <p class="text-xs sm:text-sm font-bold text-slate-400 uppercase tracking-widest leading-relaxed">
+        Verify your location for lightning-fast delivery
+      </p>
+    </div>
+
+    <div id="addr-alert" class="hidden mb-6 text-sm font-black px-5 py-4 rounded-2xl bg-rose-50 text-rose-600 border border-rose-100 animate-pulse text-center"></div>
+
+    <form id="address-form" class="space-y-6 sm:space-y-8">
+      
+      <div class="bg-slate-50 rounded-[2rem] p-5 sm:p-8 border-2 border-slate-100 space-y-4 shadow-inner">
+        <div class="flex items-center justify-between gap-2">
+          <label class="text-[11px] sm:text-xs font-black uppercase tracking-widest text-slate-500">
+            GPS Pinpoint <span class="text-rose-500 font-black">*</span>
+          </label>
+          <button
+            type="button"
+            id="use-location-btn"
+            class="inline-flex items-center gap-2 text-xs font-black px-5 py-2.5 rounded-full bg-emerald-500 text-white shadow-lg shadow-emerald-100 hover:bg-emerald-600 active:scale-95 transition-all"
+          >
+            <i class="fas fa-crosshairs"></i>
+            <span id="use-location-text">Find me</span>
+          </button>
+        </div>
+
+        <div class="space-y-4">
+          <input
+            type="text"
+            id="location-line"
+            class="w-full px-5 py-4 rounded-2xl bg-white border-2 border-slate-200 text-sm sm:text-base font-bold text-slate-800 focus:outline-none focus:border-emerald-500 transition-all shadow-sm"
+            placeholder="Waiting for GPS..."
+            required
+            readonly
+          />
+
+          <div class="grid grid-cols-2 gap-4">
+            <div class="space-y-1">
+              <label class="text-[10px] font-black text-slate-400 ml-2">Latitude</label>
+              <input type="text" id="lat" class="w-full px-4 py-3 rounded-xl bg-slate-100/50 border border-slate-200 text-xs font-bold text-slate-500 outline-none" placeholder="0.000" readonly />
+            </div>
+            <div class="space-y-1">
+              <label class="text-[10px] font-black text-slate-400 ml-2">Longitude</label>
+              <input type="text" id="lng" class="w-full px-4 py-3 rounded-xl bg-slate-100/50 border border-slate-200 text-xs font-bold text-slate-500 outline-none" placeholder="0.000" readonly />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+        <div class="space-y-2">
+          <label class="text-[11px] font-black uppercase tracking-widest text-slate-400 ml-2">Delivery Phone</label>
+          <input type="tel" id="delivery-phone" class="w-full px-6 py-4 rounded-2xl bg-slate-50 border-2 border-slate-100 text-sm font-black text-slate-400 cursor-not-allowed" value="{{ session.get('user_phone', '') }}" readonly />
+        </div>
+
+        <div class="space-y-2">
+          <label class="text-[11px] font-black uppercase tracking-widest text-slate-400 ml-2">Alternate Phone</label>
+          <div class="relative group">
+            <span class="absolute left-5 top-1/2 -translate-y-1/2 text-xs font-black text-slate-400">+91</span>
+            <input type="tel" id="alt-phone" maxlength="10" inputmode="numeric" class="w-full pl-14 pr-6 py-4 rounded-2xl bg-white border-2 border-slate-200 text-sm sm:text-base font-bold text-slate-800 focus:outline-none focus:border-emerald-500 transition-all shadow-sm" placeholder="Optional" />
+          </div>
+        </div>
+      </div>
+
+      <div class="space-y-5">
+        <div class="space-y-2">
+          <label class="text-[11px] font-black uppercase tracking-widest text-slate-500 ml-2">Full Address Details <span class="text-rose-500">*</span></label>
+          <input type="text" id="addr-line1" class="w-full px-6 py-4 rounded-2xl bg-white border-2 border-slate-200 text-sm sm:text-base font-bold text-slate-800 focus:outline-none focus:border-emerald-500 transition-all shadow-sm mb-4" placeholder="Flat No., House Name, Floor" required />
+          <input type="text" id="addr-line2" class="w-full px-6 py-4 rounded-2xl bg-white border-2 border-slate-200 text-sm sm:text-base font-bold text-slate-800 focus:outline-none focus:border-emerald-500 transition-all shadow-sm" placeholder="Street, Area, Locality" required />
+        </div>
+
+        <div class="grid grid-cols-2 gap-5">
+          <input type="text" id="addr-city" class="w-full px-6 py-4 rounded-2xl bg-white border-2 border-slate-200 text-sm sm:text-base font-bold text-slate-800 focus:outline-none focus:border-emerald-500 transition-all shadow-sm" placeholder="City" required />
+          <input type="text" id="addr-pincode" maxlength="6" inputmode="numeric" class="w-full px-6 py-4 rounded-2xl bg-white border-2 border-slate-200 text-sm sm:text-base font-bold text-slate-800 focus:outline-none focus:border-emerald-500 transition-all shadow-sm" placeholder="PIN Code" required />
+        </div>
+      </div>
+
+      <div class="bg-emerald-50 rounded-[2rem] p-6 border-2 border-emerald-100/50 flex items-center justify-between shadow-sm">
+        <div class="flex items-center gap-4">
+          <div class="w-14 h-14 rounded-2xl bg-white flex items-center justify-center text-emerald-500 shadow-md border border-emerald-100">
+            <i class="fas fa-hand-holding-dollar text-2xl"></i>
+          </div>
+          <div>
+            <span class="block text-base font-black text-slate-900 leading-none mb-1">Cash on Delivery</span>
+            <span class="block text-xs font-bold text-slate-500">Pay via Cash/UPI at doorstep</span>
+          </div>
+        </div>
+        <input type="radio" checked class="w-6 h-6 accent-emerald-500" />
+      </div>
+
+      <button
+        type="submit"
+        id="place-order-btn"
+        class="w-full py-5 rounded-[2rem] text-xl font-black bg-slate-900 text-white shadow-2xl shadow-slate-300 hover:bg-emerald-600 active:scale-95 transition-all flex items-center justify-center gap-4 group"
+      >
+        <span id="place-order-text">Place Order</span>
+        <i class="fas fa-paper-plane text-sm group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform"></i>
+      </button>
+    </form>
+  </div>
+</div>
+
+<style>
+  input:focus { transform: scale(1.01); }
+  @keyframes fade-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  .animate-fade-in { animation: fade-in 0.5s ease-out forwards; }
+</style>
+
+<script>
+  const locBtn   = document.getElementById("use-location-btn");
+  const locText  = document.getElementById("use-location-text");
+  const locInput = document.getElementById("location-line");
+  const latInput = document.getElementById("lat");
+  const lngInput = document.getElementById("lng");
+  const alertBox = document.getElementById("addr-alert");
+
+  function showAlert(msg) {
+    if (!alertBox) return;
+    alertBox.textContent = msg;
+    alertBox.classList.remove("hidden");
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function setLocationFromPosition(pos) {
+    const lat = pos.coords.latitude.toFixed(6);
+    const lng = pos.coords.longitude.toFixed(6);
+    latInput.value = lat;
+    lngInput.value = lng;
+    locInput.value = `📍 GPS Location: ${lat}, ${lng}`;
+    locBtn.classList.remove("bg-emerald-500");
+    locBtn.classList.add("bg-slate-900");
+    locText.textContent = "Detected";
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => setLocationFromPosition(pos),
+        (err) => { locInput.placeholder = "Please tap 'Find me'"; },
+        { enableHighAccuracy: true, timeout: 8000 }
+      );
+    }
+  });
+
+  locBtn.addEventListener("click", () => {
+    locBtn.disabled = true;
+    locText.textContent = "Searching...";
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLocationFromPosition(pos);
+        locBtn.disabled = false;
+      },
+      (err) => {
+        showAlert("Please enable GPS/Location permissions.");
+        locBtn.disabled = false;
+        locText.textContent = "Find me";
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  });
+
+  const addressForm = document.getElementById("address-form");
+  if (addressForm) {
+    let isSubmitting = false;
+
+    addressForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (isSubmitting) return;  // hard block multiple submits
+
+      const btn = document.getElementById("place-order-btn");
+      const textSpan = document.getElementById("place-order-text");
+
+      const address = {
+        phone: document.getElementById("delivery-phone").value,
+        alt_phone: document.getElementById("alt-phone").value ? "+91" + document.getElementById("alt-phone").value : null,
+        line1: document.getElementById("addr-line1").value.trim(),
+        line2: document.getElementById("addr-line2").value.trim(),
+        city: document.getElementById("addr-city").value.trim(),
+        pincode: document.getElementById("addr-pincode").value.trim(),
+        location_text: locInput.value,
+        lat: latInput.value,
+        lng: lngInput.value
+      };
+
+      if (!address.lat || !address.lng) {
+        showAlert("GPS Pinpoint is mandatory for delivery.");
+        return;
+      }
+
+      let cart = JSON.parse(localStorage.getItem("cart") || "[]");
+      if (!cart.length) {
+        showAlert("Cart is empty.");
+        return;
+      }
+
+      try {
+        isSubmitting = true;
+        if (btn) {
+          btn.disabled = true;
+          btn.classList.add("cursor-not-allowed", "opacity-70");
+        }
+        if (textSpan) textSpan.textContent = "Finalizing...";
+
+        const resp = await fetch("{{ url_for('checkout') }}", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ cart, address, lat: address.lat, lng: address.lng })
+        });
+        const data = await resp.json();
+        if (resp.ok) {
+          localStorage.removeItem("cart");
+          // yahan se direct redirect, button enable karne ki zarurat nahi
+          window.location.href = "{{ url_for('order_confirmation') }}?order_id=" + data.order_id;
+        } else {
+          showAlert(data.error || "Unable to place order.");
+        }
+      } catch (err) {
+        showAlert("Error placing order. Try again.");
+      } finally {
+        // agar error hua to hi dobara submit allow kare
+        if (!window.location.href.includes("order_confirmation")) {
+          isSubmitting = false;
+          if (btn) {
+            btn.disabled = false;
+            btn.classList.remove("cursor-not-allowed", "opacity-70");
+          }
+          if (textSpan) textSpan.textContent = "Place Order";
+        }
+      }
+    });
+  }
+</script>
+{% endblock %}

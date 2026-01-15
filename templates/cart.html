@@ -1,0 +1,339 @@
+{% extends "base.html" %}
+{% block content %}
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+<div class="max-w-3xl mx-auto px-4 py-8 space-y-6">
+  <div class="flex items-center justify-between mb-2">
+    <h1 class="text-2xl font-black text-slate-900 tracking-tight">Your Basket</h1>
+    <span
+      id="items-count-badge"
+      class="bg-slate-900 text-white text-[10px] font-bold px-2 py-1 rounded-lg uppercase tracking-wider"
+    >
+      0 Items
+    </span>
+  </div>
+
+  <!-- Empty state -->
+  <div
+    id="cart-empty"
+    class="hidden bg-white border border-slate-100 rounded-[2rem] p-12 text-center shadow-sm"
+  >
+    <div class="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
+      <i class="fas fa-shopping-basket text-slate-300 text-3xl"></i>
+    </div>
+    <h3 class="text-lg font-bold text-slate-800">Your cart is empty</h3>
+    <p class="text-sm text-slate-500 mb-6">
+      Looks like you haven't added anything yet.
+    </p>
+    <a
+      href="{{ url_for('index') }}"
+      class="inline-flex items-center px-6 py-3 bg-emerald-500 text-white font-bold rounded-2xl hover:bg-emerald-600 transition-all"
+    >
+      Start Shopping
+    </a>
+  </div>
+
+  <!-- Cart -->
+  <div id="cart-container" class="space-y-6 hidden">
+    <!-- Delivery goal -->
+    <div
+      id="delivery-card"
+      class="bg-white border border-slate-100 rounded-3xl p-5 shadow-sm space-y-3 relative overflow-hidden transition-all duration-500"
+    >
+      <div class="flex justify-between items-end">
+        <div class="text-sm font-bold text-slate-800 uppercase tracking-tighter">
+          Delivery Goal
+        </div>
+        <div id="delivery-status-amount" class="text-xs font-black text-emerald-600"></div>
+      </div>
+      <div class="w-full h-3 bg-slate-100 rounded-full overflow-hidden relative border border-slate-50">
+        <div
+          id="delivery-progress-bar"
+          class="h-full bg-gradient-to-r from-emerald-400 to-emerald-600 transition-all duration-1000 ease-out"
+          style="width: 0%"
+        ></div>
+      </div>
+      <div
+        id="delivery-hint"
+        class="text-[11px] font-medium text-slate-500 flex items-center gap-1.5 transition-all duration-300"
+      >
+        <i class="fas fa-truck text-emerald-500"></i>
+        <span>Add more for free delivery</span>
+      </div>
+    </div>
+
+    <!-- Items list -->
+    <div id="cart-items" class="space-y-3"></div>
+
+    <!-- Order summary -->
+    <div class="bg-white border border-slate-100 rounded-[2.5rem] p-6 shadow-sm space-y-4">
+      <h3 class="text-xs font-black uppercase tracking-[0.2em] text-slate-400">
+        Order Summary
+      </h3>
+
+      <div class="space-y-3">
+        <div class="flex items-center justify-between text-sm">
+          <span class="text-slate-500 font-medium">Items Total</span>
+          <span id="cart-items-total" class="font-bold text-slate-800">₹0.00</span>
+        </div>
+
+        <div class="flex items-center justify-between text-sm">
+          <span class="text-slate-500 font-medium">Platform Fee</span>
+          <span class="font-bold text-slate-800">₹{{ platform_fee }}.00</span>
+        </div>
+
+        <div class="flex items-center justify-between text-sm">
+          <span class="text-slate-500 font-medium">Delivery Fee</span>
+          <div class="flex items-center gap-2">
+            <span
+              id="delivery-fee-strike"
+              class="text-slate-300 line-through hidden text-xs"
+            ></span>
+            <span id="delivery-fee" class="font-bold text-slate-800">₹0.00</span>
+          </div>
+        </div>
+
+        <div class="h-px bg-slate-100 my-2"></div>
+
+        <div class="flex items-center justify-between">
+          <span class="text-base font-black text-slate-900">Total Payable</span>
+          <span id="cart-total" class="text-xl font-black text-emerald-600">₹0.00</span>
+        </div>
+      </div>
+
+      <button
+        id="checkout-btn"
+        type="button"
+        onclick="checkoutCart()"
+        class="w-full py-4 rounded-2xl text-base font-black text-white transition-all shadow-lg flex items-center justify-center gap-3 transition-all duration-500
+          {% if is_logged_in %}
+            bg-slate-900 hover:bg-emerald-600 shadow-slate-200
+          {% else %}
+            bg-slate-400 cursor-not-allowed
+          {% endif %}"
+        {% if not is_logged_in %}disabled{% endif %}
+      >
+        {% if is_logged_in %}
+          <span>Proceed to Checkout</span>
+          <i class="fas fa-chevron-right text-xs"></i>
+        {% else %}
+          <i class="fas fa-lock text-xs"></i>
+          <span>Login to Checkout</span>
+        {% endif %}
+      </button>
+    </div>
+  </div>
+</div>
+
+<style>
+  @keyframes pulse-emerald {
+    0% {
+      box-shadow: 0 0 0 0px rgba(16, 185, 129, 0.4);
+    }
+    70% {
+      box-shadow: 0 0 0 15px rgba(16, 185, 129, 0);
+    }
+    100% {
+      box-shadow: 0 0 0 0px rgba(16, 185, 129, 0);
+    }
+  }
+  .free-delivery-active {
+    border-color: #10b981 !important;
+    background-color: #f0fdf4 !important;
+  }
+  .checkout-ready {
+    background-color: #059669 !important;
+    animation: pulse-emerald 2s infinite;
+  }
+</style>
+
+<script>
+  const IS_LOGGED_IN = {{ 'true' if is_logged_in else 'false' }};
+  const PLATFORM_FEE = {{ platform_fee }};
+  const FREE_DELIVERY_THRESHOLD = {{ free_delivery_threshold }};
+  const DELIVERY_FEE = {{ delivery_fee }};
+  let confettiFired = false;
+
+  function triggerFlowerBurst() {
+    const end = Date.now() + 2 * 1000;
+    const colors = ["#10b981", "#34d399", "#fbbf24", "#ffffff", "#84cc16"];
+
+    (function frame() {
+      confetti({
+        particleCount: 4,
+        angle: 60,
+        spread: 60,
+        origin: { x: 0, y: 0.7 },
+        colors,
+      });
+      confetti({
+        particleCount: 4,
+        angle: 120,
+        spread: 60,
+        origin: { x: 1, y: 0.7 },
+        colors,
+      });
+      if (Date.now() < end) requestAnimationFrame(frame);
+    })();
+
+    setTimeout(() => {
+      confetti({
+        particleCount: 120,
+        spread: 100,
+        origin: { y: 0.6 },
+        colors,
+        scalar: 1.2,
+      });
+    }, 200);
+  }
+
+  function changeQty(slug, delta) {
+    let cart = getCart();
+    const index = cart.findIndex((item) => item.slug === slug);
+    if (index === -1) return;
+
+    const currentQty = Number(cart[index].qty || 1);
+    const newQty = currentQty + delta;
+
+    if (newQty <= 0) {
+      cart.splice(index, 1);
+    } else {
+      cart[index].qty = newQty;
+    }
+
+    const newSubtotal = cart.reduce((sum, i) => sum + i.price * i.qty, 0);
+    if (newSubtotal < FREE_DELIVERY_THRESHOLD) confettiFired = false;
+
+    saveCart(cart);
+    renderCartPage();
+  }
+
+  function renderCartPage() {
+    const cart = getCart();
+    const emptyEl = document.getElementById("cart-empty");
+    const containerEl = document.getElementById("cart-container");
+    const itemsEl = document.getElementById("cart-items");
+    const itemsTotalEl = document.getElementById("cart-items-total");
+    const totalEl = document.getElementById("cart-total");
+    const deliveryFeeEl = document.getElementById("delivery-fee");
+    const deliveryFeeStrike = document.getElementById("delivery-fee-strike");
+    const progressBar = document.getElementById("delivery-progress-bar");
+    const hintText = document.getElementById("delivery-hint");
+    const deliveryCard = document.getElementById("delivery-card");
+    const checkoutBtn = document.getElementById("checkout-btn");
+
+    if (!emptyEl || !containerEl || !itemsEl || !totalEl) return;
+
+    if (!cart.length) {
+      emptyEl.classList.remove("hidden");
+      containerEl.classList.add("hidden");
+      document.getElementById("items-count-badge").innerText = "0 Items";
+      return;
+    }
+
+    emptyEl.classList.add("hidden");
+    containerEl.classList.remove("hidden");
+    itemsEl.innerHTML = "";
+
+    const totalQty = cart.reduce((sum, item) => sum + Number(item.qty), 0);
+    document.getElementById("items-count-badge").innerText =
+      totalQty + " Item" + (totalQty > 1 ? "s" : "");
+
+    let subtotal = 0;
+
+    cart.forEach((item) => {
+      const qty = Number(item.qty || 1);
+      const price = Number(item.price || 0);
+      const unit = item.unit || "";
+      subtotal += price * qty;
+
+      const itemCard = document.createElement("div");
+      itemCard.className =
+        "flex items-center justify-between bg-white border border-slate-100 rounded-2xl p-4 shadow-sm";
+      itemCard.innerHTML = `
+        <div class="flex items-center gap-4">
+          <div class="w-14 h-14 bg-slate-50 rounded-xl overflow-hidden p-1 border border-slate-100">
+            <img src="${item.image || ""}" class="w-full h-full object-contain"
+                 onerror="this.src='https://placehold.co/100?text=Groceries'">
+          </div>
+          <div class="flex flex-col">
+            <h4 class="text-sm font-black text-slate-800 leading-tight line-clamp-1">
+              ${item.name}
+            </h4>
+            <p class="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-tighter leading-none py-1">
+              ${unit}
+            </p>
+            <div class="flex items-center gap-2 mt-1">
+              <span class="text-[11px] font-bold text-emerald-600">
+                ₹${price.toFixed(2)}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center bg-slate-100 rounded-xl p-1 border border-slate-200 shadow-inner">
+          <button
+            onclick="changeQty('${item.slug}', -1)"
+            class="w-8 h-8 rounded-lg bg-white text-slate-800 shadow-sm flex items-center justify-center hover:text-rose-500 transition-all"
+          >
+            <i class="fas fa-minus text-[8px]"></i>
+          </button>
+          <div class="flex flex-col items-center px-3 min-w-[32px]">
+            <span class="text-[11px] font-black text-slate-900 leading-none">${qty}</span>
+          </div>
+          <button
+            onclick="changeQty('${item.slug}', 1)"
+            class="w-8 h-8 rounded-lg bg-slate-900 text-white shadow-sm flex items-center justify-center hover:bg-emerald-500 transition-all"
+          >
+            <i class="fas fa-plus text-[8px]"></i>
+          </button>
+        </div>
+      `;
+      itemsEl.appendChild(itemCard);
+    });
+
+    itemsTotalEl.innerText = "₹" + subtotal.toFixed(2);
+    let progress = (subtotal / FREE_DELIVERY_THRESHOLD) * 100;
+    progressBar.style.width = Math.min(progress, 100) + "%";
+
+    if (subtotal >= FREE_DELIVERY_THRESHOLD) {
+      if (!confettiFired) {
+        triggerFlowerBurst();
+        confettiFired = true;
+      }
+      deliveryFeeEl.innerText = "FREE";
+      deliveryFeeEl.className = "font-black text-emerald-600 text-sm";
+      deliveryFeeStrike.innerText = "₹" + DELIVERY_FEE.toFixed(2);
+      deliveryFeeStrike.classList.remove("hidden");
+      hintText.innerHTML =
+        '<i class="fas fa-sparkles text-amber-500 animate-pulse"></i> <span class="text-emerald-600 font-black">YAY! FREE DELIVERY UNLOCKED</span>';
+      deliveryCard.classList.add("free-delivery-active");
+      if (IS_LOGGED_IN) checkoutBtn.classList.add("checkout-ready");
+      totalEl.innerText = "₹" + (subtotal + PLATFORM_FEE).toFixed(2);
+    } else {
+      const remaining = FREE_DELIVERY_THRESHOLD - subtotal;
+      deliveryFeeEl.innerText = "₹" + DELIVERY_FEE.toFixed(2);
+      deliveryFeeEl.className = "font-bold text-slate-800";
+      deliveryFeeStrike.classList.add("hidden");
+      hintText.innerHTML =
+        `<i class="fas fa-truck text-emerald-500"></i> Add <b>₹${remaining.toFixed(
+          0
+        )}</b> for Free Delivery`;
+      deliveryCard.classList.remove("free-delivery-active");
+      checkoutBtn.classList.remove("checkout-ready");
+      totalEl.innerText = "₹" + (subtotal + PLATFORM_FEE + DELIVERY_FEE).toFixed(2);
+    }
+  }
+
+  function checkoutCart() {
+    if (!getCart().length) return;
+    if (!IS_LOGGED_IN) {
+      window.location.href = "{{ url_for('login') }}";
+      return;
+    }
+    window.location.href = "{{ url_for('address_page') }}";
+  }
+
+  document.addEventListener("DOMContentLoaded", renderCartPage);
+</script>
+{% endblock %}
