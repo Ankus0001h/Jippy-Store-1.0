@@ -1,0 +1,241 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-md mx-auto px-4 py-10 sm:py-16 animate-fade-in">
+  <div class="bg-white border-2 border-slate-100 rounded-[2.5rem] p-6 sm:p-8 shadow-2xl shadow-slate-200/60">
+    
+    <div class="text-center mb-6">
+      <div class="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto mb-3 border border-emerald-100 shadow-inner">
+        <i class="fas fa-user-plus text-emerald-600 text-2xl"></i>
+      </div>
+      <h1 class="text-xl font-black text-slate-900 tracking-tight leading-none">Create Account</h1>
+      <p class="text-[11px] font-bold text-slate-400 mt-2 uppercase tracking-wider">
+        Join the FreshKart family
+      </p>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div id="flash-messages" class="space-y-2 mb-6">
+          {% for category, msg in messages %}
+            <div class="text-[11px] font-black px-4 py-2.5 rounded-xl flex items-center gap-2
+                        {% if category == 'success' %}
+                          bg-emerald-50 text-emerald-700 border border-emerald-200
+                        {% else %}
+                          bg-rose-50 text-rose-700 border border-rose-200
+                        {% endif %}">
+              <i class="fas {% if category == 'success' %}fa-check-circle{% else %}fa-exclamation-circle{% endif %} text-xs"></i>
+              {{ msg }}
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    {# STEP 1: Registration form #}
+    <form
+      method="post"
+      action="{{ url_for('register') }}"
+      class="space-y-3.5"
+      id="reg-form"
+      {% if step != 'form' %}style="display:none"{% endif %}
+    >
+      <input type="hidden" name="action" value="send_otp" />
+
+      <div class="space-y-1">
+        <label for="name" class="text-[10px] font-black uppercase tracking-[0.1em] text-slate-500 ml-1">Full Name</label>
+        <input
+          type="text"
+          id="name"
+          name="name"
+          required
+          class="w-full px-4 py-3 rounded-2xl bg-slate-50 border-2 border-slate-200 text-sm font-bold text-slate-800
+                 placeholder:text-slate-400 focus:outline-none focus:bg-white focus:border-emerald-500 transition-all"
+          placeholder="Enter your name"
+          value="{{ session.get('reg_name', '') }}"
+        />
+      </div>
+
+      <div class="space-y-1">
+        <label for="email" class="text-[10px] font-black uppercase tracking-[0.1em] text-slate-500 ml-1">Email <span class="text-slate-300 font-bold">(Optional)</span></label>
+        <input
+          type="email"
+          id="email"
+          name="email"
+          class="w-full px-4 py-3 rounded-2xl bg-slate-50 border-2 border-slate-200 text-sm font-bold text-slate-800
+                 placeholder:text-slate-400 focus:outline-none focus:bg-white focus:border-emerald-500 transition-all"
+          placeholder="yourname@gmail.com"
+          value="{{ session.get('reg_email', '') }}"
+        />
+      </div>
+
+      <div class="space-y-1">
+        <label for="phone" class="text-[10px] font-black uppercase tracking-[0.1em] text-slate-500 ml-1">Phone Number</label>
+        <div class="relative group">
+          <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-emerald-500">
+            <i class="fas fa-mobile-alt"></i>
+          </span>
+          <input
+            type="tel"
+            id="phone"
+            name="phone"
+            required
+            class="w-full pl-10 pr-4 py-3 rounded-2xl bg-slate-50 border-2 border-slate-200 text-sm font-bold text-slate-800
+                   placeholder:text-slate-400 focus:outline-none focus:bg-white focus:border-emerald-500 transition-all"
+            placeholder="10-digit mobile"
+            value="{{ session.get('reg_phone', '') }}"
+          />
+        </div>
+      </div>
+
+      <button
+        type="submit"
+        id="reg-send-btn"
+        class="w-full inline-flex items-center justify-center gap-2 py-3.5 rounded-2xl
+               text-sm font-black bg-slate-900 hover:bg-emerald-600 text-white
+               shadow-xl transition-all active:scale-[0.97] mt-2"
+      >
+        <span>Get Verification Code</span>
+        <i class="fas fa-arrow-right text-xs"></i>
+      </button>
+
+      <div class="pt-2 text-center">
+        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-tight">
+          Already have an account? 
+          <a href="{{ url_for('login') }}" class="text-emerald-600 hover:text-emerald-700 font-black decoration-2 underline-offset-4 hover:underline">
+            Login Now
+          </a>
+        </p>
+      </div>
+    </form>
+
+    {# STEP 2: OTP verify #}
+    <form
+      method="post"
+      action="{{ url_for('register_verify') }}"
+      class="space-y-6"
+      id="otp-form"
+      {% if step != 'verify' %}style="display:none"{% endif %}
+    >
+      <div class="text-center bg-emerald-50/50 p-4 rounded-2xl border border-emerald-100/50">
+        <p class="text-[10px] font-black uppercase tracking-widest text-emerald-600 leading-none mb-1">Enter OTP sent to</p>
+        <p class="text-sm font-black text-slate-800 tracking-wider leading-none">{{ session.get('reg_phone', '') }}</p>
+      </div>
+
+      <div class="flex items-center justify-between gap-1.5 px-0.5">
+        {% for i in range(1,7) %}
+          <input
+            type="text"
+            name="code{{ i }}"
+            maxlength="1"
+            pattern="[0-9]"
+            inputmode="numeric"
+            class="w-10 h-12 sm:w-12 sm:h-14 text-center text-xl font-black rounded-xl bg-white
+                   border-2 border-slate-300 text-slate-900 focus:outline-none 
+                   focus:border-emerald-500 transition-all shadow-sm"
+          />
+        {% endfor %}
+      </div>
+
+      <button
+        type="submit"
+        id="reg-verify-btn"
+        class="w-full inline-flex items-center justify-center gap-2 py-3.5 rounded-2xl
+               text-sm font-black bg-emerald-600 hover:bg-emerald-700 text-white
+               shadow-xl transition-all active:scale-[0.97]"
+      >
+        <i class="fas fa-check-circle"></i>
+        <span>Complete Registration</span>
+      </button>
+
+      <div class="flex items-center justify-between px-1">
+        <div class="flex items-center">
+            <form method="post" action="{{ url_for('register_resend') }}" id="resend-form">
+              <button
+                type="submit"
+                id="resend-btn"
+                class="text-[11px] font-black uppercase tracking-wider text-emerald-600 hover:text-emerald-700 disabled:text-slate-300 disabled:cursor-not-allowed transition-colors"
+              >
+                Resend OTP
+              </button>
+            </form>
+            <span id="resend-timer" class="text-[10px] font-black text-slate-400 ml-1"></span>
+        </div>
+
+        <button type="button" onclick="goBackToForm()" class="text-[11px] font-black uppercase tracking-wider text-slate-400 hover:text-slate-600 transition-colors flex items-center gap-1">
+          <i class="fas fa-edit text-[9px]"></i> Edit Details
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<style>
+  input::-webkit-outer-spin-button,
+  input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
+</style>
+
+<script>
+  function goBackToForm() {
+    document.getElementById('otp-form').style.display = 'none';
+    document.getElementById('reg-form').style.display = 'block';
+    const flashMsgs = document.getElementById('flash-messages');
+    if(flashMsgs) flashMsgs.style.display = 'none';
+  }
+
+  // OTP Auto-focus
+  const otpInputs = document.querySelectorAll('#otp-form input[type="text"]');
+  otpInputs.forEach((input, idx) => {
+    input.addEventListener("input", (e) => {
+      if (e.target.value && idx < otpInputs.length - 1) {
+        otpInputs[idx + 1].focus();
+      }
+    });
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Backspace" && !e.target.value && idx > 0) {
+        otpInputs[idx - 1].focus();
+      }
+    });
+  });
+
+  // Loading States
+  function handleButtonState(formId, btnId, loadingText) {
+    const form = document.getElementById(formId);
+    if (form) {
+      form.addEventListener("submit", () => {
+        const btn = document.getElementById(btnId);
+        btn.disabled = true;
+        btn.innerHTML = `<i class="fas fa-circle-notch fa-spin mr-2"></i> ${loadingText}`;
+      });
+    }
+  }
+
+  handleButtonState("reg-form", "reg-send-btn", "Sending...");
+  handleButtonState("otp-form", "reg-verify-btn", "Creating Account...");
+
+  // Timer logic
+  const stepVal = "{{ step }}";
+  if (stepVal === "verify") {
+    const resendBtn = document.getElementById("resend-btn");
+    const timerEl = document.getElementById("resend-timer");
+    let remaining = 60;
+    function tick() {
+      if (remaining <= 0) {
+        resendBtn.disabled = false;
+        timerEl.textContent = "";
+        return;
+      }
+      resendBtn.disabled = true;
+      timerEl.textContent = `[${remaining}s]`;
+      remaining -= 1;
+      setTimeout(tick, 1000);
+    }
+    tick();
+  }
+</script>
+{% endblock %}

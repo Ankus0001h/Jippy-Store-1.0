@@ -1,0 +1,315 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-6xl mx-auto px-2 sm:px-6 lg:px-8 py-4 sm:py-8 space-y-6 sm:space-y-8">
+
+  <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6 px-1">
+    <div class="space-y-1">
+      <h1 class="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight leading-tight min-h-[1.2em]">
+        <span id="typewriter-daily" class="text-slate-900"></span><span id="typewriter-essentials" class="text-emerald-600"></span><span id="cursor" class="animate-pulse font-light text-emerald-600">|</span>
+      </h1>
+      <p class="text-sm sm:text-base font-medium text-slate-500">
+        Groceries delivered in <span class="text-slate-900 font-bold">15-30 mins.</span>
+      </p>
+    </div>
+
+    <div class="w-full lg:w-[450px]">
+      <div class="relative group">
+        <div class="relative flex items-center bg-white border-2 border-slate-100 rounded-2xl shadow-sm group-focus-within:border-emerald-500 transition-all">
+          <span class="pl-4 text-slate-400">
+            <i class="fas fa-search"></i>
+          </span>
+          <input
+            type="text"
+            id="product-search"
+            placeholder="Search items..."
+            class="w-full pl-3 pr-4 py-4 bg-transparent text-base font-bold text-slate-800 placeholder-slate-400 outline-none"
+            autocomplete="off"
+          >
+          <!-- Typeahead dropdown -->
+          <div
+            id="product-suggestions"
+            class="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-2xl shadow-lg max-h-64 overflow-y-auto text-sm hidden z-20"
+          ></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="space-y-3">
+    <div class="flex overflow-x-auto pb-4 scrollbar-hide gap-2 snap-x px-1 sm:px-0">
+      <a href="{{ url_for('index') }}"
+        class="flex-none snap-start px-6 py-2.5 rounded-xl text-sm font-black transition-all border-2
+               {% if not selected_category %} bg-slate-900 text-white border-slate-900 shadow-lg {% else %} bg-white text-slate-600 border-slate-100 hover:border-emerald-500 {% endif %}">
+        All Items
+      </a>
+      {% for c in categories %}
+      <a href="{{ url_for('index') ~ '?category=' ~ c|urlencode }}"
+        class="flex-none snap-start px-6 py-2.5 rounded-xl text-sm font-black transition-all border-2
+               {% if selected_category == c %} bg-emerald-600 text-white border-emerald-600 shadow-lg {% else %} bg-white text-slate-600 border-slate-100 hover:border-emerald-500 {% endif %}">
+        {{ c }}
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+
+  {% if items %}
+    <div id="products-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-3 sm:gap-6 lg:gap-8">
+      {% for p in items %}
+      {% set is_oos = p.out_of_stock %}
+      <div
+        class="product-card group bg-white rounded-[2rem] border border-slate-100 p-3 sm:p-5 transition-all duration-300 shadow-sm hover:shadow-2xl flex flex-col relative active:scale-95 sm:active:scale-100"
+        data-name="{{ p.name|lower }}"
+      >
+        <div class="relative overflow-hidden rounded-[1.5rem] bg-slate-50 aspect-square mb-2">
+          {% if p.image %}
+            <img src="{{ p.image }}" alt="{{ p.name }}"
+                 class="w-full h-full object-cover transition-transform duration-500 lg:group-hover:scale-110
+                        {% if is_oos %} opacity-60 grayscale {% endif %}">
+          {% else %}
+            <div class="w-full h-full flex items-center justify-center text-slate-200">
+              <i class="fas fa-shopping-basket text-6xl"></i>
+            </div>
+          {% endif %}
+
+          {% if is_oos %}
+            <div class="absolute inset-0 bg-white/40"></div>
+            <span class="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-rose-600 text-white text-[10px] font-black uppercase tracking-[0.16em] shadow">
+              Out of stock
+            </span>
+          {% endif %}
+        </div>
+
+        <div class="px-1 flex flex-col flex-1">
+          <div class="space-y-0">
+            <h3 class="text-base sm:text-lg lg:text-xl font-bold text-slate-800 leading-[1.2] line-clamp-1 group-hover:text-emerald-600 transition-colors">
+              {{ p.name }}
+            </h3>
+            <p class="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-tighter leading-none py-1">
+              {{ p.unit }}
+            </p>
+          </div>
+
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xl sm:text-2xl font-black text-slate-900 tracking-tighter">
+              ₹{{ "%.0f"|format(p.price) }}
+            </span>
+          </div>
+
+          <div class="mt-auto">
+            <div
+              class="cart-btn-wrapper"
+              data-slug="{{ p.slug }}"
+              data-name="{{ p.name }}"
+              data-price="{{ p.price }}"
+              data-image="{{ p.image|default('', true) }}"
+              data-unit="{{ p.unit }}"
+            >
+              {% if is_oos %}
+                <button
+                  type="button"
+                  class="w-full py-3 rounded-2xl text-xs sm:text-sm font-black bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed"
+                  disabled
+                >
+                  Not available
+                </button>
+              {% else %}
+                <button
+                  type="button"
+                  class="w-full py-3 rounded-2xl text-xs sm:text-sm font-black bg-slate-900 text-white shadow-lg active:bg-emerald-600 transition-all flex items-center justify-center gap-2"
+                  onclick="handleCartClick(this.parentElement)"
+                >
+                  <i class="fas fa-plus"></i> ADD TO CART
+                </button>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="flex flex-col items-center justify-center py-24 text-center">
+      <i class="fas fa-search text-3xl text-slate-200 mb-4"></i>
+      <h3 class="text-xl font-black text-slate-800 tracking-tight">No items found</h3>
+    </div>
+  {% endif %}
+</div>
+
+<style>
+  .scrollbar-hide::-webkit-scrollbar { display: none; }
+  .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+  .line-clamp-1 {
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+</style>
+
+<script>
+  // --- Typewriter Animation Logic ---
+  const part1 = "Daily ";
+  const part2 = "Essentials";
+  const target1 = document.getElementById("typewriter-daily");
+  const target2 = document.getElementById("typewriter-essentials");
+  const cursor = document.getElementById("cursor");
+  
+  let i = 0;
+  let j = 0;
+
+  function typeEffect() {
+    if (i < part1.length) {
+      target1.innerHTML += part1.charAt(i);
+      i++;
+      setTimeout(typeEffect, 120);
+    } else if (j < part2.length) {
+      target2.innerHTML += part2.charAt(j);
+      j++;
+      setTimeout(typeEffect, 120);
+    }
+  }
+
+  // --- Search + typeahead ---
+  const searchInput   = document.getElementById("product-search");
+  const suggestBox    = document.getElementById("product-suggestions");
+  const productCards  = Array.from(document.querySelectorAll(".product-card"));
+  const nameMap       = productCards.map(card => card.dataset.name || "");
+
+  function liveFilterProducts() {
+    const filter = (searchInput.value || "").toLowerCase().trim();
+    productCards.forEach(card => {
+      card.style.display = card.dataset.name.includes(filter) ? "flex" : "none";
+    });
+  }
+
+  function updateSuggestions() {
+    const q = (searchInput.value || "").toLowerCase().trim();
+    suggestBox.innerHTML = "";
+    if (!q) {
+      suggestBox.classList.add("hidden");
+      liveFilterProducts();
+      return;
+    }
+
+    // unique matches, startswith + contains fallback, max 8
+    const starts = nameMap.filter(n => n.startsWith(q));
+    const contains = nameMap.filter(n => !n.startsWith(q) && n.includes(q));
+    const merged = Array.from(new Set([...starts, ...contains])).slice(0, 8);
+
+    if (!merged.length) {
+      suggestBox.classList.add("hidden");
+      liveFilterProducts();
+      return;
+    }
+
+    merged.forEach(name => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "w-full text-left px-3 py-2 text-[13px] hover:bg-slate-50";
+      const safeName = name.replace(/</g,"&lt;").replace(/>/g,"&gt;");
+      const idx = safeName.indexOf(q);
+      if (idx >= 0) {
+        btn.innerHTML =
+          safeName.slice(0, idx) +
+          '<span class="font-bold text-slate-900">' +
+          safeName.slice(idx, idx + q.length) +
+          "</span>" +
+          safeName.slice(idx + q.length);
+      } else {
+        btn.textContent = safeName;
+      }
+      btn.addEventListener("click", () => {
+        searchInput.value = name;
+        suggestBox.classList.add("hidden");
+        liveFilterProducts();
+      });
+      suggestBox.appendChild(btn);
+    });
+
+    suggestBox.classList.remove("hidden");
+    liveFilterProducts();
+  }
+
+  searchInput?.addEventListener("input", () => {
+    updateSuggestions();
+  });
+
+  document.addEventListener("click", (e) => {
+    if (!suggestBox.contains(e.target) && e.target !== searchInput) {
+      suggestBox.classList.add("hidden");
+    }
+  });
+
+  function handleCartClick(wrapper) {
+    const { slug, name, price, image, unit } = wrapper.dataset;
+    let cart = getCart();
+    const index = cart.findIndex(i => i.slug === slug);
+
+    if (index === -1) {
+      cart.push({
+        slug, name, price: parseFloat(price), image, unit: unit || "", qty: 1,
+      });
+      if (typeof showToast === "function") showToast(`${name} added!`, "success");
+    } else {
+      cart[index].qty++;
+    }
+    saveCart(cart);
+  }
+
+  function changeQty(slug, delta, event) {
+    event.stopPropagation();
+    let cart = getCart();
+    const index = cart.findIndex(i => i.slug === slug);
+    if (index === -1) return;
+    cart[index].qty += delta;
+    if (cart[index].qty <= 0) cart.splice(index, 1);
+    saveCart(cart);
+  }
+
+  function updateCartButtons() {
+    const cart = getCart();
+    document.querySelectorAll(".cart-btn-wrapper").forEach(wrapper => {
+      const { slug } = wrapper.dataset;
+      const card = wrapper.closest('.product-card');
+      const isOos = card && card.querySelector('.bg-rose-600');
+      const item = cart.find(i => i.slug === slug);
+
+      if (isOos) return;
+
+      if (!item) {
+        wrapper.innerHTML = `
+          <button type="button"
+                  class="w-full py-3 rounded-2xl text-xs sm:text-sm font-black bg-slate-900 text-white shadow-lg active:bg-emerald-600 transition-all"
+                  onclick="handleCartClick(this.parentElement)">
+            ADD TO CART
+          </button>`;
+      } else {
+        wrapper.innerHTML = `
+          <div class="flex items-center justify-between bg-emerald-600 p-1 rounded-2xl shadow-lg">
+            <button onclick="changeQty('${slug}', -1, event)"
+                    class="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center rounded-xl bg-white/20 text-white active:bg-white/40">
+              <i class="fas fa-minus text-[10px]"></i>
+            </button>
+            <span class="text-white font-black text-base sm:text-lg">${item.qty}</span>
+            <button onclick="changeQty('${slug}', 1, event)"
+                    class="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center rounded-xl bg-white/20 text-white active:bg-white/40">
+              <i class="fas fa-plus text-[10px]"></i>
+            </button>
+          </div>`;
+      }
+    });
+  }
+
+  const originalSaveCart = window.saveCart;
+  window.saveCart = (cart) => {
+    if (originalSaveCart) originalSaveCart(cart);
+    updateCartButtons();
+  };
+
+  document.addEventListener("DOMContentLoaded", () => {
+    updateCartButtons();
+    setTimeout(typeEffect, 500);
+  });
+</script>
+{% endblock %}
