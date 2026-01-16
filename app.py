@@ -1719,8 +1719,78 @@ def delivery_qr(order_id):
         amount=amount,
     )
 
+@app.route("/support", methods=["GET", "POST"])
+def support():
+    user_id = session.get("user_id")
+    user_phone = session.get("user_phone")
+    user_name = session.get("user_name")
+
+    if request.method == "POST":
+        msg = request.get_json() or {}
+        text = (msg.get("text") or "").strip().lower()
+
+        def has(*keys):
+            return any(k in text for k in keys)
+
+        # intent mapping
+        if has("refund", "money back", "payment reverse"):
+            reply = (
+                "Refunds are processed within 24–48 hours after approval. "
+                "If you paid via UPI/card, amount goes back to the same source."
+            )
+        elif has("late", "delay", "where is my order", "kab aayega"):
+            reply = (
+                "Delivery can sometimes get delayed due to traffic or weather. "
+                "If it has been more than 45 minutes, reply with your order ID and we’ll check."
+            )
+        elif has("cancel", "order cancel", "cancelled"):
+            reply = (
+                "Orders can be cancelled until they are marked as 'Out for Delivery'. "
+                "Share your order ID here; if it’s still early, we’ll try to cancel."
+            )
+        elif has("wrong item", "missing item", "item missing", "galat saman"):
+            reply = (
+                "Sorry about that. Please type your order ID and mention which item is wrong/missing. "
+                "Our team will review and arrange a replacement or refund."
+            )
+        elif has("payment", "upi", "failed", "double charged", "duplicate"):
+            reply = (
+                "If payment failed but money is deducted, it usually auto‑reverses within 24–72 hours. "
+                "If not, share transaction reference and order ID."
+            )
+        elif has("address", "change address", "wrong address"):
+            reply = (
+                "Address can be updated until the order is packed. "
+                "Send your order ID and new address in one message, we’ll check feasibility."
+            )
+        else:
+            reply = (
+                "Thanks for your message. A support executive will review this soon. "
+                "For urgent issues, you can tap 'Chat on WhatsApp' below for faster help."
+            )
+
+        # optional: log conversation for future training / analysis
+        try:
+            db.support_messages.insert_one(
+                {
+                    "user_id": user_id,
+                    "user_phone": user_phone,
+                    "user_name": user_name,
+                    "text": text,
+                    "reply": reply,
+                    "created_at": datetime.datetime.now(datetime.timezone.utc),
+                }
+            )
+        except Exception:
+            pass
+
+        return jsonify({"reply": reply})
+
+    return render_template("support.html", user_name=user_name, user_phone=user_phone)
+
 if __name__ == "__main__":
     app.run(debug=True)
+
 
 
 
