@@ -1489,11 +1489,6 @@ def portal_vendor_history():
         daily_list=daily_list,
     )
 
-@app.route("/portal/delivery/<order_id>/qr")
-def delivery_qr(order_id):
-    # QR generation yahan karega
-    return render_template("delivery_qr.html", order_id=order_id)
-
 # ================================
 # ADMIN: INVENTORY STATUS (OUT OF STOCK)
 # ================================
@@ -1726,6 +1721,7 @@ def delivery_qr(order_id):
 
 if __name__ == "__main__":
     app.run(debug=True)
+
 
 
 
