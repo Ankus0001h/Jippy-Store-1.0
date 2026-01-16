@@ -6,3 +6,5 @@ python-dotenv==1.0.1
 twilio==9.2.3
 cloudinary==1.41.0
 pytz==2023.3
+qrcode==7.4.2
+Pillow==10.4.0
