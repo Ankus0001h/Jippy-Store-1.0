@@ -1648,6 +1648,47 @@ def delivery_call_customer():
     except Exception:
         return jsonify({"error": "Could not initiate call"}), 500
 
+@app.route("/my-profile")
+def my_profile():
+    user_id = session.get("user_id")
+    user_phone = session.get("user_phone")
+
+    if not user_id and not user_phone:
+        return redirect(url_for("login"))
+
+    # primary lookup by _id + role=customer
+    user_doc = None
+    if user_id:
+        try:
+            user_doc = users.find_one({"_id": ObjectId(user_id), "role": "customer"})
+        except Exception:
+            user_doc = None
+
+    # fallback by phone (agar purane accounts me id na ho)
+    if not user_doc and user_phone:
+        user_doc = users.find_one({"phone": user_phone, "role": "customer"})
+
+    if not user_doc:
+        return redirect(url_for("index"))
+
+    saved_addresses = user_doc.get("addresses", []) or []
+
+    # total orders count
+    orders_count = orders.count_documents({
+        "$or": [
+            {"user_id": user_id} if user_id else {},
+            {"user_phone": user_phone} if user_phone else {},
+        ]
+    })
+
+    return render_template(
+        "my_profile.html",
+        user=user_doc,
+        saved_addresses=saved_addresses,
+        orders_count=orders_count,
+    )
+
 if __name__ == "__main__":
     app.run(debug=True)
+
 
