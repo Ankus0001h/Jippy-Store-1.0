@@ -997,6 +997,7 @@ def login_resend():
 # ================================
 # CHECKOUT + CART
 # ================================
+
 @app.route("/checkout", methods=["POST"])
 def checkout():
     data = request.get_json()
@@ -1009,10 +1010,21 @@ def checkout():
         return jsonify({"error": "Cart is empty"}), 400
 
     address = data.get("address")
+    
     if not address:
         return jsonify({"error": "Address is required"}), 400
 
-    # ---- STEP 1: logged-in user ke liye address save / update karo (without GPS) ----
+    # ---- lat / lng normalize (frontend se aa rahe) ----
+    raw_lat = address.get("lat")
+    raw_lng = address.get("lng")
+    try:
+        lat = float(raw_lat) if raw_lat not in (None, "") else None
+        lng = float(raw_lng) if raw_lng not in (None, "") else None
+    except (TypeError, ValueError):
+        lat = None
+        lng = None
+
+    # ---- STEP 1: logged-in user ke liye address save / update karo ----
     if user_id:
         try:
             user_doc = users.find_one({"_id": ObjectId(user_id), "role": "customer"})
@@ -1034,10 +1046,17 @@ def checkout():
             if same_indexes:
                 # purane address ka alt_phone update karo (sirf sabse pehle match par)
                 idx = same_indexes[0]
-                path = f"addresses.{idx}.alt_phone"
+                updates = {
+                    f"addresses.{idx}.alt_phone": address.get("alt_phone"),
+                    f"addresses.{idx}.location_text": address.get("location_text", ""),
+                }
+                # optional: saved address me bhi coords update karo
+                if lat is not None and lng is not None:
+                    updates[f"addresses.{idx}.coords"] = {"lat": lat, "lng": lng}
+
                 users.update_one(
                     {"_id": ObjectId(user_id)},
-                    {"$set": {path: address.get("alt_phone")}}
+                    {"$set": updates},
                 )
             else:
                 # naya address insert
@@ -1048,7 +1067,8 @@ def checkout():
                     "line2": address.get("line2", ""),
                     "city": address.get("city", ""),
                     "pincode": address.get("pincode", ""),
-                    "location_text": address.get("location_text", ""),  # sirf text, GPS nahi
+                    "location_text": address.get("location_text", ""),
+                    "coords": {"lat": lat, "lng": lng} if (lat is not None and lng is not None) else None,
                     "created_at": datetime.datetime.now(datetime.timezone.utc),
                 }
                 users.update_one(
@@ -1056,18 +1076,16 @@ def checkout():
                     {"$push": {"addresses": new_addr}},
                 )
 
-    # ---- STEP 2: totals calculate karo (existing logic) ----
+    # ---- STEP 2: totals calculate karo ----
     subtotal = 0
     for item in cart:
         price = float(item.get("price", 0))
         qty   = int(item.get("qty", 1))
         subtotal += price * qty
 
-    # platform fee DB se
     s = settings.find_one({"key": "platform_fee"})
     platform_fee = int(s["value"]) if s and "value" in s else 0
 
-    # delivery settings DB se
     thr_doc = settings.find_one({"key": "free_delivery_threshold"}) or {"value": 49}
     fee_doc = settings.find_one({"key": "delivery_fee"}) or {"value": 10}
     FREE_DELIVERY_THRESHOLD = int(thr_doc.get("value", 49))
@@ -1078,10 +1096,9 @@ def checkout():
         delivery_fee = DELIVERY_FEE
 
     grand_total = subtotal + platform_fee + delivery_fee
-
     order_id = generate_order_id()
 
-    # ---- STEP 3: order object (GPS coords nahi) ----
+    # ---- STEP 3: order object (GPS coords included) ----
     order = {
         "user_id": user_id,
         "order_id": order_id,
@@ -1102,6 +1119,7 @@ def checkout():
             "pincode": address.get("pincode", ""),
             "location_text": address.get("location_text", ""),
         },
+        "coords": {"lat": lat, "lng": lng} if (lat is not None and lng is not None) else None,
         "created_at": datetime.datetime.now(datetime.timezone.utc),
     }
 
@@ -1114,7 +1132,6 @@ def checkout():
             "total": grand_total,
         }
     )
-
 
 @app.route("/cart")
 def cart_page():
