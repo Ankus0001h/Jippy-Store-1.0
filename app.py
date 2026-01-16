@@ -1137,11 +1137,15 @@ def checkout():
 def cart_page():
     is_logged_in = bool(session.get("user_id"))
 
+    # Platform fee from settings
     s = settings.find_one({"key": "platform_fee"})
     platform_fee = int(s["value"]) if s and "value" in s else 0
 
-    FREE_DELIVERY_THRESHOLD = 49
-    DELIVERY_FEE = 10
+    # Free delivery threshold + delivery fee from settings
+    thr_doc = settings.find_one({"key": "free_delivery_threshold"}) or {"value": 49}
+    fee_doc = settings.find_one({"key": "delivery_fee"}) or {"value": 10}
+    FREE_DELIVERY_THRESHOLD = int(thr_doc.get("value", 49))
+    DELIVERY_FEE = int(fee_doc.get("value", 10))
 
     return render_template(
         "cart.html",
@@ -1688,7 +1692,40 @@ def my_profile():
         orders_count=orders_count,
     )
 
+@app.route("/portal/delivery/<order_id>/qr")
+def delivery_qr(order_id):
+    role = session.get("user_role")
+    portal_user_id = session.get("portal_user_id")
+    if role != "delivery" or not portal_user_id:
+        return redirect(url_for("portal_login"))
+
+    order = orders.find_one({"order_id": order_id})
+    if not order:
+        return redirect(url_for("portal_dashboard"))
+
+    amount = float(order.get("total", 0) or 0.0)
+
+    # FIXED UPI ID + NAME
+    UPI_VPA = "8545816135@slc"      # yahan apna real VPA
+    UPI_NAME = "Ankush Sachan"         # display name
+
+    qr_src, upi_url = build_upi_qr(
+        vpa=UPI_VPA,
+        name=UPI_NAME,
+        amount=amount,
+        note=f"Order {order_id}",
+    )
+
+    return render_template(
+        "delivery_qr.html",
+        order=order,
+        qr_src=qr_src,
+        upi_url=upi_url,
+        amount=amount,
+    )
+
 if __name__ == "__main__":
     app.run(debug=True)
+
 
 
