@@ -1313,15 +1313,21 @@ def admin_update_status(order_id):
         "CANCELLED",
     }
 
-    new_status = request.form.get("status", "").strip().upper()
+    new_status = (request.form.get("status", "") or "").strip().upper()
 
     if new_status in allowed_statuses:
+        update = {"status": new_status}
+        # agar DELIVERED mark kar rahe ho to delivery time bhi save karo
+        if new_status == "DELIVERED":
+            update["delivered_at"] = datetime.datetime.now(datetime.timezone.utc)
+
         orders.update_one(
             {"order_id": order_id},
-            {"$set": {"status": new_status}}
+            {"$set": update},
         )
 
     return redirect(url_for("admin_orders"))
+
 
 @app.route("/admin/order/<order_id>/delete", methods=["POST"])
 def admin_delete_order(order_id):
@@ -1644,3 +1650,4 @@ def delivery_call_customer():
 
 if __name__ == "__main__":
     app.run(debug=True)
+
