@@ -62,7 +62,7 @@
       </div>
 
       <button id="checkout-btn" type="button" onclick="validateServiceAreaBeforeCheckout()" 
-        class="w-full py-4 rounded-2xl text-base font-black text-white transition-all shadow-lg flex items-center justify-center gap-3 transition-all duration-500
+        class="w-full py-4 rounded-2xl text-base font-black text-white transition-all shadow-lg flex items-center justify-center gap-3
         {% if is_logged_in %}bg-slate-900 hover:bg-emerald-600 shadow-slate-200{% else %}bg-slate-400 cursor-not-allowed{% endif %}"
         {% if not is_logged_in %}disabled{% endif %}>
         {% if is_logged_in %}
@@ -101,7 +101,7 @@
       </div>
 
       <div id="modal-success" class="hidden text-center space-y-6">
-        <div class="w-20 h-20 bg-emerald-500 text-white rounded-full mx-auto flex items-center justify-center shadow-lg shadow-emerald-100">
+        <div class="w-20 h-20 bg-emerald-500 text-white rounded-full mx-auto flex items-center justify-center shadow-lg">
           <i class="fas fa-check text-3xl"></i>
         </div>
         <div>
@@ -114,7 +114,7 @@
       </div>
 
       <div id="modal-error" class="hidden text-center space-y-6">
-        <div class="w-20 h-20 bg-rose-500 text-white rounded-full mx-auto flex items-center justify-center shadow-lg shadow-rose-100">
+        <div class="w-20 h-20 bg-rose-500 text-white rounded-full mx-auto flex items-center justify-center shadow-lg">
           <i class="fas fa-exclamation-triangle text-3xl"></i>
         </div>
         <div>
@@ -126,7 +126,7 @@
           <button onclick="retryLocationCheck()" class="py-3 bg-slate-100 text-slate-900 font-bold rounded-xl hover:bg-slate-200 transition-all">
             Retry
           </button>
-          <button onclick="closeServiceModal()" class="py-3 border-2 border-slate-100 text-slate-400 font-bold rounded-xl hover:border-slate-200 transition-all">
+          <button onclick="closeServiceModal()" class="py-3 border-2 border-slate-100 text-slate-400 font-bold rounded-xl">
             Close
           </button>
         </div>
@@ -155,76 +155,20 @@
   let confettiFired = false;
   let SERVICE_CENTER = { lat: null, lng: null, radius_km: 0 };
 
-  // 🔥 CORE VALIDATION LOGIC
-  async function validateServiceAreaBeforeCheckout() {
-    if (!getCart().length) return;
-    if (!IS_LOGGED_IN) {
-      window.location.href = "{{ url_for('login') }}";
-      return;
-    }
-
-    // Prepare Modal
-    document.getElementById('service-area-modal').classList.remove('hidden');
-    document.getElementById('modal-loading').classList.remove('hidden');
-    document.getElementById('modal-success').classList.add('hidden');
-    document.getElementById('modal-error').classList.add('hidden');
-    
-    await fetchServiceConfig();
+  // --- CORE HELPER FUNCTIONS ---
+  function getCart() {
+    try { return JSON.parse(localStorage.getItem("cart") || "[]"); }
+    catch (e) { return []; }
   }
 
-  async function fetchServiceConfig() {
-    try {
-      const response = await fetch('/api/service-config');
-      SERVICE_CENTER = await response.json();
-      
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          (pos) => checkServiceArea(pos.coords.latitude, pos.coords.longitude),
-          (err) => showServiceError("Location access denied. Please enable GPS to proceed."),
-          { enableHighAccuracy: true, timeout: 8000 }
-        );
-      } else {
-        showServiceError("Geolocation is not supported by your browser.");
-      }
-    } catch (e) {
-      showServiceError("Unable to connect to service server. Try again later.");
-    }
+  function saveCart(cart) {
+    localStorage.setItem("cart", JSON.stringify(cart));
+    // Header cart badge update ke liye event
+    window.dispatchEvent(new Event('cartUpdated'));
+    if (typeof updateCartBadge === "function") updateCartBadge();
   }
 
-  function checkServiceArea(lat, lng) {
-    const dist = haversineDistanceKm(lat, lng, SERVICE_CENTER.lat, SERVICE_CENTER.lng);
-    const ok = dist <= SERVICE_CENTER.radius_km;
-
-    document.getElementById('modal-loading').classList.add('hidden');
-    if (ok && SERVICE_CENTER.lat) {
-      document.getElementById('modal-coords').textContent = `Location verified within ${dist.toFixed(1)}km`;
-      document.getElementById('modal-success').classList.remove('hidden');
-    } else {
-      document.getElementById('modal-error-message').textContent = `Sorry, we only deliver within ${SERVICE_CENTER.radius_km}km of our hub. You are ${dist.toFixed(1)}km away.`;
-      document.getElementById('modal-location-error').textContent = `LAT: ${lat.toFixed(3)} | LNG: ${lng.toFixed(3)}`;
-      document.getElementById('modal-error').classList.remove('hidden');
-    }
-  }
-
-  function showServiceError(msg) {
-    document.getElementById('modal-loading').classList.add('hidden');
-    document.getElementById('modal-error-message').textContent = msg;
-    document.getElementById('modal-error').classList.remove('hidden');
-  }
-
-  function retryLocationCheck() { validateServiceAreaBeforeCheckout(); }
-  function closeServiceModal() { document.getElementById('service-area-modal').classList.add('hidden'); }
-  function proceedToCheckout() { window.location.href = "{{ url_for('address_page') }}"; }
-
-  function haversineDistanceKm(lat1, lng1, lat2, lng2) {
-    const toRad = d => d * Math.PI / 180;
-    const R = 6371;
-    const dLat = toRad(lat2 - lat1), dLng = toRad(lng2 - lng1);
-    const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng/2)**2;
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-  }
-
-  // --- RENDERING ENGINE (PREVIOUS LOGIC) ---
+  // --- RENDERING ENGINE ---
   function renderCartPage() {
     const cart = getCart();
     const emptyEl = document.getElementById("cart-empty"), containerEl = document.getElementById("cart-container");
@@ -253,22 +197,26 @@
       const qty = Number(item.qty || 1), price = Number(item.price || 0);
       subtotal += price * qty;
       const card = document.createElement("div");
-      card.className = "flex items-center justify-between bg-white border border-slate-100 rounded-2xl p-4 shadow-sm";
+      card.className = "flex items-center justify-between bg-white border border-slate-100 rounded-2xl p-4 shadow-sm transition-all";
       card.innerHTML = `
         <div class="flex items-center gap-4">
           <div class="w-14 h-14 bg-slate-50 rounded-xl overflow-hidden p-1 border border-slate-100">
-            <img src="${item.image || ""}" class="w-full h-full object-contain">
+            <img src="${item.image || ""}" class="w-full h-full object-contain" onerror="this.src='https://placehold.co/100?text=Item'">
           </div>
           <div>
             <h4 class="text-sm font-black text-slate-800 leading-tight">${item.name}</h4>
-            <p class="text-[10px] font-bold text-slate-400 uppercase">${item.unit}</p>
+            <p class="text-[10px] font-bold text-slate-400 uppercase">${item.unit || ""}</p>
             <span class="text-[11px] font-bold text-emerald-600">₹${price.toFixed(2)}</span>
           </div>
         </div>
         <div class="flex items-center bg-slate-100 rounded-xl p-1 border border-slate-200">
-          <button onclick="changeQty('${item.slug}', -1)" class="w-7 h-7 rounded-lg bg-white text-slate-800 flex items-center justify-center"><i class="fas fa-minus text-[8px]"></i></button>
-          <span class="text-xs font-black px-3">${qty}</span>
-          <button onclick="changeQty('${item.slug}', 1)" class="w-7 h-7 rounded-lg bg-slate-900 text-white flex items-center justify-center"><i class="fas fa-plus text-[8px]"></i></button>
+          <button onclick="changeQty('${item.slug}', -1)" class="w-8 h-8 rounded-lg bg-white text-slate-800 flex items-center justify-center shadow-sm hover:text-rose-500 transition-all">
+            <i class="fas fa-minus text-[8px]"></i>
+          </button>
+          <span class="text-xs font-black px-4">${qty}</span>
+          <button onclick="changeQty('${item.slug}', 1)" class="w-8 h-8 rounded-lg bg-slate-900 text-white flex items-center justify-center shadow-sm hover:bg-emerald-600 transition-all">
+            <i class="fas fa-plus text-[8px]"></i>
+          </button>
         </div>`;
       itemsEl.appendChild(card);
     });
@@ -283,12 +231,13 @@
       deliveryFeeEl.className = "font-black text-emerald-600 text-sm";
       dFeeStrike.innerText = "₹" + DELIVERY_FEE.toFixed(2);
       dFeeStrike.classList.remove("hidden");
-      hintText.innerHTML = '<i class="fas fa-check-circle text-emerald-500"></i> <span class="text-emerald-600 font-black">FREE DELIVERY APPLIED</span>';
+      hintText.innerHTML = '<i class="fas fa-check-circle text-emerald-500"></i> <span class="text-emerald-600 font-black uppercase">Free Delivery Applied</span>';
       deliveryCard.classList.add("free-delivery-active");
       if (IS_LOGGED_IN) checkoutBtn.classList.add("checkout-ready");
       totalEl.innerText = "₹" + (subtotal + PLATFORM_FEE).toFixed(2);
     } else {
       const rem = FREE_DELIVERY_THRESHOLD - subtotal;
+      confettiFired = false;
       deliveryFeeEl.innerText = "₹" + DELIVERY_FEE.toFixed(2);
       deliveryFeeEl.className = "font-bold text-slate-800";
       dFeeStrike.classList.add("hidden");
@@ -299,19 +248,84 @@
     }
   }
 
-  function triggerFlowerBurst() {
-    confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ["#10b981", "#ffffff"] });
-  }
-
   function changeQty(slug, delta) {
     let cart = getCart();
     const idx = cart.findIndex(i => i.slug === slug);
     if (idx === -1) return;
-    cart[idx].qty = Number(cart[idx].qty) + delta;
-    if (cart[idx].qty <= 0) cart.splice(idx, 1);
+    
+    let newQty = Number(cart[idx].qty) + delta;
+    if (newQty <= 0) {
+      cart.splice(idx, 1);
+    } else {
+      cart[idx].qty = newQty;
+    }
+    
     saveCart(cart);
     renderCartPage();
   }
+
+  // --- SERVICE VALIDATION ---
+  async function validateServiceAreaBeforeCheckout() {
+    if (!getCart().length) return;
+    if (!IS_LOGGED_IN) {
+      window.location.href = "{{ url_for('login') }}";
+      return;
+    }
+    document.getElementById('service-area-modal').classList.remove('hidden');
+    document.getElementById('modal-loading').classList.remove('hidden');
+    document.getElementById('modal-success').classList.add('hidden');
+    document.getElementById('modal-error').classList.add('hidden');
+    await fetchServiceConfig();
+  }
+
+  async function fetchServiceConfig() {
+    try {
+      const response = await fetch('/api/service-config');
+      SERVICE_CENTER = await response.json();
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => checkServiceArea(pos.coords.latitude, pos.coords.longitude),
+          (err) => showServiceError("Location access denied. Enable GPS to proceed."),
+          { enableHighAccuracy: true, timeout: 8000 }
+        );
+      } else { showServiceError("Geolocation not supported."); }
+    } catch (e) { showServiceError("Connection error. Try again."); }
+  }
+
+  function checkServiceArea(lat, lng) {
+    const dist = haversineDistanceKm(lat, lng, SERVICE_CENTER.lat, SERVICE_CENTER.lng);
+    const ok = dist <= SERVICE_CENTER.radius_km;
+    document.getElementById('modal-loading').classList.add('hidden');
+    if (ok && SERVICE_CENTER.lat) {
+      document.getElementById('modal-coords').textContent = `Verified within ${dist.toFixed(1)}km`;
+      document.getElementById('modal-success').classList.remove('hidden');
+    } else {
+      document.getElementById('modal-error-message').textContent = `We only deliver within ${SERVICE_CENTER.radius_km}km. Distance: ${dist.toFixed(1)}km`;
+      document.getElementById('modal-error').classList.remove('hidden');
+    }
+  }
+
+  function showServiceError(msg) {
+    document.getElementById('modal-loading').classList.add('hidden');
+    document.getElementById('modal-error-message').textContent = msg;
+    document.getElementById('modal-error').classList.remove('hidden');
+  }
+
+  function haversineDistanceKm(lat1, lng1, lat2, lng2) {
+    const toRad = d => d * Math.PI / 180;
+    const R = 6371;
+    const dLat = toRad(lat2 - lat1), dLng = toRad(lng2 - lng1);
+    const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng/2)**2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  }
+
+  function triggerFlowerBurst() {
+    confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ["#10b981", "#ffffff"] });
+  }
+
+  function retryLocationCheck() { validateServiceAreaBeforeCheckout(); }
+  function closeServiceModal() { document.getElementById('service-area-modal').classList.add('hidden'); }
+  function proceedToCheckout() { window.location.href = "{{ url_for('address_page') }}"; }
 
   document.addEventListener("DOMContentLoaded", renderCartPage);
 </script>
