@@ -1787,9 +1787,76 @@ def support():
         return jsonify({"reply": reply})
 
     return render_template("support.html", user_name=user_name, user_phone=user_phone)
+@app.route("/admin/service-area", methods=["GET", "POST"])
+def admin_service_area():
+    if not session.get("admin_logged_in"):
+        return redirect(url_for("admin_login"))
+
+    doc = settings.find_one({"key": "service_area"}) or {}
+    center = doc.get("center") or {}
+    current_lat = center.get("lat")
+    current_lng = center.get("lng")
+    current_radius = doc.get("radius_km", 0)
+
+    if request.method == "POST":
+        raw_lat = request.form.get("lat", "").strip()
+        raw_lng = request.form.get("lng", "").strip()
+        raw_radius = request.form.get("radius_km", "").strip()
+
+        error = None
+        try:
+            lat = float(raw_lat)
+            lng = float(raw_lng)
+            radius_km = float(raw_radius)
+            if radius_km <= 0:
+                error = "Radius must be greater than 0."
+        except ValueError:
+            error = "Please enter valid numeric latitude, longitude and radius."
+
+        if error:
+            return render_template(
+                "admin_service_area.html",
+                error=error,
+                lat=raw_lat,
+                lng=raw_lng,
+                radius_km=raw_radius or "",
+            )
+
+        settings.update_one(
+            {"key": "service_area"},
+            {
+                "$set": {
+                    "center": {"lat": lat, "lng": lng},
+                    "radius_km": radius_km,
+                }
+            },
+            upsert=True,
+        )
+
+        return redirect(url_for("admin_service_area"))
+
+    return render_template(
+        "admin_service_area.html",
+        lat=current_lat or "",
+        lng=current_lng or "",
+        radius_km=current_radius or "",
+    )
+
+@app.route('/api/service-config')
+def service_config():
+    """API endpoint for frontend service area check"""
+    doc = settings.find_one({"key": "service_area"}) or {}
+    center = doc.get("center") or {}
+    
+    return jsonify({
+        'lat': center.get('lat'),
+        'lng': center.get('lng'),
+        'radius_km': doc.get('radius_km', 0)
+    })
 
 if __name__ == "__main__":
     app.run(debug=True)
+
 
 
 
