@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <title>FreshKart | Master Admin</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
 
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
@@ -12,187 +12,206 @@
   <style>
     body { 
       font-family: 'Plus Jakarta Sans', sans-serif; 
-      background-color: #f8fafc; 
+      background-color: #f1f5f9;
+      background-image: radial-gradient(#cbd5e1 0.5px, transparent 0.5px);
+      background-size: 24px 24px;
     }
-    .nav-active {
-      background: #10b981 !important;
-      color: white !important;
-      box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.2);
-    }
-    .sidebar-blur {
-      backdrop-filter: blur(12px);
+    
+    .glass-sidebar {
       background: rgba(15, 23, 42, 0.95);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
     }
-    .mobile-nav-blur {
-      backdrop-filter: blur(12px);
-      background: rgba(255, 255, 255, 0.8);
+
+    .nav-active {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+      color: white !important;
+      box-shadow: 0 10px 20px -5px rgba(16, 185, 129, 0.4);
     }
-    /* Smooth drawer transition */
-    #mobile-sidebar {
-      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    .admin-card {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
-    .fade-in {
-      animation: fadeIn 0.5s ease-out;
+
+    .mobile-bottom-nav {
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-top: 1px solid rgba(255, 255, 255, 0.3);
     }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
+
+    /* Floating Animation */
+    @keyframes float {
+      0% { transform: translateY(0px); }
+      50% { transform: translateY(-10px); }
+      100% { transform: translateY(0px); }
     }
+    .float-icon { animation: float 3s ease-in-out infinite; }
   </style>
 </head>
 
-<body class="min-h-screen text-slate-900 overflow-x-hidden">
+<body class="min-h-screen text-slate-900 overflow-x-hidden pb-24 lg:pb-0">
 
-  <aside class="fixed top-0 left-0 h-screen w-64 sidebar-blur text-white hidden lg:flex flex-col z-50 border-r border-slate-800">
+  <aside class="fixed top-4 left-4 bottom-4 w-64 glass-sidebar text-white hidden lg:flex flex-col z-50 rounded-[2.5rem] border border-white/10 shadow-2xl">
     <div class="p-8">
       <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-2xl bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/20">
-          <i class="fas fa-leaf text-white text-xl"></i>
+        <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-emerald-400 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/30">
+          <i class="fas fa-bolt text-white text-xl"></i>
         </div>
-        <span class="text-xl font-black tracking-tighter uppercase bold">FreshKart</span>
+        <div>
+          <span class="text-xl font-black tracking-tighter block leading-none">FreshKart</span>
+          <span class="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Admin Pro</span>
+        </div>
       </div>
     </div>
 
-    <nav class="flex-1 px-4 space-y-2 mt-4">
-      <p class="px-4 text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">Core Management</p>
+    <nav class="flex-1 px-4 space-y-2 mt-4 overflow-y-auto no-scrollbar">
+      <p class="px-4 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4">Operations</p>
       
       {% set nav_items = [
-        {'endpoint': 'admin_dashboard', 'icon': 'fa-chart-pie', 'label': 'Dashboard'},
-        {'endpoint': 'admin_orders', 'icon': 'fa-shopping-bag', 'label': 'Orders List'},
-        {'endpoint': 'add_product', 'icon': 'fa-box-open', 'label': 'Products'},
-        {'endpoint': 'add_user', 'icon': 'fa-users-gear', 'label': 'Personnel'}
+        {'endpoint': 'admin_dashboard', 'icon': 'fa-grid-2', 'label': 'Control Panel'},
+        {'endpoint': 'admin_orders', 'icon': 'fa-receipt', 'label': 'Live Orders'},
+        {'endpoint': 'add_product', 'icon': 'fa-plus-circle', 'label': 'Inventory'},
+        {'endpoint': 'admin_inventory', 'icon': 'fa-boxes-stacked', 'label': 'Stock Sync'},
+        {'endpoint': 'add_user', 'icon': 'fa-user-shield', 'label': 'Team Access'}
       ] %}
 
       {% for item in nav_items %}
       <a href="{{ url_for(item.endpoint) }}" 
-         class="flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold text-slate-400 hover:bg-slate-800 hover:text-white transition-all duration-200 
-         {{ 'nav-active' if (request.endpoint == item.endpoint or (item.endpoint == 'add_user' and request.endpoint == 'edit_user')) }}">
-        <i class="fas {{ item.icon }} w-5 text-center text-base"></i>
+         class="flex items-center gap-3 px-4 py-3.5 rounded-2xl text-sm font-bold text-slate-400 hover:bg-white/5 hover:text-white transition-all 
+         {{ 'nav-active' if request.endpoint == item.endpoint }}">
+        <i class="fas {{ item.icon }} w-5 text-center"></i>
         {{ item.label }}
       </a>
       {% endfor %}
 
-      <div class="my-6 border-t border-slate-800 mx-4"></div>
-      
-      <a href="{{ url_for('admin_logout') }}" 
-         class="flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold text-rose-400 hover:bg-rose-500/10 transition-all duration-200">
-        <i class="fas fa-power-off w-5 text-center"></i>
-        Sign Out
+      <p class="px-4 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mt-8 mb-4">System</p>
+      <a href="{{ url_for('admin_fees_settings') }}" class="flex items-center gap-3 px-4 py-3.5 rounded-2xl text-sm font-bold text-slate-400 hover:text-white transition-all">
+        <i class="fas fa-sliders w-5"></i> Settings
       </a>
+      
+      <div class="mt-10 px-4">
+        <a href="{{ url_for('admin_logout') }}" class="flex items-center justify-center gap-2 w-full py-4 rounded-2xl bg-rose-500/10 text-rose-400 text-sm font-black hover:bg-rose-500 hover:text-white transition-all group">
+          <i class="fas fa-power-off group-hover:rotate-90 transition-transform"></i> Exit System
+        </a>
+      </div>
     </nav>
   </aside>
 
-  <nav class="lg:hidden sticky top-0 z-[60] mobile-nav-blur border-b border-slate-200 px-4 py-3 flex items-center justify-between shadow-sm">
-    <button id="open-menu" class="w-10 h-10 flex items-center justify-center text-slate-900 text-xl">
-      <i class="fas fa-bars-staggered"></i>
-    </button>
+  <nav class="lg:hidden sticky top-0 z-[60] bg-white/80 backdrop-blur-md border-b border-slate-200 px-6 py-4 flex items-center justify-between">
     <div class="flex items-center gap-2">
-      <div class="w-8 h-8 rounded-lg bg-emerald-500 flex items-center justify-center text-white text-xs">
+      <div class="w-9 h-9 rounded-xl bg-slate-900 flex items-center justify-center text-emerald-400 shadow-lg">
         <i class="fas fa-leaf"></i>
       </div>
-      <span class="font-black text-sm uppercase tracking-tighter">FreshKart Admin</span>
+      <span class="font-black text-lg tracking-tighter uppercase">FreshKart</span>
     </div>
-    <div class="w-10"></div> </nav>
+    <div id="clock-mobile" class="text-[10px] font-black bg-slate-100 px-3 py-1 rounded-full text-slate-500">00:00</div>
+  </nav>
 
-  <div id="menu-overlay" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[70] hidden transition-opacity"></div>
-  <aside id="mobile-sidebar" class="fixed top-0 left-0 h-full w-[280px] sidebar-blur text-white z-[80] flex flex-col -translate-x-full lg:hidden">
-    <div class="p-6 flex items-center justify-between border-b border-slate-800">
-      <div class="flex items-center gap-2">
-        <div class="w-8 h-8 rounded-lg bg-emerald-500 flex items-center justify-center text-white text-xs">
-          <i class="fas fa-leaf"></i>
-        </div>
-        <span class="font-black text-sm uppercase bold">FreshKart</span>
-      </div>
-      <button id="close-menu" class="text-slate-400 text-xl"><i class="fas fa-times"></i></button>
-    </div>
-    <nav class="flex-1 p-4 space-y-2 overflow-y-auto">
-      {% for item in nav_items %}
-      <a href="{{ url_for(item.endpoint) }}" 
-         class="flex items-center gap-4 px-4 py-4 rounded-2xl text-base font-bold transition-all 
-         {{ 'nav-active' if (request.endpoint == item.endpoint or (item.endpoint == 'add_user' and request.endpoint == 'edit_user')) else 'text-slate-400' }}">
-        <i class="fas {{ item.icon }} text-xl w-6"></i>
-        {{ item.label }}
-      </a>
-      {% endfor %}
-      <div class="h-px bg-slate-800 my-4"></div>
-      <a href="{{ url_for('admin_logout') }}" class="flex items-center gap-4 px-4 py-4 rounded-2xl text-base font-bold text-rose-400">
-        <i class="fas fa-power-off text-xl w-6"></i>
-        Sign Out
-      </a>
-    </nav>
-  </aside>
-
-  <main class="lg:ml-64 min-h-screen p-4 md:p-8 lg:p-12 fade-in pb-24 lg:pb-12">
-    <header class="hidden lg:flex items-center justify-between mb-10">
+  <main class="lg:ml-72 min-h-screen p-4 md:p-10 lg:p-12 transition-all">
+    <header class="hidden lg:flex items-center justify-between mb-12">
       <div>
-        <h2 class="text-xs font-black text-slate-400 uppercase tracking-[0.3em]">Operational Overview</h2>
-        <p class="text-slate-900 font-bold text-2xl tracking-tight">Welcome back, Admin</p>
+        <h2 class="text-3xl font-black text-slate-900 tracking-tight" id="greeting">System Dashboard</h2>
+        <p class="text-slate-400 text-sm font-bold mt-1">Operational Status: <span class="text-emerald-500">Healthy</span></p>
       </div>
-      <div class="flex items-center gap-6">
-         <div class="flex flex-col items-end">
-            <span class="text-[10px] font-black text-slate-400 uppercase">Server Time</span>
-            <span id="clock" class="text-base font-bold text-slate-800">--:-- --</span>
-         </div>
+      <div class="flex items-center gap-4 bg-white p-2 rounded-[1.5rem] shadow-sm border border-slate-100">
+        <div class="px-4 py-2 text-right">
+          <p id="clock" class="text-lg font-black text-slate-900 leading-none">--:--:--</p>
+          <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">Live Server Time</p>
+        </div>
+        <div class="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400">
+          <i class="fas fa-bell"></i>
+        </div>
       </div>
     </header>
 
     {% block content %}{% endblock %}
   </main>
 
-  <div class="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-6 py-3 flex justify-between items-center z-[50] shadow-[0_-5px_15px_rgba(0,0,0,0.05)]">
-    <a href="{{ url_for('admin_dashboard') }}" class="flex flex-col items-center gap-1 {{ 'text-emerald-500' if request.endpoint == 'admin_dashboard' else 'text-slate-400' }}">
-      <i class="fas fa-chart-pie text-xl"></i>
-      <span class="text-[9px] font-black uppercase">Home</span>
-    </a>
-    <a href="{{ url_for('admin_orders') }}" class="flex flex-col items-center gap-1 {{ 'text-emerald-500' if request.endpoint == 'admin_orders' else 'text-slate-400' }}">
-      <i class="fas fa-shopping-bag text-xl"></i>
-      <span class="text-[9px] font-black uppercase">Orders</span>
-    </a>
-    <a href="{{ url_for('add_product') }}" class="flex flex-col items-center gap-1 {{ 'text-emerald-500' if request.endpoint == 'add_product' else 'text-slate-400' }}">
-      <i class="fas fa-box-open text-xl"></i>
-      <span class="text-[9px] font-black uppercase">Items</span>
-    </a>
-    <a href="{{ url_for('add_user') }}" class="flex flex-col items-center gap-1 {{ 'text-emerald-500' if request.endpoint in ['add_user','edit_user'] else 'text-slate-400' }}">
-      <i class="fas fa-users-gear text-xl"></i>
-      <span class="text-[9px] font-black uppercase">Staff</span>
-    </a>
+  <div class="lg:hidden fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-md z-[100]">
+    <div class="mobile-bottom-nav rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.15)] p-2 flex justify-between items-center border border-white">
+      <a href="{{ url_for('admin_dashboard') }}" class="flex-1 flex flex-col items-center py-2 transition-all {{ 'text-emerald-600' if request.endpoint == 'admin_dashboard' else 'text-slate-400' }}">
+        <i class="fas fa-grid-2 text-xl"></i>
+        <span class="text-[8px] font-black uppercase mt-1">Control</span>
+      </a>
+      <a href="{{ url_for('admin_orders') }}" class="flex-1 flex flex-col items-center py-2 transition-all {{ 'text-emerald-600' if request.endpoint == 'admin_orders' else 'text-slate-400' }}">
+        <div class="relative">
+            <i class="fas fa-receipt text-xl"></i>
+            <span class="absolute -top-1 -right-1 w-2 h-2 bg-rose-500 rounded-full border border-white"></span>
+        </div>
+        <span class="text-[8px] font-black uppercase mt-1">Orders</span>
+      </a>
+      
+      <a href="{{ url_for('add_product') }}" class="w-14 h-14 -mt-10 bg-slate-900 rounded-2xl flex items-center justify-center text-emerald-400 shadow-xl shadow-slate-900/30 border-4 border-white transition-transform active:scale-90">
+        <i class="fas fa-plus text-xl"></i>
+      </a>
+
+      <a href="{{ url_for('admin_inventory') }}" class="flex-1 flex flex-col items-center py-2 transition-all {{ 'text-emerald-600' if request.endpoint == 'admin_inventory' else 'text-slate-400' }}">
+        <i class="fas fa-boxes-stacked text-xl"></i>
+        <span class="text-[8px] font-black uppercase mt-1">Stock</span>
+      </a>
+      <button onclick="toggleMobileMenu()" class="flex-1 flex flex-col items-center py-2 text-slate-400">
+        <i class="fas fa-bars-staggered text-xl"></i>
+        <span class="text-[8px] font-black uppercase mt-1">Menu</span>
+      </button>
+    </div>
   </div>
 
+  <div id="mobile-overlay" class="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-[110] hidden transition-all duration-300 opacity-0" onclick="toggleMobileMenu()"></div>
+  <aside id="mobile-drawer" class="fixed bottom-0 left-0 right-0 bg-white z-[120] rounded-t-[3rem] p-8 translate-y-full transition-transform duration-500 ease-out">
+    <div class="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-8"></div>
+    <div class="grid grid-cols-2 gap-4">
+        <a href="{{ url_for('add_user') }}" class="flex flex-col items-center p-6 bg-slate-50 rounded-[2rem] border border-slate-100">
+            <i class="fas fa-user-shield text-2xl text-indigo-500 mb-2"></i>
+            <span class="text-xs font-black uppercase">Staff Management</span>
+        </a>
+        <a href="{{ url_for('admin_fees_settings') }}" class="flex flex-col items-center p-6 bg-slate-50 rounded-[2rem] border border-slate-100">
+            <i class="fas fa-sliders text-2xl text-amber-500 mb-2"></i>
+            <span class="text-xs font-black uppercase">Global Config</span>
+        </a>
+        <a href="{{ url_for('admin_service_area') }}" class="flex flex-col items-center p-6 bg-slate-50 rounded-[2rem] border border-slate-100">
+            <i class="fas fa-location-crosshairs text-2xl text-emerald-500 mb-2"></i>
+            <span class="text-xs font-black uppercase">Service Zone</span>
+        </a>
+        <a href="{{ url_for('admin_logout') }}" class="flex flex-col items-center p-6 bg-rose-50 rounded-[2rem] border border-rose-100">
+            <i class="fas fa-power-off text-2xl text-rose-500 mb-2"></i>
+            <span class="text-xs font-black uppercase text-rose-600">Logout</span>
+        </a>
+    </div>
+  </aside>
+
   <script>
-    // Clock logic
     function updateClock() {
       const now = new Date();
-      const options = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true };
-      const el = document.getElementById('clock');
-      if (el) el.textContent = now.toLocaleTimeString('en-US', options);
+      const timeStr = now.toLocaleTimeString('en-US', { hour12: true, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      if(document.getElementById('clock')) document.getElementById('clock').textContent = timeStr;
+      if(document.getElementById('clock-mobile')) document.getElementById('clock-mobile').textContent = timeStr.replace(/:\d{2} /, ' ');
     }
     setInterval(updateClock, 1000);
     updateClock();
 
-    // Mobile Menu logic
-    const openBtn = document.getElementById('open-menu');
-    const closeBtn = document.getElementById('close-menu');
-    const mobileSidebar = document.getElementById('mobile-sidebar');
-    const overlay = document.getElementById('menu-overlay');
+    function toggleMobileMenu() {
+      const drawer = document.getElementById('mobile-drawer');
+      const overlay = document.getElementById('mobile-overlay');
+      const isOpen = !drawer.classList.contains('translate-y-full');
 
-    function toggleMenu() {
-      const isOpen = mobileSidebar.classList.contains('translate-x-0');
-      if (isOpen) {
-        mobileSidebar.classList.add('-translate-x-full');
-        mobileSidebar.classList.remove('translate-x-0');
-        overlay.classList.add('hidden');
-        document.body.classList.remove('overflow-hidden');
+      if(isOpen) {
+        drawer.classList.add('translate-y-full');
+        overlay.classList.add('opacity-0');
+        setTimeout(() => overlay.classList.add('hidden'), 300);
       } else {
-        mobileSidebar.classList.remove('-translate-x-full');
-        mobileSidebar.classList.add('translate-x-0');
         overlay.classList.remove('hidden');
-        document.body.classList.add('overflow-hidden');
+        setTimeout(() => {
+          overlay.classList.remove('opacity-0');
+          drawer.classList.remove('translate-y-full');
+        }, 10);
       }
     }
 
-    openBtn.addEventListener('click', toggleMenu);
-    closeBtn.addEventListener('click', toggleMenu);
-    overlay.addEventListener('click', toggleMenu);
+    // Dynamic Greeting
+    const hour = new Date().getHours();
+    const greeting = hour < 12 ? 'Good Morning' : hour < 18 ? 'Good Afternoon' : 'Good Evening';
+    document.getElementById('greeting').textContent = `${greeting}, Admin`;
   </script>
 
 </body>
