@@ -69,7 +69,7 @@
       </div>
     </a>
 
-    <!-- NEW: Inventory Status / Out of Stock Control -->
+    <!-- Inventory Status -->
     <a href="{{ url_for('admin_inventory') }}" 
        class="group relative bg-white rounded-[2.5rem] p-8 border-2 border-slate-50 shadow-xl shadow-slate-200/40 hover:-translate-y-2 hover:border-rose-200 transition-all duration-300">
       <div class="w-16 h-16 rounded-3xl bg-rose-50 flex items-center justify-center text-rose-600 mb-6 group-hover:scale-110 group-hover:bg-rose-500 group-hover:text-white transition-all duration-300 shadow-inner">
@@ -84,6 +84,7 @@
       </div>
     </a>
 
+    <!-- Global Settings -->
     <a href="{{ url_for('admin_fees_settings') }}" 
        class="group relative bg-white rounded-[2.5rem] p-8 border-2 border-slate-50 shadow-xl shadow-slate-200/40 hover:-translate-y-2 hover:border-amber-200 transition-all duration-300">
       <div class="w-16 h-16 rounded-3xl bg-amber-50 flex items-center justify-center text-amber-600 mb-6 group-hover:scale-110 group-hover:bg-amber-500 group-hover:text-white transition-all duration-300 shadow-inner">
@@ -98,7 +99,22 @@
       </div>
     </a>
 
-    <!-- NEW: Service Availability Toggle -->
+    <!-- NEW: Service Area card -->
+    <a href="{{ url_for('admin_service_area') }}" 
+       class="group relative bg-white rounded-[2.5rem] p-8 border-2 border-slate-50 shadow-xl shadow-slate-200/40 hover:-translate-y-2 hover:border-emerald-200 transition-all duration-300">
+      <div class="w-16 h-16 rounded-3xl bg-emerald-50 flex items-center justify-center text-emerald-600 mb-6 group-hover:scale-110 group-hover:bg-emerald-500 group-hover:text-white transition-all duration-300 shadow-inner">
+        <i class="fas fa-location-crosshairs text-2xl"></i>
+      </div>
+      <h3 class="text-xl font-black text-slate-900 mb-2">Service Area</h3>
+      <p class="text-sm font-medium text-slate-500 leading-relaxed">
+        Set your delivery center coordinates and radius. Customers outside this zone will be blocked from ordering.
+      </p>
+      <div class="mt-6 flex items-center text-[10px] font-black text-emerald-600 uppercase tracking-[0.2em]">
+        Delivery Zone <i class="fas fa-arrow-right ml-2 group-hover:translate-x-2 transition-transform"></i>
+      </div>
+    </a>
+
+    <!-- Service Switch -->
     <form action="{{ url_for('admin_service_toggle') }}" method="POST"
           class="group relative bg-white rounded-[2.5rem] p-8 border-2 border-slate-50 shadow-xl shadow-slate-200/40 hover:-translate-y-2 hover:border-red-200 transition-all duration-300">
       <div class="w-16 h-16 rounded-3xl bg-red-50 flex items-center justify-center text-red-600 mb-6 group-hover:scale-110 group-hover:bg-red-500 group-hover:text-white transition-all duration-300 shadow-inner">
@@ -133,6 +149,7 @@
       </div>
     </form>
 
+    <!-- Logout -->
     <a href="{{ url_for('admin_logout') }}" 
        class="group relative bg-slate-900 rounded-[2.5rem] p-8 border-2 border-slate-900 shadow-2xl shadow-slate-300 hover:bg-rose-600 hover:border-rose-500 transition-all duration-300">
       <div class="w-16 h-16 rounded-3xl bg-white/10 flex items-center justify-center text-white mb-6 group-hover:bg-white group-hover:text-rose-600 transition-all duration-300">
