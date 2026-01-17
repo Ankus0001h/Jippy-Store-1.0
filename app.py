@@ -175,14 +175,24 @@ def index():
         query["name"] = {"$regex": search, "$options": "i"}
 
     items = list(products.find(query))
+
+    # SERVICE AREA SETTINGS - location compulsory ke liye
+    service_doc = settings.find_one({"key": "service_area"}) or {}
+    center = service_doc.get("center") or {}
+    service_center_lat = center.get("lat")
+    service_center_lng = center.get("lng")
+    service_radius_km = service_doc.get("radius_km", 0)
+
     return render_template(
         "products.html",
         categories=categories,
         items=items,
         selected_category=selected_category,
         search=search,
+        service_center_lat=service_center_lat,
+        service_center_lng=service_center_lng,
+        service_radius_km=service_radius_km,
     )
-
 
 @app.route("/category/<name>")
 def category_page(name):
@@ -1856,6 +1866,7 @@ def service_config():
 
 if __name__ == "__main__":
     app.run(debug=True)
+
 
 
 
