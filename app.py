@@ -738,7 +738,6 @@ def portal_logout():
 
 from bson import ObjectId
 import datetime
-
 @app.route("/portal/dashboard")
 def portal_dashboard():
     role = session.get("user_role")
@@ -761,7 +760,6 @@ def portal_dashboard():
 
         for o in all_vendor_orders:
             vstatus = o.get("vendor_status") or "pending"
-            # yahan condition: jo ready ho chuka hai usse history me bhej
             if vstatus == "ready":
                 vendor_orders_history.append(o)
             else:
@@ -772,15 +770,46 @@ def portal_dashboard():
         all_delivery_orders = list(
             orders.find({"delivery_id": delivery_oid}).sort("created_at", -1)
         )
+        
         for o in all_delivery_orders:
             dstatus = (o.get("delivery_status") or "").lower().strip()
+            
+            # 🔥 FIXED: Perfect items processing - RELAXED filter for real data
+            items_raw = o.get("items", [])
+            if items_raw:
+                if not isinstance(items_raw, list):
+                    items_raw = list(items_raw)
+                
+                # ✅ FIXED FILTER: name + price + qty chahiye, unit optional
+                o["items"] = [
+                    it for it in items_raw 
+                    if (
+                        it.get("name") and                                    # Name ✅
+                        isinstance(it.get("price", 0), (int, float)) and      # Valid price ✅
+                        (float(it.get("price", 0)) or 0) > 0 and              # Price > 0 ✅
+                        isinstance(it.get("qty", 0), (int, float)) and        # Valid qty ✅
+                        int(it.get("qty", 0)) > 0                             # Qty > 0 ✅
+                        # unit optional banaya - agar nahi hai to bhi show ho jayega
+                    )
+                ]
+                
+                # ✅ Detailed debug (remove in production)
+               
+                if o['items']:
+                    sample_item = o['items'][0]
+                    print(f"   Sample keys: {list(sample_item.keys())}")
+                    print(f"   Sample data: {sample_item}")
+                
+            else:
+                o["items"] = []
+            
             # delivered ho chuka hai to history me bhej
             if dstatus == "delivered":
                 delivery_orders_history.append(o)
             else:
                 delivery_orders_active.append(o)
 
-    current_date = datetime.datetime.now()
+    current_date = datetime.datetime.now(datetime.timezone.utc)
 
     return render_template(
         "portal_dashboard.html",
@@ -789,9 +818,10 @@ def portal_dashboard():
         current_date=current_date,
         vendor_orders=vendor_orders_active,
         vendor_orders_history=vendor_orders_history,
-        delivery_orders=delivery_orders_active,
+        delivery_orders=delivery_orders_active,  # ✅ Now shows ALL valid items!
         delivery_orders_history=delivery_orders_history,
     )
+
 
 
 # ================================
@@ -1866,6 +1896,7 @@ def service_config():
 
 if __name__ == "__main__":
     app.run(debug=True)
+
 
 
 
