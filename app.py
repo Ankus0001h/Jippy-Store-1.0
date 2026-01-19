@@ -1894,13 +1894,36 @@ def service_config():
         'radius_km': doc.get('radius_km', 0)
     })
 
+@app.errorhandler(Exception) # Yeh line har tarah ke error ko catch karegi
+def handle_exception(e):
+    # 1. Agar error standard HTTP error hai (jaise 404, 403, 500)
+    if hasattr(e, 'code'):
+        code = e.code
+    else:
+        # 2. Agar koi python code crash hua hai (jaise Database failure ya Bug)
+        code = 500
+    
+    # Custom Messages mapping
+    messages = {
+        404: {"title": "Page Not Found", "desc": "The link might be broken or moved."},
+        403: {"title": "Access Denied", "desc": "You don't have permission to see this."},
+        401: {"title": "Unauthorized", "desc": "Please login to access this page."},
+        500: {"title": "System Glitch", "desc": "Something went wrong on our end. We're fixing it!"},
+        503: {"title": "Service Busy", "desc": "Server is overloaded or under maintenance."},
+    }
+
+    err_info = messages.get(code, {"title": "Unexpected Error", "desc": "An unknown error occurred."})
+
+    # API/JSON Requests ke liye JSON return karo
+    if request.path.startswith('/api/') or request.headers.get('Content-Type') == 'application/json':
+        return jsonify({"error": err_info['title'], "status": code}), code
+
+    # Baaki sab ke liye error.html dikhao
+    return render_template(
+        "error.html", 
+        code=code, 
+        title=err_info['title'], 
+        desc=err_info['desc']
+    ), code
 if __name__ == "__main__":
     app.run(debug=True)
-
-
-
-
-
-
-
-
