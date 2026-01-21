@@ -164,6 +164,8 @@ def inject_user():
 
 @app.route("/")
 def index():
+    import random  # Add this line
+    
     categories = sorted(products.distinct("category"))
     selected_category = request.args.get("category", "").strip()
     search = request.args.get("q", "").strip()
@@ -175,6 +177,9 @@ def index():
         query["name"] = {"$regex": search, "$options": "i"}
 
     items = list(products.find(query))
+    
+    # SHUFFLE PRODUCTS – Har refresh pe random order!
+    random.shuffle(items)
 
     # SERVICE AREA SETTINGS - location compulsory ke liye
     service_doc = settings.find_one({"key": "service_area"}) or {}
@@ -186,7 +191,7 @@ def index():
     return render_template(
         "products.html",
         categories=categories,
-        items=items,
+        items=items,  # Shuffled items ab random order mein!
         selected_category=selected_category,
         search=search,
         service_center_lat=service_center_lat,
@@ -1927,5 +1932,6 @@ def handle_exception(e):
     ), code
 if __name__ == "__main__":
     app.run(debug=True)
+
 
 
