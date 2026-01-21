@@ -58,9 +58,14 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex items-center justify-between h-16 sm:h-20">
         <a href="{{ url_for('index') }}" class="group flex items-center gap-3 shrink-0 transition-all active:scale-95">
-          <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-[1.25rem] bg-slate-900 flex items-center justify-center text-emerald-400 text-2xl font-black shadow-2xl group-hover:rotate-[10deg] transition-all duration-500">
-            J
+          <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-[1.25rem] overflow-hidden bg-slate-900 shadow-2xl group-hover:rotate-[10deg] transition-all duration-500">
+            <img
+              src="/static/logo.jpeg"
+              alt="Company logo"
+              class="w-full h-full object-cover"
+            >
           </div>
+
           <div class="flex flex-col">
             <span class="font-extrabold text-xl tracking-tight text-slate-900 leading-none">Jippy</span>
             <span class="text-[10px] font-black text-emerald-600 uppercase tracking-[0.25em] mt-1">Express</span>
