@@ -59,13 +59,8 @@
       <div class="flex items-center justify-between h-16 sm:h-20">
         <a href="{{ url_for('index') }}" class="group flex items-center gap-3 shrink-0 transition-all active:scale-95">
           <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-[1.25rem] overflow-hidden bg-slate-900 shadow-2xl group-hover:rotate-[10deg] transition-all duration-500">
-            <img
-              src="/static/logo.jpeg"
-              alt="Company logo"
-              class="w-full h-full object-cover"
-            >
+            <img src="/static/logo.jpeg" alt="Company logo" class="w-full h-full object-cover">
           </div>
-
           <div class="flex flex-col">
             <span class="font-extrabold text-xl tracking-tight text-slate-900 leading-none">Jippy</span>
             <span class="text-[10px] font-black text-emerald-600 uppercase tracking-[0.25em] mt-1">Express</span>
@@ -119,6 +114,12 @@
                     </div>
                     Customer Support
                   </a>
+                  <a href="{{ url_for('privacy') }}" class="flex items-center gap-4 px-4 py-3 rounded-2xl text-sm font-bold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all group">
+                    <div class="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-white group-hover:text-slate-600 transition-all">
+                      <i class="fas fa-fingerprint"></i>
+                    </div>
+                    Privacy Policy
+                  </a>
                 </div>
 
                 <div class="mt-4 pt-2 px-3 border-t border-slate-50">
@@ -148,23 +149,19 @@
 
   <div class="lg:hidden fixed bottom-6 left-0 right-0 z-50 flex justify-center pointer-events-none">
     <div class="pointer-events-auto w-[92%] max-w-sm mx-auto bg-slate-900/95 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] px-6 py-3 flex justify-between items-center shadow-[0_20px_50px_rgba(0,0,0,0.3)]">
-      
       <a href="{{ url_for('index') }}" class="mobile-nav-item flex flex-col items-center gap-1">
         <i class="fas fa-home-alt text-xl {{ 'text-emerald-400' if request.endpoint == 'index' else 'text-slate-400' }}"></i>
         <span class="text-[8px] font-black uppercase tracking-widest {{ 'text-emerald-400' if request.endpoint == 'index' else 'text-slate-500' }}">Home</span>
       </a>
-
       <a href="{{ url_for('cart_page') }}" class="mobile-nav-item relative flex flex-col items-center gap-1">
         <i class="fas fa-shopping-bag text-xl text-slate-400"></i>
         <span class="text-[8px] font-black uppercase tracking-widest text-slate-500">Cart</span>
         <span class="mobile-badge absolute -top-1.5 -right-2 bg-emerald-500 text-slate-900 text-[9px] font-black px-1.5 py-0.5 rounded-full border-2 border-slate-900 scale-0 transition-transform duration-300">0</span>
       </a>
-
       <a href="{{ url_for('my_orders') }}" class="mobile-nav-item flex flex-col items-center gap-1">
         <i class="fas fa-history text-xl {{ 'text-emerald-400' if request.endpoint == 'my_orders' else 'text-slate-400' }}"></i>
         <span class="text-[8px] font-black uppercase tracking-widest {{ 'text-emerald-400' if request.endpoint == 'my_orders' else 'text-slate-500' }}">Orders</span>
       </a>
-
       <a href="{{ url_for('my_profile') }}" class="mobile-nav-item flex flex-col items-center gap-1">
         <div class="w-7 h-7 rounded-xl {{ 'bg-emerald-500 text-slate-900' if request.endpoint == 'my_profile' else 'bg-slate-800 text-slate-400' }} flex items-center justify-center text-[11px] font-black border border-white/5">
           {% if session.get('user_id') %}
@@ -183,9 +180,11 @@
       <div class="flex items-center gap-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
         <a href="{{ url_for('admin_login') }}" class="hover:text-emerald-600 transition-colors">Admin Node</a>
         <span class="w-1.5 h-1.5 bg-slate-200 rounded-full"></span>
+        <a href="{{ url_for('privacy') }}" class="hover:text-slate-900 transition-colors">Privacy</a>
+        <span class="w-1.5 h-1.5 bg-slate-200 rounded-full"></span>
         <a href="{{ url_for('portal_login') }}" class="hover:text-blue-600 transition-colors">Logistics</a>
       </div>
-      <p class="text-[10px] font-bold text-slate-300 tracking-tighter uppercase">FreshKart Systems © 2026. All rights reserved.</p>
+      <p class="text-[10px] font-bold text-slate-300 tracking-tighter uppercase">Jippy Systems © 2026. All rights reserved.</p>
     </div>
   </footer>
 
@@ -194,47 +193,30 @@
       try { return JSON.parse(localStorage.getItem("cart") || "[]"); }
       catch (e) { return []; }
     }
-
     function updateCartBadge() {
       const cart = getCart();
       const totalQty = cart.reduce((sum, item) => sum + Number(item.qty || 1), 0);
-      
       const desktopBadge = document.getElementById("cart-count");
       const mobileBadge = document.querySelector(".mobile-badge");
-
       const animateBadge = (el) => {
         if (el) {
           el.innerText = totalQty;
-          if (totalQty > 0) {
-            el.classList.remove('scale-0');
-            el.classList.add('scale-100');
-          } else {
-            el.classList.remove('scale-100');
-            el.classList.add('scale-0');
-          }
+          if (totalQty > 0) { el.classList.remove('scale-0'); el.classList.add('scale-100'); }
+          else { el.classList.remove('scale-100'); el.classList.add('scale-0'); }
         }
       };
-      
       animateBadge(desktopBadge);
       animateBadge(mobileBadge);
     }
-
     function toggleUserMenu() {
       const el = document.getElementById("user-dropdown");
-      if (el) {
-        el.classList.toggle("hidden");
-        el.classList.add("page-fade-in");
-      }
+      if (el) { el.classList.toggle("hidden"); el.classList.add("page-fade-in"); }
     }
-
     window.addEventListener("click", (e) => {
       const menu = document.getElementById("user-dropdown");
       const wrapper = document.querySelector(".user-menu");
-      if (menu && wrapper && !wrapper.contains(e.target)) {
-        menu.classList.add("hidden");
-      }
+      if (menu && wrapper && !wrapper.contains(e.target)) { menu.classList.add("hidden"); }
     });
-
     document.addEventListener("DOMContentLoaded", updateCartBadge);
     window.addEventListener('storage', updateCartBadge);
     window.addEventListener('cartUpdated', updateCartBadge);
