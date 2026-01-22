@@ -1930,8 +1930,10 @@ def handle_exception(e):
         title=err_info['title'], 
         desc=err_info['desc']
     ), code
+
+@app.route("/privacy") 
+def privacy(): 
+    return render_template("privacy.html")   
+  
 if __name__ == "__main__":
     app.run(debug=True)
-
-
-
