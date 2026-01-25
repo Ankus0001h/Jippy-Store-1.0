@@ -162,51 +162,68 @@ def inject_user():
 # PUBLIC: PRODUCTS
 # ================================
 
+def normalize_category_name(name):
+    """Normalize category name for case-insensitive matching"""
+    if not name:
+        return ""
+    name = name.strip().lower()
+    name = re.sub(r'\s+', ' ', name)
+    return name
+
 @app.route("/")
 def index():
-    import random  # Add this line
+    """🏠 Category Cards + Search Page"""
+    categories = sorted([c for c in products.distinct("category") if c and c.strip()])
     
-    categories = sorted(products.distinct("category"))
-    selected_category = request.args.get("category", "").strip()
-    search = request.args.get("q", "").strip()
-
-    query = {}
-    if selected_category:
-        query["category"] = selected_category
-    if search:
-        query["name"] = {"$regex": search, "$options": "i"}
-
-    items = list(products.find(query))
-    
-    # SHUFFLE PRODUCTS – Har refresh pe random order!
-    random.shuffle(items)
-
-    # NEW: Add effective_price to each item for cart (discount_price ya price)
-    for item in items:
-        item["effective_price"] = item.get("discount_price") or item["price"]
-
-    # SERVICE AREA SETTINGS - location compulsory ke liye
+    # Service area settings
     service_doc = settings.find_one({"key": "service_area"}) or {}
-    center = service_doc.get("center") or {}
-    service_center_lat = center.get("lat")
-    service_center_lng = center.get("lng")
-    service_radius_km = service_doc.get("radius_km", 0)
-
-    return render_template(
-        "products.html",
-        categories=categories,
-        items=items,  # Shuffled items ab random order mein + effective_price!
-        selected_category=selected_category,
-        search=search,
-        service_center_lat=service_center_lat,
-        service_center_lng=service_center_lng,
-        service_radius_km=service_radius_km,
-    )
+    center = service_doc.get("center", {"lat": 25.3176, "lng": 82.9739})
+    
+    return render_template("products.html",
+                         page_type="categories",      # NEW: Category cards page
+                         categories=categories,
+                         items=[],                    # No products on category page
+                         selected_category=None,
+                         search="",
+                         service_center_lat=center.get("lat"),
+                         service_center_lng=center.get("lng"),
+                         service_radius_km=service_doc.get("radius_km", 10))
 
 @app.route("/category/<name>")
 def category_page(name):
-    items = list(products.find({"category": name}))
-    return render_template("category.html", name=name, items=items)
+    """📦 Specific Category Products - SAME products.html template"""
+    
+    # Case-insensitive category matching
+    norm_name = normalize_category_name(name)
+    items = list(products.find({
+        "category": {"$regex": norm_name, "$options": "i"}
+    }))
+    
+    # Filter empty categories + Add effective price
+    items = [item for item in items if item.get("category", "").strip()]
+    random.shuffle(items)
+    
+    for item in items:
+        item["effective_price"] = item.get("discount_price") or item["price"]
+    
+    # All categories for chips
+    categories = sorted([c for c in products.distinct("category") if c and c.strip()])
+    
+    # Service area
+    service_doc = settings.find_one({"key": "service_area"}) or {}
+    center = service_doc.get("center", {"lat": 25.3176, "lng": 82.9739})
+    
+    return render_template("products.html",
+                         page_type="products",
+                         categories=categories,
+                         items=items,
+                         selected_category=name,
+                         category_name=name.title(),
+                         search="",
+                         item_count=len(items),
+                         service_center_lat=center.get("lat"),
+                         service_center_lng=center.get("lng"),
+                         service_radius_km=service_doc.get("radius_km", 10))
 
 # ================================
 # UTILITY: IMAGE UPLOAD
@@ -2005,4 +2022,5 @@ def privacy():
   
 if __name__ == "__main__":
     app.run(debug=True)
+
 
