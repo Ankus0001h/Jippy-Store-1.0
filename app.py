@@ -25,6 +25,10 @@ from twilio.twiml.voice_response import VoiceResponse
 from datetime import timedelta  # NEW
 import pytz
 IST = pytz.timezone("Asia/Kolkata")
+import qrcode
+from io import BytesIO
+import base64
+from urllib.parse import quote
 load_dotenv()
 
 app = Flask(__name__)
@@ -77,6 +81,27 @@ class User(UserMixin):
         self.id = str(doc["_id"])
         self.email = doc.get("email", "")
         self.name = doc.get("name", "")
+
+def build_upi_qr(vpa: str, name: str, amount: float, note: str = "COD Collection"):
+    # standard UPI deeplink
+    upi_url = (
+        "upi://pay?"
+        f"pa={quote(vpa)}&"
+        f"pn={quote(name)}&"
+        f"am={amount:.2f}&"
+        "cu=INR&"
+        f"tn={quote(note)}"
+    )  # [web:120][web:123][web:136]
+
+    qr = qrcode.QRCode(box_size=8, border=2)
+    qr.add_data(upi_url)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+
+    buf = BytesIO()
+    img.save(buf, format="PNG")
+    b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
+    return f"data:image/png;base64,{b64}", upi_url
 
 def is_maintenance_mode():
     doc = settings.find_one({"key": "maintenance_mode"}) or {}
@@ -162,6 +187,7 @@ def inject_user():
 # PUBLIC: PRODUCTS
 # ================================
 
+# TOP LEVEL FUNCTION (app.py ke top mein add karo)
 import urllib.parse
 import re
 
@@ -250,21 +276,6 @@ def index():
                          service_radius_km=service_doc.get("radius_km", 10))
 
 
-# ================================
-# UTILITY: IMAGE UPLOAD
-# ================================
-
-@app.route("/upload-image", methods=["POST"])
-def upload_image():
-    if "file" not in request.files:
-        return jsonify({"error": "No file field"}), 400
-    file = request.files["file"]
-    if file.filename == "":
-        return jsonify({"error": "No file selected"}), 400
-    upload_result = cloudinary.uploader.upload(file, folder="products")
-    return jsonify(
-        {"url": upload_result["secure_url"], "public_id": upload_result["public_id"]}
-    )
 
 # ================================
 # ADMIN: AUTH & DASHBOARD
@@ -853,6 +864,7 @@ def portal_logout():
 
 from bson import ObjectId
 import datetime
+
 @app.route("/portal/dashboard")
 def portal_dashboard():
     role = session.get("user_role")
@@ -936,8 +948,6 @@ def portal_dashboard():
         delivery_orders=delivery_orders_active,  # ✅ Now shows ALL valid items!
         delivery_orders_history=delivery_orders_history,
     )
-
-
 
 # ================================
 # CUSTOMER REGISTRATION (PHONE + OPTIONAL EMAIL)
@@ -1942,6 +1952,7 @@ def support():
         return jsonify({"reply": reply})
 
     return render_template("support.html", user_name=user_name, user_phone=user_phone)
+
 @app.route("/admin/service-area", methods=["GET", "POST"])
 def admin_service_area():
     if not session.get("admin_logged_in"):
@@ -2040,14 +2051,10 @@ def handle_exception(e):
         title=err_info['title'], 
         desc=err_info['desc']
     ), code
-
+ 
 @app.route("/privacy") 
 def privacy(): 
     return render_template("privacy.html")   
-  
+     
 if __name__ == "__main__":
     app.run(debug=True)
-
-
-
-
