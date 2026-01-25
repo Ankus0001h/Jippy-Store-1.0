@@ -162,14 +162,6 @@ def inject_user():
 # PUBLIC: PRODUCTS
 # ================================
 
-def normalize_category_name(name):
-    """Normalize category name for case-insensitive matching"""
-    if not name:
-        return ""
-    name = name.strip().lower()
-    name = re.sub(r'\s+', ' ', name)
-    return name
-
 @app.route("/")
 def index():
     """🏠 Category Cards + Search Page"""
@@ -189,22 +181,49 @@ def index():
                          service_center_lng=center.get("lng"),
                          service_radius_km=service_doc.get("radius_km", 10))
 
+def normalize_category_name(name):
+    """🔧 FIXED: URL decode + normalize"""
+    if not name:
+        return ""
+    
+    # ✅ STEP 1: URL decode first (Breakfast%20And%20Instant%20Food → Breakfast And Instant Food)
+    decoded_name = urllib.parse.unquote(name)
+    
+    # ✅ STEP 2: Clean & normalize
+    name = decoded_name.strip()
+    name = re.sub(r'\s+', ' ', name)  # Multiple spaces → single space
+    name = name.lower()  # Lowercase for matching
+    
+    return name
+
+import random
+import urllib.parse
+import re
+
 @app.route("/category/<name>")
 def category_page(name):
-    """📦 Specific Category Products - SAME products.html template"""
+    """📦 FIXED - Products definitely show now!"""
     
-    # Case-insensitive category matching
-    norm_name = normalize_category_name(name)
-    items = list(products.find({
-        "category": {"$regex": norm_name, "$options": "i"}
-    }))
+    # ✅ URL decode first
+    original_category = urllib.parse.unquote(name)
     
-    # Filter empty categories + Add effective price
+    # ✅ Try EXACT match first
+    items = list(products.find({"category": original_category}))
+    
+    # ✅ If no exact match, try case-insensitive regex
+    if not items:
+        items = list(products.find({
+            "category": {"$regex": original_category, "$options": "i"}
+        }))
+    
+    # ✅ Filter empty + shuffle
     items = [item for item in items if item.get("category", "").strip()]
     random.shuffle(items)
     
+    # ✅ Add price logic
     for item in items:
         item["effective_price"] = item.get("discount_price") or item["price"]
+        item["display_price"] = item["effective_price"]
     
     # All categories for chips
     categories = sorted([c for c in products.distinct("category") if c and c.strip()])
@@ -213,12 +232,14 @@ def category_page(name):
     service_doc = settings.find_one({"key": "service_area"}) or {}
     center = service_doc.get("center", {"lat": 25.3176, "lng": 82.9739})
     
+    print(f"🔍 DEBUG: Category='{original_category}', Found {len(items)} items")  # Debug log
+    
     return render_template("products.html",
                          page_type="products",
                          categories=categories,
                          items=items,
-                         selected_category=name,
-                         category_name=name.title(),
+                         selected_category=original_category,
+                         category_name=original_category,
                          search="",
                          item_count=len(items),
                          service_center_lat=center.get("lat"),
@@ -2022,5 +2043,6 @@ def privacy():
   
 if __name__ == "__main__":
     app.run(debug=True)
+
 
 
