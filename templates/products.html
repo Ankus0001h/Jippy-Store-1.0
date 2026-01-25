@@ -4,16 +4,16 @@
 <div class="w-full bg-emerald-600 overflow-hidden py-2 mb-6 shadow-sm border-b border-emerald-500">
   <div class="whitespace-nowrap flex animate-marquee">
     <span class="text-[10px] font-black text-white uppercase tracking-[0.3em] mx-10 flex items-center gap-2">
-      <i class="fas fa-truck-fast"></i> Free delivery on orders above ₹49
+      <i class="fas fa-truck-fast"></i> Free delivery order @₹49
     </span>
     <span class="text-[10px] font-black text-white uppercase tracking-[0.3em] mx-10 flex items-center gap-2">
-      <i class="fas fa-bolt"></i> Lightning Fast Delivery in 15-30 mins
+      <i class="fas fa-bolt"></i>Fast Delivery in 15-30 mins
     </span>
     <span class="text-[10px] font-black text-white uppercase tracking-[0.3em] mx-10 flex items-center gap-2">
-      <i class="fas fa-truck-fast"></i> Free delivery on orders above ₹49
+      <i class="fas fa-truck-fast"></i> Free delivery order @₹49
     </span>
     <span class="text-[10px] font-black text-white uppercase tracking-[0.3em] mx-10 flex items-center gap-2">
-      <i class="fas fa-bolt"></i> Lightning Fast Delivery in 15-30 mins
+      <i class="fas fa-bolt"></i> Fast Delivery in 15-30 mins
     </span>
   </div>
 </div>
@@ -63,11 +63,11 @@
           <div class="absolute -top-10 -right-10 w-32 h-32 bg-emerald-500/5 rounded-full blur-3xl group-hover:bg-emerald-500/20 transition-all duration-500"></div>
           
           <div class="absolute top-4 left-4">
-             <span class="px-2.5 py-1 rounded-full bg-slate-50 text-[8px] font-black text-slate-400 uppercase tracking-widest border border-slate-100 group-hover:bg-emerald-50 group-hover:text-emerald-600 group-hover:border-emerald-100 transition-all">Fresh</span>
+             <span class="px-2.5 py-1 rounded-full bg-slate-50 text-[8px] font-black text-slate-400 uppercase tracking-widest border border-slate-100 group-hover:bg-emerald-50 group-hover:text-emerald-600 group-hover:border-emerald-100 transition-all"></span>
           </div>
 
           <div class="relative mt-4">
-            <div class="w-24 h-24 sm:w-32 sm:h-32 rounded-[2rem] bg-slate-50 flex items-center justify-center overflow-hidden transition-transform duration-500 group-hover:scale-110 group-hover:-rotate-3">
+            <div class="w-full h-full sm:w-32 sm:h-32 rounded-[2rem] bg-slate-50 flex items-center justify-center overflow-hidden transition-transform duration-500 group-hover:scale-110 group-hover:-rotate-3">
               {% set img_name = c|lower|replace(' ', '_') %}
               <img src="{{ url_for('static', filename='images/categories/' + img_name + '.jpg') }}" 
                    alt="{{ c }}" 
