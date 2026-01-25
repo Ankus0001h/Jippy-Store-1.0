@@ -191,87 +191,112 @@ def inject_user():
 import urllib.parse
 import re
 import random
-from flask import render_template
 
 def normalize_category_name(name):
-    """🔧 FIXED: URL decode + normalize"""
+    """🔧 VERCEL SAFE VERSION"""
     if not name:
         return ""
-    
-    # ✅ STEP 1: URL decode first 
     decoded_name = urllib.parse.unquote(name)
-    
-    # ✅ STEP 2: Clean & normalize
     name = decoded_name.strip()
-    name = re.sub(r'\s+', ' ', name)  # Multiple spaces → single space
-    name = name.lower()  # Lowercase for matching
+    name = re.sub(r'\s+', ' ', name)
+    return name.lower()
+
+@app.route("/category/<name>")
+def category_page(name):
+    """📦 VERCEL READY - Original logic with safety"""
     
-    return name
+    try:
+        # ✅ URL decode first
+        original_category = urllib.parse.unquote(name)
+        
+        # ✅ LIMIT 1st query for Vercel
+        items = list(products.find({"category": original_category}).limit(30))
+        
+        # ✅ 2nd query only if needed (Vercel safe)
+        if len(items) == 0:
+            items = list(products.find({
+                "category": {"$regex": original_category, "$options": "i"}
+            }).limit(30))
+        
+        # ✅ Clean + shuffle
+        items = [item for item in items if item.get("category", "").strip()]
+        random.shuffle(items)
+        
+        # ✅ Price logic
+        for item in items:
+            item["effective_price"] = item.get("discount_price") or item["price"]
+            item["display_price"] = item["effective_price"]
+        
+        # ✅ Categories (cached approach)
+        categories = []
+        try:
+            all_cats = products.distinct("category")
+            categories = sorted([c for c in all_cats if c and str(c).strip()])
+        except:
+            pass  # Empty list if fails
+        
+        # ✅ Service area safe
+        service_doc = {}
+        try:
+            service_doc = settings.find_one({"key": "service_area"}) or {}
+        except:
+            pass
+        center = service_doc.get("center", {"lat": 25.3176, "lng": 82.9739})
+        
+        print(f"🔍 VERCEL: Category='{original_category}', Found {len(items)} items")
+        
+        return render_template("products.html",
+                             page_type="products",
+                             categories=categories,
+                             items=items,
+                             selected_category=original_category,
+                             category_name=original_category,
+                             search="",
+                             item_count=len(items),
+                             service_center_lat=center.get("lat"),
+                             service_center_lng=center.get("lng"),
+                             service_radius_km=service_doc.get("radius_km", 10))
+    
+    except Exception as e:
+        print(f"❌ VERCEL ERROR: {e}")
+        # Safe fallback
+        categories = []
+        return render_template("products.html",
+                             page_type="products",
+                             categories=categories,
+                             items=[],
+                             selected_category=urllib.parse.unquote(name),
+                             category_name=urllib.parse.unquote(name),
+                             item_count=0)
 
-import random
-from flask import render_template
-
-# 🔥 SIMPLE APPROACH - Get ALL categories first, then match
 @app.route("/")
 def index():
-    """🏠 Category Cards - All categories show"""
+    """🏠 VERCEL READY Category page"""
+    categories = []
     try:
-        all_categories = products.distinct("category")
-        categories = sorted([c for c in all_categories if c and str(c).strip()])
+        all_cats = products.distinct("category")
+        categories = sorted([c for c in all_cats if c and str(c).strip()])
+        print(f"✅ VERCEL: Loaded {len(categories)} categories")
+    except Exception as e:
+        print(f"❌ Categories error: {e}")
+    
+    # Safe service area
+    service_doc = {}
+    try:
+        service_doc = settings.find_one({"key": "service_area"}) or {}
     except:
-        categories = []
+        pass
+    center = service_doc.get("center", {"lat": 25.3176, "lng": 82.9739})
     
     return render_template("products.html",
                          page_type="categories",
                          categories=categories,
-                         items=[])
-
-@app.route("/category/<name>")
-def category_page(name):
-    """📦 NEW LOGIC - Works 100%!"""
-    
-    # 🔥 STEP 1: Get ALL categories first
-    try:
-        all_categories = products.distinct("category")
-        categories = sorted([c for c in all_categories if c and str(c).strip()])
-    except:
-        categories = []
-    
-    # 🔥 STEP 2: URL decode name
-    original_name = urllib.parse.unquote(name)
-    
-    # 🔥 STEP 3: Find EXACT category match from available categories
-    matched_category = None
-    for cat in categories:
-        if str(cat).strip().lower() == original_name.lower():
-            matched_category = str(cat).strip()
-            break
-    
-    # 🔥 STEP 4: Get products for matched category
-    items = []
-    if matched_category:
-        items = list(products.find({"category": matched_category}).limit(50))
-    else:
-        # 🔥 STEP 5: Fallback - get first 20 random products
-        items = list(products.find({}).limit(20))
-    
-    # 🔥 STEP 6: Clean & prepare data
-    items = [item for item in items if item.get("category", "").strip()]
-    random.shuffle(items)
-    
-    # 🔥 STEP 7: Add price fields
-    for item in items:
-        item["display_price"] = item.get("discount_price") or item["price"]
-    
-    print(f"🔥 MATCHED: '{matched_category}' → {len(items)} products")
-    
-    return render_template("products.html",
-                         page_type="products",
-                         categories=categories,
-                         items=items,
-                         selected_category=matched_category or original_name,
-                         category_name=matched_category or original_name,
-                         item_count=len(items))
+                         items=[],
+                         selected_category=None,
+                         search="",
+                         service_center_lat=center.get("lat"),
+                         service_center_lng=center.get("lng"),
+                         service_radius_km=service_doc.get("radius_km", 10))
 
 # ================================
 # ADMIN: AUTH & DASHBOARD
