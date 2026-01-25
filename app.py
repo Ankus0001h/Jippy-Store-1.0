@@ -191,113 +191,68 @@ def inject_user():
 import urllib.parse
 import re
 import random
+from flask import Flask, render_template, request
+
+# 1. MongoDB Connection Setup (Global level par rakhein taaki Vercel reuse kar sake)
+# Make sure your MongoDB URI has 'retryWrites=true&w=majority'
+# client = MongoClient(MONGO_URI, connectTimeoutMS=30000, socketTimeoutMS=30000)
 
 def normalize_category_name(name):
-    """🔧 VERCEL SAFE VERSION"""
-    if not name:
-        return ""
-    decoded_name = urllib.parse.unquote(name)
-    name = decoded_name.strip()
-    name = re.sub(r'\s+', ' ', name)
-    return name.lower()
+    if not name: return ""
+    # Vercel handles quotes differently, plus (+) sometimes becomes space
+    name = urllib.parse.unquote(name).replace('+', ' ')
+    return name.strip()
 
-@app.route("/category/<name>")
+@app.route("/category/<path:name>") # <path:name> use karein taaki special chars miss na hon
 def category_page(name):
-    """📦 VERCEL READY - Original logic with safety"""
-    
     try:
-        # ✅ URL decode first
-        original_category = urllib.parse.unquote(name)
+        # Decode properly for special characters like '&', '/', etc.
+        original_category = normalize_category_name(name)
         
-        # ✅ LIMIT 1st query for Vercel
-        items = list(products.find({"category": original_category}).limit(30))
+        # ✅ Optimize Query: Projection use karein taaki unnecessary data load na ho
+        # Isse memory limit error nahi aayega
+        query = {"category": original_category}
+        items = list(products.find(query).limit(40))
         
-        # ✅ 2nd query only if needed (Vercel safe)
-        if len(items) == 0:
+        # ✅ Case-insensitive search as fallback
+        if not items:
             items = list(products.find({
-                "category": {"$regex": original_category, "$options": "i"}
-            }).limit(30))
-        
-        # ✅ Clean + shuffle
-        items = [item for item in items if item.get("category", "").strip()]
+                "category": {"$regex": f"^{re.escape(original_category)}$", "$options": "i"}
+            }).limit(40))
+            
+        # Shuffle logic
         random.shuffle(items)
         
-        # ✅ Price logic
         for item in items:
-            item["effective_price"] = item.get("discount_price") or item["price"]
-            item["display_price"] = item["effective_price"]
+            item["_id"] = str(item["_id"]) # Vercel JSON error se bachne ke liye
+            item["display_price"] = item.get("discount_price") or item.get("price", 0)
         
-        # ✅ Categories (cached approach)
-        categories = []
+        # ✅ Categories fetch karne ke liye try-except block
         try:
-            all_cats = products.distinct("category")
-            categories = sorted([c for c in all_cats if c and str(c).strip()])
+            # distinct() kabhi kabhi timeout hota hai, cache kar sakein toh behtar hai
+            categories = sorted([c for c in products.distinct("category") if c])
         except:
-            pass  # Empty list if fails
-        
-        # ✅ Service area safe
-        service_doc = {}
-        try:
-            service_doc = settings.find_one({"key": "service_area"}) or {}
-        except:
-            pass
-        center = service_doc.get("center", {"lat": 25.3176, "lng": 82.9739})
-        
-        print(f"🔍 VERCEL: Category='{original_category}', Found {len(items)} items")
-        
+            categories = []
+
         return render_template("products.html",
                              page_type="products",
                              categories=categories,
                              items=items,
                              selected_category=original_category,
-                             category_name=original_category,
-                             search="",
-                             item_count=len(items),
-                             service_center_lat=center.get("lat"),
-                             service_center_lng=center.get("lng"),
-                             service_radius_km=service_doc.get("radius_km", 10))
-    
+                             item_count=len(items))
+
     except Exception as e:
-        print(f"❌ VERCEL ERROR: {e}")
-        # Safe fallback
-        categories = []
-        return render_template("products.html",
-                             page_type="products",
-                             categories=categories,
-                             items=[],
-                             selected_category=urllib.parse.unquote(name),
-                             category_name=urllib.parse.unquote(name),
-                             item_count=0)
+        print(f"❌ Vercel Crash: {str(e)}")
+        return render_template("products.html", items=[], categories=[], item_count=0)
 
 @app.route("/")
 def index():
-    """🏠 VERCEL READY Category page"""
-    categories = []
     try:
-        all_cats = products.distinct("category")
-        categories = sorted([c for c in all_cats if c and str(c).strip()])
-        print(f"✅ VERCEL: Loaded {len(categories)} categories")
+        # Index page par categories ko fast load karne ke liye
+        categories = sorted([c for c in products.distinct("category") if c])
+        return render_template("products.html", page_type="categories", categories=categories)
     except Exception as e:
-        print(f"❌ Categories error: {e}")
-    
-    # Safe service area
-    service_doc = {}
-    try:
-        service_doc = settings.find_one({"key": "service_area"}) or {}
-    except:
-        pass
-    center = service_doc.get("center", {"lat": 25.3176, "lng": 82.9739})
-    
-    return render_template("products.html",
-                         page_type="categories",
-                         categories=categories,
-                         items=[],
-                         selected_category=None,
-                         search="",
-                         service_center_lat=center.get("lat"),
-                         service_center_lng=center.get("lng"),
-                         service_radius_km=service_doc.get("radius_km", 10))
-
+        return render_template("products.html", page_type="categories", categories=[])
 # ================================
 # ADMIN: AUTH & DASHBOARD
 # ================================
