@@ -34,6 +34,7 @@
           >
         </div>
 
+        <!-- ORIGINAL PRICE -->
         <div class="space-y-1.5">
           <label class="block text-[11px] font-black uppercase tracking-wider text-slate-500 ml-1">Listing Price (₹)</label>
           <input
@@ -44,6 +45,24 @@
             class="w-full border-2 border-slate-100 bg-slate-50 text-slate-900 rounded-2xl px-4 py-3 text-sm font-bold focus:outline-none focus:bg-white focus:border-emerald-500 transition-all placeholder-slate-300"
             required
           >
+        </div>
+
+        <!-- NEW: DISCOUNTED PRICE (OPTIONAL) -->
+        <div class="space-y-1.5">
+          <label class="block text-[11px] font-black uppercase tracking-wider text-emerald-600 ml-1">
+            Discounted Price (₹)
+            <span class="text-slate-400 text-[10px]">(optional)</span>
+          </label>
+          <input
+            type="number"
+            step="0.01"
+            name="discount_price"
+            placeholder="e.g. 79.00"
+            class="w-full border-2 border-emerald-50 bg-emerald-50/40 text-slate-900 rounded-2xl px-4 py-3 text-sm font-bold focus:outline-none focus:bg-white focus:border-emerald-500 transition-all placeholder-slate-300"
+          >
+          <p class="text-[10px] font-bold text-emerald-500 uppercase tracking-wide ml-1">
+            Leave empty if no discount
+          </p>
         </div>
 
         <div class="space-y-1.5">
@@ -122,6 +141,7 @@
     </form>
   </div>
 
+  <!-- INVENTORY TABLE WITH DISCOUNT SUPPORT -->
   <div class="bg-white border border-slate-200 rounded-[2.5rem] shadow-xl p-6 md:p-10">
     <div class="flex items-center justify-between mb-8">
       <div>
@@ -154,7 +174,7 @@
                     {% if p.image %}
                       <img src="{{ p.image }}" alt="{{ p.name }}" class="w-full h-full object-cover">
                     {% else %}
-                        <div class="w-full h-full flex items-center justify-center text-slate-300 bg-slate-50"><i class="fas fa-box"></i></div>
+                      <div class="w-full h-full flex items-center justify-center text-slate-300 bg-slate-50"><i class="fas fa-box"></i></div>
                     {% endif %}
                   </div>
                   <span class="font-black text-slate-800 text-sm tracking-tight">{{ p.name }}</span>
@@ -166,8 +186,31 @@
               <td class="px-4 py-4 text-center">
                 <span class="text-xs font-bold text-slate-500">{{ p.unit }}</span>
               </td>
+              <!-- UPDATED PRICE COLUMN WITH DISCOUNT SUPPORT -->
               <td class="px-4 py-4">
-                <div class="text-sm font-black text-emerald-600 tracking-tighter">₹{{ "%.2f"|format(p.price) }}</div>
+                {% if p.discount_price %}
+                  <div class="space-y-1">
+                    <div class="text-[10px] font-bold uppercase tracking-[0.16em] text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded-full inline-block w-fit">
+                      OFFER ACTIVE
+                    </div>
+                    <div class="flex items-baseline gap-2">
+                      <span class="text-xs font-medium text-slate-400 line-through">
+                        ₹{{ "%.2f"|format(p.price) }}
+                      </span>
+                      <span class="text-sm font-black text-emerald-600">
+                        ₹{{ "%.2f"|format(p.discount_price) }}
+                      </span>
+                      {% set off_pct = ((p.price - p.discount_price) / p.price * 100)|round(0, 'floor') %}
+                      <span class="text-[9px] font-black text-white bg-emerald-600 px-1.5 py-px rounded-full">
+                        {{ off_pct }}% OFF
+                      </span>
+                    </div>
+                  </div>
+                {% else %}
+                  <div class="text-sm font-black text-emerald-600 tracking-tighter">
+                    ₹{{ "%.2f"|format(p.price) }}
+                  </div>
+                {% endif %}
               </td>
               <td class="px-4 py-4 text-right">
                 <div class="flex items-center justify-end gap-2">
@@ -201,13 +244,14 @@
       </div>
     {% else %}
       <div class="py-20 text-center">
-          <i class="fas fa-box-open text-5xl text-slate-100 mb-4"></i>
-          <p class="text-sm font-bold text-slate-400">Vault is empty. Add your first product above.</p>
+        <i class="fas fa-box-open text-5xl text-slate-100 mb-4"></i>
+        <p class="text-sm font-bold text-slate-400">Vault is empty. Add your first product above.</p>
       </div>
     {% endif %}
   </div>
 </div>
 
+<!-- CROP MODAL (unchanged) -->
 <div id="cropModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-[100] hidden p-4">
   <div class="bg-white border border-slate-200 rounded-[2.5rem] w-full max-w-md shadow-2xl overflow-hidden animate-zoom-in">
     <div class="flex items-center justify-between px-8 py-5 border-b border-slate-100">
@@ -256,7 +300,7 @@
 </style>
 
 <script>
-  // Category logic
+  // Category logic (unchanged)
   const categorySelect = document.getElementById("categorySelect");
   const otherInput = document.getElementById("otherCategoryInput");
 
@@ -275,7 +319,7 @@
     });
   }
 
-  // Prevent multiple submit
+  // Prevent multiple submit (unchanged)
   const addProductForm = document.getElementById("add-product-form");
   if (addProductForm) {
     addProductForm.addEventListener("submit", () => {
@@ -286,7 +330,7 @@
     });
   }
 
-  // Image crop logic
+  // Image crop logic (unchanged)
   const triggerBtn = document.getElementById("triggerImageInput");
   const imageInput = document.getElementById("imageInput");
   const cropModal = document.getElementById("cropModal");
