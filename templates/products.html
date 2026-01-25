@@ -1,5 +1,23 @@
 {% extends "base.html" %}
 {% block content %}
+
+<div class="w-full bg-emerald-600 overflow-hidden py-2 mb-6 shadow-sm border-b border-emerald-500">
+  <div class="whitespace-nowrap flex animate-marquee">
+    <span class="text-[10px] font-black text-white uppercase tracking-[0.3em] mx-10 flex items-center gap-2">
+      <i class="fas fa-truck-fast"></i> Free delivery on orders above ₹49
+    </span>
+    <span class="text-[10px] font-black text-white uppercase tracking-[0.3em] mx-10 flex items-center gap-2">
+      <i class="fas fa-bolt"></i> Lightning Fast Delivery in 15-30 mins
+    </span>
+    <span class="text-[10px] font-black text-white uppercase tracking-[0.3em] mx-10 flex items-center gap-2">
+      <i class="fas fa-truck-fast"></i> Free delivery on orders above ₹49
+    </span>
+    <span class="text-[10px] font-black text-white uppercase tracking-[0.3em] mx-10 flex items-center gap-2">
+      <i class="fas fa-bolt"></i> Lightning Fast Delivery in 15-30 mins
+    </span>
+  </div>
+</div>
+
 <div class="max-w-6xl mx-auto px-2 sm:px-6 lg:px-8 py-4 sm:py-8 space-y-6 sm:space-y-8">
 
   <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6 px-1">
@@ -54,7 +72,7 @@
               <img src="{{ url_for('static', filename='images/categories/' + img_name + '.jpg') }}" 
                    alt="{{ c }}" 
                    class="w-full h-full object-cover"
-                   onerror=this.parentElement.innerHTML=<i class=\"fas fa-leaf text-4xl text-emerald-200\"></i>
+                   onerror="this.parentElement.innerHTML='<i class=\'fas fa-leaf text-4xl text-emerald-200\'></i>'">
             </div>
             <div class="absolute inset-0 bg-emerald-400/20 blur-2xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
           </div>
@@ -129,6 +147,23 @@
   {% endif %}
 </div>
 
+<style>
+  /* 🚀 Continuous Running Animation */
+  @keyframes marquee {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+  .animate-marquee {
+    animation: marquee 30s linear infinite;
+    width: max-content;
+  }
+  .animate-marquee:hover { animation-play-state: paused; }
+
+  .scrollbar-hide::-webkit-scrollbar { display: none; }
+  .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+  .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+</style>
+
 <script>
   // 🌟 Daily Essentials Typewriter
   const part1 = "Daily ", part2 = "Essentials";
@@ -163,13 +198,11 @@
         return;
       }
 
-      // Filter cards
       categoryCards.forEach(card => {
         const name = card.dataset.category || '';
         card.style.display = name.includes(q) ? "flex" : "none";
       });
 
-      // Show Suggestions
       const matches = categoryCards
         .map(card => card.dataset.category)
         .filter(name => name.includes(q))
@@ -210,7 +243,6 @@
     function filterGrid(q) { productCards.forEach(c => c.style.display = c.dataset.name.includes(q) ? "flex" : "none"); }
   {% endif %}
 
-  // 🛒 CART SYSTEM
   function triggerGlobalCartUpdate(cart) { localStorage.setItem("cart", JSON.stringify(cart)); updateCartButtons(); window.dispatchEvent(new Event('cartUpdated')); }
   function getCart() { try { return JSON.parse(localStorage.getItem("cart") || "[]"); } catch (e) { return []; } }
   function handleCartClick(wrapper) {
@@ -242,10 +274,4 @@
     });
   }
 </script>
-
-<style>
-  .scrollbar-hide::-webkit-scrollbar { display: none; }
-  .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-  .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-</style>
 {% endblock %}
