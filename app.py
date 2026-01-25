@@ -193,46 +193,46 @@ import re
 import random
 from flask import Flask, render_template, request
 
-# 1. MongoDB Connection Setup (Global level par rakhein taaki Vercel reuse kar sake)
-# Make sure your MongoDB URI has 'retryWrites=true&w=majority'
-# client = MongoClient(MONGO_URI, connectTimeoutMS=30000, socketTimeoutMS=30000)
-
-def normalize_category_name(name):
+# Helper function to clean category names
+def clean_cat_name(name):
     if not name: return ""
-    # Vercel handles quotes differently, plus (+) sometimes becomes space
-    name = urllib.parse.unquote(name).replace('+', ' ')
-    return name.strip()
+    # Flask path converter handles %20, but sometimes '+' remains
+    # and we need to handle potential double encoding from logs (%2520)
+    decoded = urllib.parse.unquote(name)
+    if "%" in decoded: # Handle double encoding if it exists
+        decoded = urllib.parse.unquote(decoded)
+    return decoded.replace('+', ' ').strip()
 
-@app.route("/category/<path:name>") # <path:name> use karein taaki special chars miss na hon
+@app.route("/category/<path:name>") 
 def category_page(name):
     try:
-        # Decode properly for special characters like '&', '/', etc.
-        original_category = normalize_category_name(name)
+        # Step 1: Clean the name
+        original_category = clean_cat_name(name)
         
-        # ✅ Optimize Query: Projection use karein taaki unnecessary data load na ho
-        # Isse memory limit error nahi aayega
+        # Step 2: Database Query (Exact Match)
         query = {"category": original_category}
         items = list(products.find(query).limit(40))
         
-        # ✅ Case-insensitive search as fallback
+        # Step 3: Fallback (Case-insensitive Regex) - Very useful for Vercel
         if not items:
             items = list(products.find({
                 "category": {"$regex": f"^{re.escape(original_category)}$", "$options": "i"}
             }).limit(40))
             
-        # Shuffle logic
         random.shuffle(items)
         
+        # Data preparation
         for item in items:
-            item["_id"] = str(item["_id"]) # Vercel JSON error se bachne ke liye
+            item["_id"] = str(item["_id"])
             item["display_price"] = item.get("discount_price") or item.get("price", 0)
         
-        # ✅ Categories fetch karne ke liye try-except block
+        # Categories fetch (Simplified for speed)
         try:
-            # distinct() kabhi kabhi timeout hota hai, cache kar sakein toh behtar hai
             categories = sorted([c for c in products.distinct("category") if c])
         except:
             categories = []
+
+        print(f"🔍 VERCEL FIX: Category='{original_category}', Found {len(items)} items")
 
         return render_template("products.html",
                              page_type="products",
@@ -242,17 +242,17 @@ def category_page(name):
                              item_count=len(items))
 
     except Exception as e:
-        print(f"❌ Vercel Crash: {str(e)}")
+        print(f"❌ Vercel Error: {str(e)}")
         return render_template("products.html", items=[], categories=[], item_count=0)
 
 @app.route("/")
 def index():
     try:
-        # Index page par categories ko fast load karne ke liye
         categories = sorted([c for c in products.distinct("category") if c])
         return render_template("products.html", page_type="categories", categories=categories)
     except Exception as e:
         return render_template("products.html", page_type="categories", categories=[])
+    
 # ================================
 # ADMIN: AUTH & DASHBOARD
 # ================================
