@@ -181,6 +181,10 @@ def index():
     # SHUFFLE PRODUCTS – Har refresh pe random order!
     random.shuffle(items)
 
+    # NEW: Add effective_price to each item for cart (discount_price ya price)
+    for item in items:
+        item["effective_price"] = item.get("discount_price") or item["price"]
+
     # SERVICE AREA SETTINGS - location compulsory ke liye
     service_doc = settings.find_one({"key": "service_area"}) or {}
     center = service_doc.get("center") or {}
@@ -191,7 +195,7 @@ def index():
     return render_template(
         "products.html",
         categories=categories,
-        items=items,  # Shuffled items ab random order mein!
+        items=items,  # Shuffled items ab random order mein + effective_price!
         selected_category=selected_category,
         search=search,
         service_center_lat=service_center_lat,
@@ -285,6 +289,7 @@ def add_product():
     if request.method == "POST":
         name = request.form.get("name", "").strip()
         price = request.form.get("price", "").strip()
+        discount_price = request.form.get("discount_price", "").strip()  # NEW
         unit = request.form.get("unit", "").strip()
         category = request.form.get("category", "").strip()
         other_category = request.form.get("other_category", "").strip()
@@ -333,6 +338,7 @@ def add_product():
                 error="No image file uploaded.",
                 products=products_list,
             )
+
         file = request.files["image"]
         if file.filename == "":
             products_list = list(products.find())
@@ -344,6 +350,7 @@ def add_product():
 
         upload_result = cloudinary.uploader.upload(file, folder="products")
 
+        # base document
         doc = {
             "name": name,
             "slug": slug,
@@ -353,6 +360,20 @@ def add_product():
             "image": upload_result["secure_url"],
             "image_public_id": upload_result["public_id"],
         }
+
+        # optional discounted price
+        if discount_price:
+            try:
+                doc["discount_price"] = float(discount_price)
+            except ValueError:
+                # agar admin ne galat value dali to error dikha do
+                products_list = list(products.find())
+                return render_template(
+                    "add_product.html",
+                    error="Please enter a valid discounted price.",
+                    products=products_list,
+                )
+
         products.insert_one(doc)
         return redirect(url_for("add_product"))
 
@@ -394,6 +415,7 @@ def edit_product(product_id):
     if request.method == "POST":
         name = request.form.get("name", "").strip()
         price = request.form.get("price", "").strip()
+        discount_price = request.form.get("discount_price", "").strip()  # NEW
         unit = request.form.get("unit", "").strip()
         category = request.form.get("category", "").strip()
         other_category = request.form.get("other_category", "").strip()
@@ -414,6 +436,7 @@ def edit_product(product_id):
                 )
             category = other_category
 
+        # base update document
         update_doc = {
             "name": name,
             "price": float(price),
@@ -421,14 +444,59 @@ def edit_product(product_id):
             "category": category,
         }
 
+        # optional discounted price handling
+        if discount_price:
+            try:
+                update_doc["discount_price"] = float(discount_price)
+            except ValueError:
+                return render_template(
+                    "edit_product.html",
+                    error="Please enter a valid discounted price.",
+                    product=product,
+                )
+        else:
+            # agar blank hai to field ko unset kar do (remove discount)
+            update_doc = {"$unset": {"discount_price": ""}}
+
+        # image update (optional)
         if "image" in request.files:
             file = request.files["image"]
             if file and file.filename:
+                # delete old image if exists
+                old_public_id = product.get("image_public_id")
+                if old_public_id:
+                    try:
+                        cloudinary.uploader.destroy(old_public_id, invalidate=True)
+                    except:
+                        pass
+                
                 upload_result = cloudinary.uploader.upload(file, folder="products")
                 update_doc["image"] = upload_result["secure_url"]
                 update_doc["image_public_id"] = upload_result["public_id"]
 
-        products.update_one({"_id": ObjectId(product_id)}, {"$set": update_doc})
+        # proper MongoDB update structure
+        if "discount_price" not in update_doc and "$unset" not in update_doc:
+            # only $set if no discount changes
+            products.update_one(
+                {"_id": ObjectId(product_id)}, 
+                {"$set": update_doc}
+            )
+        else:
+            # handle $set and $unset together
+            set_update = {k: v for k, v in update_doc.items() if k != "$unset"}
+            unset_update = update_doc.get("$unset", {})
+            
+            update_payload = {}
+            if set_update:
+                update_payload["$set"] = set_update
+            if unset_update:
+                update_payload["$unset"] = unset_update
+            
+            products.update_one(
+                {"_id": ObjectId(product_id)}, 
+                update_payload
+            )
+
         return redirect(url_for("add_product"))
 
     return render_template("edit_product.html", product=product)
@@ -1937,3 +2005,4 @@ def privacy():
   
 if __name__ == "__main__":
     app.run(debug=True)
+
