@@ -162,24 +162,8 @@ def inject_user():
 # PUBLIC: PRODUCTS
 # ================================
 
-@app.route("/")
-def index():
-    """🏠 Category Cards + Search Page"""
-    categories = sorted([c for c in products.distinct("category") if c and c.strip()])
-    
-    # Service area settings
-    service_doc = settings.find_one({"key": "service_area"}) or {}
-    center = service_doc.get("center", {"lat": 25.3176, "lng": 82.9739})
-    
-    return render_template("products.html",
-                         page_type="categories",      # NEW: Category cards page
-                         categories=categories,
-                         items=[],                    # No products on category page
-                         selected_category=None,
-                         search="",
-                         service_center_lat=center.get("lat"),
-                         service_center_lng=center.get("lng"),
-                         service_radius_km=service_doc.get("radius_km", 10))
+import urllib.parse
+import re
 
 def normalize_category_name(name):
     """🔧 FIXED: URL decode + normalize"""
@@ -245,6 +229,26 @@ def category_page(name):
                          service_center_lat=center.get("lat"),
                          service_center_lng=center.get("lng"),
                          service_radius_km=service_doc.get("radius_km", 10))
+
+@app.route("/")
+def index():
+    """🏠 Category Cards + Search Page"""
+    categories = sorted([c for c in products.distinct("category") if c and c.strip()])
+    
+    # Service area settings
+    service_doc = settings.find_one({"key": "service_area"}) or {}
+    center = service_doc.get("center", {"lat": 25.3176, "lng": 82.9739})
+    
+    return render_template("products.html",
+                         page_type="categories",      # NEW: Category cards page
+                         categories=categories,
+                         items=[],                    # No products on category page
+                         selected_category=None,
+                         search="",
+                         service_center_lat=center.get("lat"),
+                         service_center_lng=center.get("lng"),
+                         service_radius_km=service_doc.get("radius_km", 10))
+
 
 # ================================
 # UTILITY: IMAGE UPLOAD
@@ -2043,6 +2047,7 @@ def privacy():
   
 if __name__ == "__main__":
     app.run(debug=True)
+
 
 
 
