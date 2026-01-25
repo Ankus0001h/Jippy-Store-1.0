@@ -1,19 +1,19 @@
 {% extends "base.html" %}
 {% block content %}
 
-<div class="w-full bg-emerald-600 overflow-hidden py-2 mb-6 shadow-sm border-b border-emerald-500">
+<div class="w-full bg-emerald-600 overflow-hidden py-2.5 mb-6 shadow-md border-b border-emerald-500/50">
   <div class="whitespace-nowrap flex animate-marquee">
-    <span class="text-[10px] font-black text-white uppercase tracking-[0.3em] mx-10 flex items-center gap-2">
-      <i class="fas fa-truck-fast"></i> Free delivery order @₹49
+    <span class="text-[10px] font-black text-white uppercase tracking-[0.3em] mx-12 flex items-center gap-3">
+      <i class="fas fa-truck-fast"></i> Free delivery on orders above ₹49
     </span>
-    <span class="text-[10px] font-black text-white uppercase tracking-[0.3em] mx-10 flex items-center gap-2">
-      <i class="fas fa-bolt"></i>Fast Delivery in 15-30 mins
+    <span class="text-[10px] font-black text-white uppercase tracking-[0.3em] mx-12 flex items-center gap-3">
+      <i class="fas fa-bolt"></i> Lightning Fast Delivery (15-30 Mins)
     </span>
-    <span class="text-[10px] font-black text-white uppercase tracking-[0.3em] mx-10 flex items-center gap-2">
-      <i class="fas fa-truck-fast"></i> Free delivery order @₹49
+    <span class="text-[10px] font-black text-white uppercase tracking-[0.3em] mx-12 flex items-center gap-3">
+      <i class="fas fa-truck-fast"></i> Free delivery on orders above ₹49
     </span>
-    <span class="text-[10px] font-black text-white uppercase tracking-[0.3em] mx-10 flex items-center gap-2">
-      <i class="fas fa-bolt"></i> Fast Delivery in 15-30 mins
+    <span class="text-[10px] font-black text-white uppercase tracking-[0.3em] mx-12 flex items-center gap-3">
+      <i class="fas fa-bolt"></i> Lightning Fast Delivery (15-30 Mins)
     </span>
   </div>
 </div>
@@ -27,25 +27,19 @@
         <span id="typewriter-essentials" class="text-emerald-600"></span>
         <span id="cursor" class="animate-pulse font-light text-emerald-600">|</span>
       </h1>
-      {% if page_type == "categories" %}
-        <p class="text-sm sm:text-base font-medium text-slate-500 flex items-center gap-2">
-          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-          {{ categories|length }} Premium categories available
-        </p>
-      {% else %}
-        <p class="text-sm sm:text-base font-medium text-slate-500">
-          {{ item_count|default(0) }} items • Delivered in <span class="text-slate-900 font-bold">15-30 mins</span>
-        </p>
-      {% endif %}
+      <p class="text-sm sm:text-base font-medium text-slate-500 flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+        {% if page_type == "categories" %}{{ categories|length }} Categories{% else %}{{ item_count|default(0) }} Items{% endif %} Available
+      </p>
     </div>
+    
     <div class="w-full lg:w-[450px]">
       <div class="relative group">
         <div class="relative flex items-center bg-white border-2 border-slate-100 rounded-2xl shadow-sm group-focus-within:border-emerald-500 transition-all">
           <span class="pl-4 text-slate-400"><i class="fas fa-search"></i></span>
           <input type="text" id="product-search" 
-                 placeholder="{% if page_type == 'categories' %}Search categories...{% else %}Search products...{% endif %}" 
-                 class="w-full pl-3 pr-4 py-4 bg-transparent text-base font-bold text-slate-800 placeholder-slate-400 outline-none" autocomplete="off">
-          
+                 placeholder="Search products or categories..." 
+                 class="w-full pl-3 pr-4 py-4 bg-transparent text-base font-bold text-slate-800 outline-none" autocomplete="off">
           <div id="product-suggestions" class="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-2xl shadow-lg max-h-64 overflow-y-auto text-sm hidden z-20"></div>
         </div>
       </div>
@@ -56,31 +50,30 @@
     <div class="space-y-6">
       <div id="category-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-8">
         {% for c in categories %}
-        <a href="{{ url_for('category_page', name=c|urlencode) }}" 
-           class="category-card group relative bg-white rounded-[2.5rem] p-5 sm:p-7 shadow-[0_20px_50px_rgba(0,0,0,0.05)] hover:shadow-[0_30px_60px_rgba(16,185,129,0.15)] border border-slate-100/80 hover:border-emerald-300 transition-all duration-500 h-60 sm:h-72 flex flex-col items-center justify-between text-center overflow-hidden" 
+        <a href="{{ url_for('category_page', name=c) }}" 
+           class="category-card group relative bg-white rounded-[2.5rem] p-0 shadow-[0_20px_50px_rgba(0,0,0,0.04)] hover:shadow-[0_40px_80px_rgba(16,185,129,0.15)] border border-slate-100 hover:border-emerald-300 transition-all duration-700 h-80 sm:h-96 flex flex-col items-center overflow-hidden" 
            data-category="{{ c|lower }}">
           
-          <div class="absolute -top-10 -right-10 w-32 h-32 bg-emerald-500/5 rounded-full blur-3xl group-hover:bg-emerald-500/20 transition-all duration-500"></div>
-          
-          <div class="absolute top-4 left-4">
-             <span class="px-2.5 py-1 rounded-full bg-slate-50 text-[8px] font-black text-slate-400 uppercase tracking-widest border border-slate-100 group-hover:bg-emerald-50 group-hover:text-emerald-600 group-hover:border-emerald-100 transition-all"></span>
-          </div>
-
-          <div class="relative mt-4">
-            <div class="w-full h-full sm:w-32 sm:h-32 rounded-[2rem] bg-slate-50 flex items-center justify-center overflow-hidden transition-transform duration-500 group-hover:scale-110 group-hover:-rotate-3">
+          <div class="relative w-full h-[70%] overflow-hidden">
+            <div class="w-full h-full bg-slate-50 flex items-center justify-center overflow-hidden transition-all duration-700 group-hover:scale-110 group-hover:-rotate-2">
               {% set img_name = c|lower|replace(' ', '_') %}
               <img src="{{ url_for('static', filename='images/categories/' + img_name + '.jpg') }}" 
                    alt="{{ c }}" 
                    class="w-full h-full object-cover"
-                   onerror="this.parentElement.innerHTML='<i class=\'fas fa-leaf text-4xl text-emerald-200\'></i>'">
+                   onerror="this.parentElement.innerHTML='<div class=\'bg-emerald-50 w-full h-full flex items-center justify-center\'><i class=\'fas fa-leaf text-4xl text-emerald-200\'></i></div>'">
             </div>
-            <div class="absolute inset-0 bg-emerald-400/20 blur-2xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+            
+            <div class="absolute top-4 right-4 z-20">
+              <span class="px-4 py-1.5 rounded-full bg-emerald-600 text-[9px] font-black text-white uppercase tracking-widest shadow-lg border border-white/20">
+                Fresh
+              </span>
+            </div>
           </div>
           
-          <div class="relative z-10 w-full">
-            <h3 class="text-lg sm:text-xl font-black text-slate-800 leading-tight group-hover:text-emerald-700 transition-colors duration-300 mb-2">{{ c }}</h3>
-            <div class="flex items-center justify-center gap-1.5 opacity-0 group-hover:opacity-100 translate-y-4 group-hover:translate-y-0 transition-all duration-500">
-               <span class="text-[10px] font-black text-emerald-600 uppercase tracking-tighter">Browse Store</span>
+          <div class="relative z-10 w-full flex-1 flex flex-col items-center justify-center px-4 bg-white">
+            <h3 class="text-lg sm:text-xl font-black text-slate-800 leading-tight group-hover:text-emerald-700 transition-colors duration-300">{{ c }}</h3>
+            <div class="flex items-center justify-center gap-1.5 opacity-0 group-hover:opacity-100 translate-y-4 group-hover:translate-y-0 transition-all duration-500 mt-1">
+               <span class="text-[10px] font-black text-emerald-600 uppercase tracking-tighter">Shop Now</span>
                <i class="fas fa-arrow-right text-[9px] text-emerald-500"></i>
             </div>
           </div>
@@ -92,9 +85,9 @@
   {% else %}
     <div class="space-y-3">
       <div class="flex overflow-x-auto pb-4 scrollbar-hide gap-2 snap-x px-1 sm:px-0">
-        <a href="{{ url_for('index') }}" class="flex-none snap-start px-8 py-3 rounded-2xl text-sm font-black transition-all border-2 bg-slate-900 text-white border-slate-900 shadow-xl">← All Categories</a>
+        <a href="{{ url_for('index') }}" class="flex-none snap-start px-8 py-3 rounded-2xl text-sm font-black transition-all border-2 bg-slate-900 text-white border-slate-900 shadow-xl">← All</a>
         {% for c in categories %}
-        <a href="{{ url_for('category_page', name=c|urlencode) }}" class="flex-none snap-start px-6 py-2.5 rounded-xl text-sm font-bold transition-all border-2 {% if selected_category and selected_category|lower == c|lower %} bg-emerald-600 text-white border-emerald-600 shadow-xl {% else %} bg-white text-slate-700 border-slate-100 hover:border-emerald-400 hover:shadow-lg {% endif %}">{{ c }}</a>
+        <a href="{{ url_for('category_page', name=c) }}" class="flex-none snap-start px-6 py-2.5 rounded-xl text-sm font-bold transition-all border-2 {% if selected_category and selected_category|lower == c|lower %} bg-emerald-600 text-white border-emerald-600 shadow-xl {% else %} bg-white text-slate-700 border-slate-100 hover:border-emerald-400 {% endif %}">{{ c }}</a>
         {% endfor %}
       </div>
 
@@ -104,32 +97,27 @@
           {% set is_oos = p.get('out_of_stock', false) %}
           {% set has_discount = p.discount_price is defined and p.discount_price < p.price %}
           {% set display_price = p.discount_price if has_discount else p.price %}
-          {% set off_pct = ((p.price - p.discount_price) / p.price * 100)|round(0, 'floor') if has_discount else 0 %}
-          <div class="product-card group bg-white rounded-[2rem] border border-slate-100 p-3 sm:p-5 transition-all duration-300 shadow-sm hover:shadow-2xl flex flex-col relative active:scale-95 sm:active:scale-100 h-full" data-name="{{ p.name|lower|e }}">
+          <div class="product-card group bg-white rounded-[2rem] border border-slate-100 p-3 sm:p-5 transition-all duration-300 shadow-sm hover:shadow-2xl flex flex-col relative h-full" data-name="{{ p.name|lower|e }}">
             <div class="relative overflow-hidden rounded-[1.5rem] bg-slate-50 aspect-square mb-3">
               <img src="{{ p.image }}" alt="{{ p.name }}" class="w-full h-full object-cover transition-transform duration-500 lg:group-hover:scale-110 {% if is_oos %} opacity-60 grayscale {% endif %}">
               {% if is_oos %}
-                <div class="absolute inset-0 bg-white/60 backdrop-blur-sm"></div>
-                <span class="absolute top-3 left-3 px-3 py-1.5 rounded-full bg-rose-600/95 text-white text-xs font-black uppercase tracking-wider shadow-lg">Out of stock</span>
-              {% endif %}
-              {% if has_discount %}
-                <div class="absolute top-3 left-3 bg-emerald-600 text-white text-[10px] font-black px-2.5 py-1.5 rounded-full shadow-lg flex items-center gap-1 border-2 border-white/30">
-                  <i class="fas fa-arrow-down text-[8px]"></i><span>{{ off_pct }}%</span>
-                </div>
+                <span class="absolute top-3 left-3 px-3 py-1.5 rounded-full bg-rose-600/95 text-white text-[10px] font-black uppercase tracking-wider shadow-lg">Out of stock</span>
               {% endif %}
             </div>
 
             <div class="flex flex-col flex-1 space-y-1 px-1">
-              <h3 class="text-sm sm:text-base lg:text-lg font-bold text-slate-800 leading-tight line-clamp-2">{{ p.name|e }}</h3>
+              <h3 class="text-sm sm:text-base font-bold text-slate-800 leading-tight line-clamp-2 min-h-[2.5rem]">{{ p.name|e }}</h3>
               <p class="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">{{ p.unit|e }}</p>
+              
               <div class="flex items-end gap-2 py-1">
-                <span class="text-[20px] sm:text-[24px] lg:text-[28px] font-black text-slate-900 tracking-[-0.03em]">₹{{ "%.0f"|format(display_price) }}</span>
+                <span class="text-[20px] sm:text-[24px] font-black text-slate-900">₹{{ "%.0f"|format(display_price) }}</span>
                 {% if has_discount %}
-                  <span class="text-[12px] sm:text-[13px] font-medium text-slate-400 line-through mb-1">₹{{ "%.0f"|format(p.price) }}</span>
+                  <span class="text-[12px] font-medium text-slate-400 line-through mb-1">₹{{ "%.0f"|format(p.price) }}</span>
                 {% endif %}
               </div>
+              
               <div class="mt-auto pt-2">
-                <div class="cart-btn-wrapper" data-slug="{{ p.slug|e }}" data-name="{{ p.name|e }}" data-price="{{ display_price }}" data-image="{{ p.image|default('', true)|e }}" data-unit="{{ p.unit|e }}" data-oos="{{ 'true' if is_oos else 'false' }}"></div>
+                <div class="cart-btn-wrapper" data-slug="{{ p.slug|e }}" data-name="{{ p.name|e }}" data-price="{{ display_price }}" data-image="{{ p.image|e }}" data-unit="{{ p.unit|e }}" data-oos="{{ 'true' if is_oos else 'false' }}"></div>
               </div>
             </div>
           </div>
@@ -138,9 +126,8 @@
       {% else %}
         <div class="flex flex-col items-center justify-center py-24 text-center bg-slate-50 rounded-[3rem] border-2 border-dashed border-slate-200 p-16">
           <i class="fas fa-inbox text-5xl text-slate-200 mb-6"></i>
-          <h3 class="text-2xl font-black text-slate-800 mb-2">No items found</h3>
-          <p class="text-slate-500 mb-8">Try searching for something else or explore other categories.</p>
-          <a href="{{ url_for('index') }}" class="px-8 py-3 bg-emerald-600 text-white font-black rounded-2xl shadow-xl">← Back to All</a>
+          <h3 class="text-2xl font-black text-slate-800">No items found</h3>
+          <a href="{{ url_for('index') }}" class="mt-4 px-8 py-3 bg-emerald-600 text-white font-black rounded-2xl shadow-xl">Back to All</a>
         </div>
       {% endif %}
     </div>
@@ -148,20 +135,14 @@
 </div>
 
 <style>
-  /* 🚀 Continuous Running Animation */
-  @keyframes marquee {
-    0% { transform: translateX(0); }
-    100% { transform: translateX(-50%); }
-  }
-  .animate-marquee {
-    animation: marquee 30s linear infinite;
-    width: max-content;
-  }
+  @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+  .animate-marquee { animation: marquee 25s linear infinite; width: max-content; }
   .animate-marquee:hover { animation-play-state: paused; }
-
   .scrollbar-hide::-webkit-scrollbar { display: none; }
-  .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+  /* Name Truncation logic */
   .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .category-card { transition: all 0.7s cubic-bezier(0.16, 1, 0.3, 1); }
+  .category-card:hover { transform: translateY(-8px); }
 </style>
 
 <script>
@@ -182,96 +163,57 @@
   document.addEventListener("DOMContentLoaded", () => {
     setTimeout(typeEffect, 500);
     updateCartButtons();
-    window.addEventListener('storage', updateCartButtons);
   });
 
-  // 🧠 SEARCH LOGIC WITH RECOMMENDATIONS
+  // Search Logic Integration
   {% if page_type == "categories" %}
     const categoryCards = Array.from(document.querySelectorAll(".category-card"));
-    
     searchInput?.addEventListener("input", () => {
       const q = searchInput.value.toLowerCase().trim();
-      
-      if (!q) {
-        suggestBox.classList.add("hidden");
-        categoryCards.forEach(card => card.style.display = "flex");
-        return;
-      }
-
-      categoryCards.forEach(card => {
-        const name = card.dataset.category || '';
-        card.style.display = name.includes(q) ? "flex" : "none";
-      });
-
-      const matches = categoryCards
-        .map(card => card.dataset.category)
-        .filter(name => name.includes(q))
-        .slice(0, 6);
-
-      if (matches.length) {
-        suggestBox.classList.remove("hidden");
-        suggestBox.innerHTML = matches.map(name => 
-          `<div class="px-4 py-3 hover:bg-emerald-50 cursor-pointer font-bold text-slate-700 capitalize border-b border-slate-50 last:border-0" onclick="selectCategorySearch('${name}')">
-            ${name.replace(q, `<span class="text-emerald-600">${q}</span>`)}
-          </div>`
-        ).join('');
-      } else {
-        suggestBox.classList.add("hidden");
-      }
+      if (!q) { suggestBox.classList.add("hidden"); categoryCards.forEach(c => c.style.display = "flex"); return; }
+      categoryCards.forEach(card => card.style.display = (card.dataset.category || '').includes(q) ? "flex" : "none");
     });
-
-    function selectCategorySearch(name) {
-      searchInput.value = name;
-      suggestBox.classList.add("hidden");
-      categoryCards.forEach(card => {
-        card.style.display = card.dataset.category === name ? "flex" : "none";
-      });
-    }
   {% else %}
     const productCards = Array.from(document.querySelectorAll(".product-card"));
     searchInput?.addEventListener("input", () => {
       const q = searchInput.value.toLowerCase().trim();
-      if (!q) { suggestBox.classList.add("hidden"); filterGrid(""); return; }
-      const matches = productCards.map(c => c.dataset.name).filter((n, idx, self) => n.includes(q) && self.indexOf(n) === idx).slice(0, 6);
-      if (matches.length) {
-        suggestBox.classList.remove("hidden");
-        suggestBox.innerHTML = matches.map(name => `<div class="px-4 py-3 hover:bg-emerald-50 cursor-pointer font-bold text-slate-700" onclick="selectSearch('${name}')">${name}</div>`).join('');
-      } else { suggestBox.classList.add("hidden"); }
-      filterGrid(q);
+      productCards.forEach(c => c.style.display = c.dataset.name.includes(q) ? "flex" : "none");
     });
-    function selectSearch(name) { searchInput.value = name; suggestBox.classList.add("hidden"); filterGrid(name); }
-    function filterGrid(q) { productCards.forEach(c => c.style.display = c.dataset.name.includes(q) ? "flex" : "none"); }
   {% endif %}
 
-  function triggerGlobalCartUpdate(cart) { localStorage.setItem("cart", JSON.stringify(cart)); updateCartButtons(); window.dispatchEvent(new Event('cartUpdated')); }
-  function getCart() { try { return JSON.parse(localStorage.getItem("cart") || "[]"); } catch (e) { return []; } }
+  // 🛒 CART LOGIC
+  function updateCartButtons() {
+    const cart = JSON.parse(localStorage.getItem("cart") || "[]");
+    document.querySelectorAll(".cart-btn-wrapper").forEach(wrapper => {
+      const { slug, oos } = wrapper.dataset;
+      if (oos === "true") { wrapper.innerHTML = `<button disabled class="w-full py-3 rounded-2xl text-xs font-black bg-slate-100 text-slate-400 border border-slate-200">Out of Stock</button>`; return; }
+      const item = cart.find(i => i.slug === slug);
+      if (!item) wrapper.innerHTML = `<button class="w-full py-3 rounded-2xl text-xs font-black bg-slate-900 text-white shadow-xl hover:bg-emerald-600 transition-all uppercase tracking-widest" onclick="handleCartClick(this.parentElement)">Add</button>`;
+      else wrapper.innerHTML = `<div class="flex items-center justify-between bg-emerald-600 p-1.5 rounded-2xl shadow-xl"><button onclick="changeQty('${slug}', -1, event)" class="w-10 h-10 flex items-center justify-center rounded-xl bg-white/20 text-white"><i class="fas fa-minus text-xs"></i></button><span class="text-white font-black text-base mx-2">${item.qty}</span><button onclick="changeQty('${slug}', 1, event)" class="w-10 h-10 flex items-center justify-center rounded-xl bg-white/20 text-white"><i class="fas fa-plus text-xs"></i></button></div>`;
+    });
+  }
+  
   function handleCartClick(wrapper) {
     const { slug, name, price, image, unit } = wrapper.dataset;
-    let cart = getCart();
+    let cart = JSON.parse(localStorage.getItem("cart") || "[]");
     const index = cart.findIndex(item => item.slug === slug);
-    if (index === -1) cart.push({ slug, name, price: parseFloat(price), image, unit: unit || "", qty: 1 });
+    if (index === -1) cart.push({ slug, name, price: parseFloat(price), image, unit, qty: 1 });
     else cart[index].qty++;
-    triggerGlobalCartUpdate(cart);
+    localStorage.setItem("cart", JSON.stringify(cart));
+    updateCartButtons();
+    window.dispatchEvent(new Event('cartUpdated'));
   }
+
   function changeQty(slug, delta, event) {
     event.stopPropagation();
-    let cart = getCart();
+    let cart = JSON.parse(localStorage.getItem("cart") || "[]");
     const index = cart.findIndex(item => item.slug === slug);
     if (index === -1) return;
     cart[index].qty += delta;
     if (cart[index].qty <= 0) cart.splice(index, 1);
-    triggerGlobalCartUpdate(cart);
-  }
-
-  function updateCartButtons() {
-    const cart = getCart();
-    document.querySelectorAll(".cart-btn-wrapper").forEach(wrapper => {
-      const { slug, oos } = wrapper.dataset;
-      if (oos === "true") { wrapper.innerHTML = `<button disabled class="w-full py-3 rounded-2xl text-xs font-black bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed">Not available</button>`; return; }
-      const item = cart.find(i => i.slug === slug);
-      if (!item) wrapper.innerHTML = `<button class="w-full py-3 rounded-2xl text-xs sm:text-sm font-black bg-slate-900 text-white shadow-xl hover:bg-emerald-600 transition-all" onclick="handleCartClick(this.parentElement)">ADD TO CART</button>`;
-      else wrapper.innerHTML = `<div class="flex items-center justify-between bg-emerald-600 p-1.5 rounded-2xl shadow-xl"><button onclick="changeQty('${slug}', -1, event)" class="w-10 h-10 flex items-center justify-center rounded-xl bg-white/20 text-white"><i class="fas fa-minus text-xs"></i></button><span class="text-white font-black text-base mx-2">${item.qty}</span><button onclick="changeQty('${slug}', 1, event)" class="w-10 h-10 flex items-center justify-center rounded-xl bg-white/20 text-white"><i class="fas fa-plus text-xs"></i></button></div>`;
-    });
+    localStorage.setItem("cart", JSON.stringify(cart));
+    updateCartButtons();
+    window.dispatchEvent(new Event('cartUpdated'));
   }
 </script>
 {% endblock %}
