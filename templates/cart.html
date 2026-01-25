@@ -20,6 +20,7 @@
   </div>
 
   <div id="cart-container" class="space-y-6 hidden">
+    <!-- DELIVERY PROGRESS CARD -->
     <div id="delivery-card" class="bg-white border border-slate-100 rounded-3xl p-5 shadow-sm space-y-3 relative overflow-hidden transition-all duration-500">
       <div class="flex justify-between items-end">
         <div class="text-sm font-bold text-slate-800 uppercase tracking-tighter">Delivery Goal</div>
@@ -34,8 +35,10 @@
       </div>
     </div>
 
+    <!-- CART ITEMS -->
     <div id="cart-items" class="space-y-3"></div>
 
+    <!-- ORDER SUMMARY -->
     <div class="bg-white border border-slate-100 rounded-[2.5rem] p-6 shadow-sm space-y-4">
       <h3 class="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Order Summary</h3>
       <div class="space-y-3">
@@ -43,10 +46,19 @@
           <span class="text-slate-500 font-medium">Items Total</span>
           <span id="cart-items-total" class="font-bold text-slate-800">₹0.00</span>
         </div>
+        
+        <div id="discounts-section" class="space-y-1 hidden">
+          <div class="flex items-center justify-between text-xs text-emerald-600 font-bold">
+            <span>Discount Applied</span>
+            <span id="discount-amount">-₹0.00</span>
+          </div>
+        </div>
+
         <div class="flex items-center justify-between text-sm">
           <span class="text-slate-500 font-medium">Platform Fee</span>
           <span class="font-bold text-slate-800">₹{{ platform_fee }}.00</span>
         </div>
+        
         <div class="flex items-center justify-between text-sm">
           <span class="text-slate-500 font-medium">Delivery Fee</span>
           <div class="flex items-center gap-2">
@@ -54,6 +66,7 @@
             <span id="delivery-fee" class="font-bold text-slate-800">₹0.00</span>
           </div>
         </div>
+        
         <div class="h-px bg-slate-100 my-2"></div>
         <div class="flex items-center justify-between">
           <span class="text-base font-black text-slate-900">Total Payable</span>
@@ -61,37 +74,36 @@
         </div>
       </div>
 
-      <button id="checkout-btn" type="button" onclick="validateServiceAreaBeforeCheckout()" 
-        class="w-full py-4 rounded-2xl text-base font-black text-white transition-all shadow-lg flex items-center justify-center gap-3
-        {% if is_logged_in %}bg-slate-900 hover:bg-emerald-600 shadow-slate-200{% else %}bg-slate-400 cursor-not-allowed{% endif %}"
-        {% if not is_logged_in %}disabled{% endif %}>
+      <button id="checkout-btn" type="button" onclick="handleCheckoutClick()" 
+        class="w-full py-4 px-6 rounded-2xl text-base font-black text-white transition-all shadow-lg flex items-center justify-center gap-3 group relative overflow-hidden z-10 bg-emerald-500 hover:bg-emerald-600 min-h-[56px] mt-4">
         {% if is_logged_in %}
-          <span>Proceed to Checkout</span>
-          <i class="fas fa-chevron-right text-xs"></i>
+          <span id="checkout-text">Proceed to Checkout</span>
+          <i class="fas fa-chevron-right text-xs transition-transform group-hover:translate-x-1"></i>
         {% else %}
           <i class="fas fa-lock text-xs"></i>
-          <span>Login to Checkout</span>
+          <span>🔐 Login to Checkout</span>
         {% endif %}
       </button>
     </div>
   </div>
 </div>
 
+<!-- SERVICE MODAL -->
 <div id="service-area-modal" class="fixed inset-0 z-[9999] bg-black/50 backdrop-blur-sm hidden flex items-center justify-center p-4">
-  <div class="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl scale-up-animation">
-    <div class="p-6 border-b border-slate-50 flex items-center justify-between">
+  <div class="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl scale-up-animation max-h-[90vh] overflow-y-auto">
+    <div class="p-6 border-b border-slate-50 flex items-center justify-between sticky top-0 bg-white z-20">
       <div class="flex items-center gap-3">
         <div class="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center">
           <i class="fas fa-map-marker-alt"></i>
         </div>
         <h3 class="font-black text-slate-900 uppercase tracking-tight">Verify Location</h3>
       </div>
-      <button onclick="closeServiceModal()" class="text-slate-300 hover:text-slate-900 transition-colors">
-        <i class="fas fa-times"></i>
+      <button onclick="closeServiceModal()" class="text-slate-300 hover:text-slate-900 transition-colors p-2 hover:bg-slate-100 rounded-lg min-w-[40px] h-[40px] flex items-center justify-center">
+        <i class="fas fa-times text-lg"></i>
       </button>
     </div>
 
-    <div class="p-8">
+    <div class="p-8 pb-12">
       <div id="modal-loading" class="text-center space-y-4">
         <div class="relative w-16 h-16 mx-auto">
           <div class="absolute inset-0 border-4 border-emerald-100 rounded-full"></div>
@@ -108,7 +120,7 @@
           <h4 class="text-xl font-black text-slate-900">Deliverable!</h4>
           <p class="text-slate-500 text-sm" id="modal-coords"></p>
         </div>
-        <button onclick="proceedToCheckout()" class="w-full py-4 bg-slate-900 text-white font-black rounded-2xl hover:bg-emerald-600 transition-all">
+        <button onclick="proceedToCheckout()" class="w-full py-4 px-6 bg-slate-900 text-white font-black rounded-2xl hover:bg-emerald-600 transition-all min-h-[56px] shadow-lg">
           Continue to Address
         </button>
       </div>
@@ -123,10 +135,10 @@
           <p id="modal-location-error" class="text-[10px] font-mono text-slate-300 mt-2"></p>
         </div>
         <div class="grid grid-cols-2 gap-3">
-          <button onclick="retryLocationCheck()" class="py-3 bg-slate-100 text-slate-900 font-bold rounded-xl hover:bg-slate-200 transition-all">
+          <button onclick="retryLocationCheck()" class="py-3 px-4 bg-slate-100 text-slate-900 font-bold rounded-xl hover:bg-slate-200 transition-all shadow-sm min-h-[44px] flex items-center justify-center">
             Retry
           </button>
-          <button onclick="closeServiceModal()" class="py-3 border-2 border-slate-100 text-slate-400 font-bold rounded-xl">
+          <button onclick="closeServiceModal()" class="py-3 px-4 border-2 border-slate-100 text-slate-400 font-bold rounded-xl hover:bg-slate-50 transition-all min-h-[44px] flex items-center justify-center">
             Close
           </button>
         </div>
@@ -141,10 +153,22 @@
     70% { box-shadow: 0 0 0 15px rgba(16, 185, 129, 0); }
     100% { box-shadow: 0 0 0 0px rgba(16, 185, 129, 0); }
   }
-  .free-delivery-active { border-color: #10b981 !important; background-color: #f0fdf4 !important; }
-  .checkout-ready { background-color: #059669 !important; animation: pulse-emerald 2s infinite; }
-  .scale-up-animation { animation: scaleUp 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
-  @keyframes scaleUp { from { opacity: 0; transform: scale(0.95) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+  .free-delivery-active { 
+    border-color: #10b981 !important; 
+    background-color: #f0fdf4 !important; 
+  }
+  .checkout-ready { 
+    background: linear-gradient(135deg, #059669, #047857) !important; 
+    animation: pulse-emerald 2s infinite; 
+    box-shadow: 0 10px 25px rgba(16, 185, 129, 0.3) !important;
+  }
+  .scale-up-animation { 
+    animation: scaleUp 0.3s cubic-bezier(0.16, 1, 0.3, 1); 
+  }
+  @keyframes scaleUp { 
+    from { opacity: 0; transform: scale(0.95) translateY(10px); } 
+    to { opacity: 1; transform: scale(1) translateY(0); } 
+  }
 </style>
 
 <script>
@@ -155,33 +179,40 @@
   let confettiFired = false;
   let SERVICE_CENTER = { lat: null, lng: null, radius_km: 0 };
 
-  // --- CORE HELPER FUNCTIONS ---
-  function getCart() {
-    try { return JSON.parse(localStorage.getItem("cart") || "[]"); }
-    catch (e) { return []; }
+  function getCart() { 
+    try { 
+      return JSON.parse(localStorage.getItem("cart") || "[]"); 
+    } catch (e) { 
+      return []; 
+    } 
+  }
+  
+  function saveCart(cart) { 
+    localStorage.setItem("cart", JSON.stringify(cart)); 
+    window.dispatchEvent(new Event('cartUpdated')); 
   }
 
-  function saveCart(cart) {
-    localStorage.setItem("cart", JSON.stringify(cart));
-    // Header cart badge update ke liye event
-    window.dispatchEvent(new Event('cartUpdated'));
-    if (typeof updateCartBadge === "function") updateCartBadge();
-  }
-
-  // --- RENDERING ENGINE ---
   function renderCartPage() {
     const cart = getCart();
-    const emptyEl = document.getElementById("cart-empty"), containerEl = document.getElementById("cart-container");
-    const itemsEl = document.getElementById("cart-items"), itemsTotalEl = document.getElementById("cart-items-total");
-    const totalEl = document.getElementById("cart-total"), deliveryFeeEl = document.getElementById("delivery-fee");
-    const dFeeStrike = document.getElementById("delivery-fee-strike"), progressBar = document.getElementById("delivery-progress-bar");
-    const hintText = document.getElementById("delivery-hint"), deliveryCard = document.getElementById("delivery-card");
+    const emptyEl = document.getElementById("cart-empty");
+    const containerEl = document.getElementById("cart-container");
+    const itemsEl = document.getElementById("cart-items");
+    const itemsTotalEl = document.getElementById("cart-items-total");
+    const discountsEl = document.getElementById("discounts-section");
+    const discountAmtEl = document.getElementById("discount-amount");
+    const totalEl = document.getElementById("cart-total");
+    const deliveryFeeEl = document.getElementById("delivery-fee");
+    const dFeeStrike = document.getElementById("delivery-fee-strike");
+    const progressBar = document.getElementById("delivery-progress-bar");
+    const hintText = document.getElementById("delivery-hint");
+    const deliveryCard = document.getElementById("delivery-card");
     const checkoutBtn = document.getElementById("checkout-btn");
+    const itemsCountBadge = document.getElementById("items-count-badge");
 
     if (!cart.length) {
       emptyEl.classList.remove("hidden");
       containerEl.classList.add("hidden");
-      document.getElementById("items-count-badge").innerText = "0 Items";
+      itemsCountBadge.innerText = "0 Items";
       return;
     }
 
@@ -189,63 +220,95 @@
     containerEl.classList.remove("hidden");
     itemsEl.innerHTML = "";
 
-    const totalQty = cart.reduce((sum, item) => sum + Number(item.qty), 0);
-    document.getElementById("items-count-badge").innerText = `${totalQty} Item${totalQty > 1 ? 's' : ''}`;
-
     let subtotal = 0;
-    cart.forEach((item) => {
-      const qty = Number(item.qty || 1), price = Number(item.price || 0);
+    const totalQty = cart.reduce((sum, item) => sum + Number(item.qty || 1), 0);
+    itemsCountBadge.innerText = `${totalQty} Item${totalQty !== 1 ? 's' : ''}`;
+
+    cart.forEach((item, index) => {
+      const qty = Number(item.qty || 1);
+      const price = Number(item.price || 0);
       subtotal += price * qty;
+      
       const card = document.createElement("div");
-      card.className = "flex items-center justify-between bg-white border border-slate-100 rounded-2xl p-4 shadow-sm transition-all";
+      card.className = "bg-white border border-slate-100 rounded-2xl p-4 shadow-sm hover:shadow-md transition-all group";
       card.innerHTML = `
-        <div class="flex items-center gap-4">
-          <div class="w-14 h-14 bg-slate-50 rounded-xl overflow-hidden p-1 border border-slate-100">
-            <img src="${item.image || ""}" class="w-full h-full object-contain" onerror="this.src='https://placehold.co/100?text=Item'">
+        <div class="flex items-start justify-between gap-4">
+          <!-- Image & Details -->
+          <div class="flex items-start gap-4 flex-1 min-w-0">
+            <div class="w-16 h-16 bg-slate-50 rounded-xl overflow-hidden p-1 border border-slate-100 flex-shrink-0">
+              <img src="${item.image || 'https://placehold.co/100x100?text=Item'}" 
+                   class="w-full h-full object-contain" 
+                   alt="${item.name || 'Product'}">
+            </div>
+            <div class="flex-1 min-w-0 py-1">
+              <h4 class="text-sm font-black text-slate-900 leading-tight mb-1">${item.name || 'Product'}</h4>
+              <p class="text-xs font-bold text-slate-500 uppercase mb-1">${item.unit || ''}</p>
+              <div class="text-sm font-bold text-emerald-600">₹${price.toFixed(2)}</div>
+            </div>
           </div>
-          <div>
-            <h4 class="text-sm font-black text-slate-800 leading-tight">${item.name}</h4>
-            <p class="text-[10px] font-bold text-slate-400 uppercase">${item.unit || ""}</p>
-            <span class="text-[11px] font-bold text-emerald-600">₹${price.toFixed(2)}</span>
+          
+          <!-- Quantity Controls -->
+          <div class="flex items-center bg-slate-100 rounded-xl p-2 border border-slate-200 flex-shrink-0 ml-2">
+            <button onclick="changeQty('${item.slug}', -1)" 
+                    class="w-10 h-10 rounded-xl bg-white text-slate-700 hover:bg-rose-50 hover:text-rose-500 transition-all flex items-center justify-center shadow-sm border border-slate-200 text-sm font-bold"
+                    title="Remove one">
+              <i class="fas fa-minus"></i>
+            </button>
+            <span class="mx-3 text-sm font-black text-slate-900 min-w-[28px] text-center">${qty}</span>
+            <button onclick="changeQty('${item.slug}', 1)"
+                    class="w-10 h-10 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 transition-all flex items-center justify-center shadow-sm text-sm font-bold"
+                    title="Add one">
+              <i class="fas fa-plus"></i>
+            </button>
           </div>
         </div>
-        <div class="flex items-center bg-slate-100 rounded-xl p-1 border border-slate-200">
-          <button onclick="changeQty('${item.slug}', -1)" class="w-8 h-8 rounded-lg bg-white text-slate-800 flex items-center justify-center shadow-sm hover:text-rose-500 transition-all">
-            <i class="fas fa-minus text-[8px]"></i>
-          </button>
-          <span class="text-xs font-black px-4">${qty}</span>
-          <button onclick="changeQty('${item.slug}', 1)" class="w-8 h-8 rounded-lg bg-slate-900 text-white flex items-center justify-center shadow-sm hover:bg-emerald-600 transition-all">
-            <i class="fas fa-plus text-[8px]"></i>
-          </button>
-        </div>`;
+      `;
       itemsEl.appendChild(card);
     });
 
-    itemsTotalEl.innerText = "₹" + subtotal.toFixed(2);
-    let progress = (subtotal / FREE_DELIVERY_THRESHOLD) * 100;
-    progressBar.style.width = Math.min(progress, 100) + "%";
+    // Update totals
+    itemsTotalEl.textContent = `₹${subtotal.toFixed(2)}`;
+    
+    // Delivery progress
+    const progress = Math.min((subtotal / FREE_DELIVERY_THRESHOLD) * 100, 100);
+    progressBar.style.width = `${progress}%`;
 
     if (subtotal >= FREE_DELIVERY_THRESHOLD) {
-      if (!confettiFired) { triggerFlowerBurst(); confettiFired = true; }
-      deliveryFeeEl.innerText = "FREE";
+      if (!confettiFired) {
+        triggerFlowerBurst();
+        confettiFired = true;
+      }
+      deliveryFeeEl.textContent = "FREE";
       deliveryFeeEl.className = "font-black text-emerald-600 text-sm";
-      dFeeStrike.innerText = "₹" + DELIVERY_FEE.toFixed(2);
+      dFeeStrike.textContent = `₹${DELIVERY_FEE.toFixed(2)}`;
       dFeeStrike.classList.remove("hidden");
-      hintText.innerHTML = '<i class="fas fa-check-circle text-emerald-500"></i> <span class="text-emerald-600 font-black uppercase">Free Delivery Applied</span>';
-      deliveryCard.classList.add("free-delivery-active");
+      hintText.innerHTML = '<i class="fas fa-check-circle text-emerald-500"></i><span class="text-emerald-600 font-black uppercase ml-1">Free Delivery!</span>';
+      deliveryCard.classList.add("free-delivery-active", "ring-2", "ring-emerald-200");
       if (IS_LOGGED_IN) checkoutBtn.classList.add("checkout-ready");
-      totalEl.innerText = "₹" + (subtotal + PLATFORM_FEE).toFixed(2);
+      totalEl.textContent = `₹${(subtotal + PLATFORM_FEE).toFixed(2)}`;
     } else {
-      const rem = FREE_DELIVERY_THRESHOLD - subtotal;
       confettiFired = false;
-      deliveryFeeEl.innerText = "₹" + DELIVERY_FEE.toFixed(2);
-      deliveryFeeEl.className = "font-bold text-slate-800";
+      const remaining = FREE_DELIVERY_THRESHOLD - subtotal;
+      deliveryFeeEl.textContent = `₹${DELIVERY_FEE.toFixed(2)}`;
+      deliveryFeeEl.className = "font-bold text-slate-900";
       dFeeStrike.classList.add("hidden");
-      hintText.innerHTML = `<i class="fas fa-truck text-emerald-500"></i> Add <b>₹${rem.toFixed(0)}</b> for Free Delivery`;
-      deliveryCard.classList.remove("free-delivery-active");
+      hintText.innerHTML = `<i class="fas fa-truck text-emerald-500"></i><span class="ml-1">Add <strong>₹${remaining.toFixed(0)}</strong> for FREE delivery</span>`;
+      deliveryCard.classList.remove("free-delivery-active", "ring-2", "ring-emerald-200");
       checkoutBtn.classList.remove("checkout-ready");
-      totalEl.innerText = "₹" + (subtotal + PLATFORM_FEE + DELIVERY_FEE).toFixed(2);
+      totalEl.textContent = `₹${(subtotal + PLATFORM_FEE + DELIVERY_FEE).toFixed(2)}`;
     }
+  }
+
+  function handleCheckoutClick() {
+    const cart = getCart();
+    if (!cart.length) return;
+    
+    if (!IS_LOGGED_IN) {
+      window.location.href = "{{ url_for('login') }}?redirect=cart";
+      return;
+    }
+    
+    validateServiceAreaBeforeCheckout();
   }
 
   function changeQty(slug, delta) {
@@ -253,7 +316,7 @@
     const idx = cart.findIndex(i => i.slug === slug);
     if (idx === -1) return;
     
-    let newQty = Number(cart[idx].qty) + delta;
+    let newQty = Number(cart[idx].qty || 1) + delta;
     if (newQty <= 0) {
       cart.splice(idx, 1);
     } else {
@@ -264,14 +327,10 @@
     renderCartPage();
   }
 
-  // --- SERVICE VALIDATION ---
+  // Service area functions (unchanged)
   async function validateServiceAreaBeforeCheckout() {
-    if (!getCart().length) return;
-    if (!IS_LOGGED_IN) {
-      window.location.href = "{{ url_for('login') }}";
-      return;
-    }
-    document.getElementById('service-area-modal').classList.remove('hidden');
+    const modal = document.getElementById('service-area-modal');
+    modal.classList.remove('hidden');
     document.getElementById('modal-loading').classList.remove('hidden');
     document.getElementById('modal-success').classList.add('hidden');
     document.getElementById('modal-error').classList.add('hidden');
@@ -285,22 +344,27 @@
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
           (pos) => checkServiceArea(pos.coords.latitude, pos.coords.longitude),
-          (err) => showServiceError("Location access denied. Enable GPS to proceed."),
-          { enableHighAccuracy: true, timeout: 8000 }
+          (err) => showServiceError("Location access denied. Please enable GPS."),
+          { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
         );
-      } else { showServiceError("Geolocation not supported."); }
-    } catch (e) { showServiceError("Connection error. Try again."); }
+      } else {
+        showServiceError("Geolocation not supported by your browser.");
+      }
+    } catch (e) {
+      showServiceError("Network error. Please check your connection.");
+    }
   }
 
   function checkServiceArea(lat, lng) {
     const dist = haversineDistanceKm(lat, lng, SERVICE_CENTER.lat, SERVICE_CENTER.lng);
-    const ok = dist <= SERVICE_CENTER.radius_km;
     document.getElementById('modal-loading').classList.add('hidden');
-    if (ok && SERVICE_CENTER.lat) {
-      document.getElementById('modal-coords').textContent = `Verified within ${dist.toFixed(1)}km`;
+    
+    if (dist <= SERVICE_CENTER.radius_km && SERVICE_CENTER.lat) {
+      document.getElementById('modal-coords').textContent = `✅ ${dist.toFixed(1)}km from center`;
       document.getElementById('modal-success').classList.remove('hidden');
     } else {
-      document.getElementById('modal-error-message').textContent = `We only deliver within ${SERVICE_CENTER.radius_km}km. Distance: ${dist.toFixed(1)}km`;
+      document.getElementById('modal-error-message').textContent = 
+        `Sorry! We deliver only within ${SERVICE_CENTER.radius_km}km.\nYour distance: ${dist.toFixed(1)}km`;
       document.getElementById('modal-error').classList.remove('hidden');
     }
   }
@@ -314,19 +378,39 @@
   function haversineDistanceKm(lat1, lng1, lat2, lng2) {
     const toRad = d => d * Math.PI / 180;
     const R = 6371;
-    const dLat = toRad(lat2 - lat1), dLng = toRad(lng2 - lng1);
+    const dLat = toRad(lat2 - lat1);
+    const dLng = toRad(lng2 - lng1);
     const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng/2)**2;
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
   }
 
   function triggerFlowerBurst() {
-    confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ["#10b981", "#ffffff"] });
+    confetti({
+      particleCount: 100,
+      spread: 70,
+      origin: { y: 0.6 },
+      colors: ['#10b981', '#34d399', '#6ee7b7']
+    });
   }
 
-  function retryLocationCheck() { validateServiceAreaBeforeCheckout(); }
-  function closeServiceModal() { document.getElementById('service-area-modal').classList.add('hidden'); }
-  function proceedToCheckout() { window.location.href = "{{ url_for('address_page') }}"; }
+  function closeServiceModal() {
+    document.getElementById('service-area-modal').classList.add('hidden');
+  }
 
+  function retryLocationCheck() {
+    document.getElementById('modal-error').classList.add('hidden');
+    document.getElementById('modal-loading').classList.remove('hidden');
+    fetchServiceConfig();
+  }
+
+  function proceedToCheckout() {
+    window.location.href = "{{ url_for('address_page') }}";
+  }
+
+  // Initialize
   document.addEventListener("DOMContentLoaded", renderCartPage);
+  
+  // Listen for cart updates from other pages
+  window.addEventListener('cartUpdated', renderCartPage);
 </script>
 {% endblock %}
