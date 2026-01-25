@@ -190,13 +190,15 @@ def inject_user():
 # TOP LEVEL FUNCTION (app.py ke top mein add karo)
 import urllib.parse
 import re
+import random
+from flask import render_template
 
 def normalize_category_name(name):
     """🔧 FIXED: URL decode + normalize"""
     if not name:
         return ""
     
-    # ✅ STEP 1: URL decode first (Breakfast%20And%20Instant%20Food → Breakfast And Instant Food)
+    # ✅ STEP 1: URL decode first 
     decoded_name = urllib.parse.unquote(name)
     
     # ✅ STEP 2: Clean & normalize
@@ -206,76 +208,88 @@ def normalize_category_name(name):
     
     return name
 
-import random
-import urllib.parse
-import re
-
 @app.route("/category/<name>")
 def category_page(name):
-    """📦 FIXED - Products definitely show now!"""
+    """📦 FIXED - Products definitely show now! VERCEL READY"""
     
-    # ✅ URL decode first
-    original_category = urllib.parse.unquote(name)
+    try:
+        # ✅ URL decode first (Breakfast%20And%20Instant%20Food → Breakfast And Instant Food)
+        original_category = urllib.parse.unquote(name)
+        
+        # ✅ Try EXACT match first
+        items = list(products.find({"category": original_category}).limit(50))
+        
+        # ✅ If no exact match, try case-insensitive regex
+        if not items:
+            items = list(products.find({
+                "category": {"$regex": original_category, "$options": "i"}
+            }).limit(50))
+        
+        # ✅ Filter empty + shuffle
+        items = [item for item in items if item.get("category", "").strip()]
+        random.shuffle(items)
+        
+        # ✅ Add price logic
+        for item in items:
+            item["effective_price"] = item.get("discount_price") or item["price"]
+            item["display_price"] = item["effective_price"]
+        
+        # All categories for chips
+        categories = sorted([c for c in products.distinct("category") if c and c.strip()])
+        
+        # Service area (safe fallback)
+        service_doc = settings.find_one({"key": "service_area"}) if 'settings' in globals() else {}
+        center = service_doc.get("center", {"lat": 25.3176, "lng": 82.9739})
+        
+        print(f"🔍 DEBUG: Category='{original_category}', Found {len(items)} items")
+        
+        return render_template("products.html",
+                             page_type="products",
+                             categories=categories,
+                             items=items,
+                             selected_category=original_category,
+                             category_name=original_category,
+                             search="",
+                             item_count=len(items),
+                             service_center_lat=center.get("lat"),
+                             service_center_lng=center.get("lng"),
+                             service_radius_km=service_doc.get("radius_km", 10))
     
-    # ✅ Try EXACT match first
-    items = list(products.find({"category": original_category}))
-    
-    # ✅ If no exact match, try case-insensitive regex
-    if not items:
-        items = list(products.find({
-            "category": {"$regex": original_category, "$options": "i"}
-        }))
-    
-    # ✅ Filter empty + shuffle
-    items = [item for item in items if item.get("category", "").strip()]
-    random.shuffle(items)
-    
-    # ✅ Add price logic
-    for item in items:
-        item["effective_price"] = item.get("discount_price") or item["price"]
-        item["display_price"] = item["effective_price"]
-    
-    # All categories for chips
-    categories = sorted([c for c in products.distinct("category") if c and c.strip()])
-    
-    # Service area
-    service_doc = settings.find_one({"key": "service_area"}) or {}
-    center = service_doc.get("center", {"lat": 25.3176, "lng": 82.9739})
-    
-    print(f"🔍 DEBUG: Category='{original_category}', Found {len(items)} items")  # Debug log
-    
-    return render_template("products.html",
-                         page_type="products",
-                         categories=categories,
-                         items=items,
-                         selected_category=original_category,
-                         category_name=original_category,
-                         search="",
-                         item_count=len(items),
-                         service_center_lat=center.get("lat"),
-                         service_center_lng=center.get("lng"),
-                         service_radius_km=service_doc.get("radius_km", 10))
+    except Exception as e:
+        print(f"❌ Category Error: {e}")
+        # Safe fallback template
+        return render_template("products.html",
+                             page_type="products",
+                             categories=[],
+                             items=[],
+                             selected_category=name,
+                             category_name=urllib.parse.unquote(name),
+                             item_count=0), 200
 
 @app.route("/")
 def index():
-    """🏠 Category Cards + Search Page"""
-    categories = sorted([c for c in products.distinct("category") if c and c.strip()])
+    """🏠 Category Cards + Search Page - VERCEL READY"""
+    try:
+        categories = sorted([c for c in products.distinct("category") if c and c.strip()])
+    except:
+        categories = []  # Safe fallback
     
-    # Service area settings
-    service_doc = settings.find_one({"key": "service_area"}) or {}
+    # Service area settings (safe)
+    try:
+        service_doc = settings.find_one({"key": "service_area"}) if 'settings' in globals() else {}
+    except:
+        service_doc = {}
     center = service_doc.get("center", {"lat": 25.3176, "lng": 82.9739})
     
     return render_template("products.html",
-                         page_type="categories",      # NEW: Category cards page
+                         page_type="categories",
                          categories=categories,
-                         items=[],                    # No products on category page
+                         items=[], 
                          selected_category=None,
                          search="",
                          service_center_lat=center.get("lat"),
                          service_center_lng=center.get("lng"),
                          service_radius_km=service_doc.get("radius_km", 10))
-
-
 
 # ================================
 # ADMIN: AUTH & DASHBOARD
