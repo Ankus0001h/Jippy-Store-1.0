@@ -2,155 +2,128 @@
 {% block content %}
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
-<div class="max-w-3xl mx-auto px-4 py-8 space-y-8 pb-32 sm:pb-8">
-  <div class="flex items-end justify-between px-2">
-    <div class="space-y-1">
-      <h1 class="text-3xl font-black text-slate-900 tracking-tighter">My Basket</h1>
-      <p class="text-[10px] font-black text-emerald-600 uppercase tracking-widest flex items-center gap-2">
+<div class="max-w-2xl mx-auto px-4 py-4 sm:py-8 space-y-6 pb-32">
+  <div class="flex items-center justify-between px-1">
+    <div class="space-y-0.5">
+      <h1 class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tighter">My Basket</h1>
+      <p class="text-[9px] sm:text-[10px] font-black text-emerald-600 uppercase tracking-widest flex items-center gap-1.5">
         <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-        Secured Checkout
+        Secured
       </p>
     </div>
-    <span id="items-count-badge" class="bg-slate-100 text-slate-900 text-[11px] font-black px-4 py-2 rounded-2xl border border-slate-200 uppercase tracking-tighter shadow-sm">0 Items</span>
+    <span id="items-count-badge" class="bg-slate-100 text-slate-900 text-[10px] sm:text-[11px] font-black px-3 py-1.5 rounded-xl border border-slate-200 uppercase shadow-sm">0 Items</span>
   </div>
 
-  <div id="cart-empty" class="hidden flex flex-col items-center justify-center py-24 text-center bg-slate-50 rounded-[3rem] border-2 border-dashed border-slate-200 p-10">
-    <div class="w-24 h-24 bg-white rounded-full flex items-center justify-center shadow-inner mb-6 ring-8 ring-slate-100">
-      <i class="fas fa-shopping-basket text-slate-200 text-4xl"></i>
+  <div id="cart-empty" class="hidden flex flex-col items-center justify-center py-16 sm:py-24 text-center bg-slate-50 rounded-[2.5rem] border-2 border-dashed border-slate-200 p-6">
+    <div class="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-inner mb-4 ring-4 ring-slate-100">
+      <i class="fas fa-shopping-basket text-slate-200 text-3xl"></i>
     </div>
-    <h3 class="text-2xl font-black text-slate-800 mb-2">Your basket is empty</h3>
-    <p class="text-slate-400 mb-8 max-w-xs mx-auto text-sm font-medium">Add some items to start your lightning-fast delivery experience.</p>
-    <a href="{{ url_for('index') }}" class="px-10 py-4 bg-slate-900 text-white font-black rounded-2xl shadow-2xl hover:bg-emerald-600 transition-all active:scale-95">
+    <h3 class="text-xl font-black text-slate-800 mb-1">Your basket is empty</h3>
+    <p class="text-slate-400 mb-6 max-w-xs mx-auto text-xs font-medium px-4">Add some items to start your lightning-fast delivery experience.</p>
+    <a href="{{ url_for('index') }}" class="px-8 py-3.5 bg-slate-900 text-white font-black rounded-2xl shadow-xl hover:bg-emerald-600 transition-all text-sm">
       Start Shopping
     </a>
   </div>
 
-  <div id="cart-container" class="space-y-6 hidden">
-    <div id="delivery-card" class="bg-white border border-slate-100 rounded-[2.5rem] p-6 shadow-[0_10px_40px_rgba(0,0,0,0.03)] relative overflow-hidden group">
-      <div class="relative z-10 space-y-4">
+  <div id="cart-container" class="space-y-4 sm:space-y-6 hidden">
+    <div id="delivery-card" class="bg-white border border-slate-100 rounded-[2rem] p-4 sm:p-5 shadow-sm relative overflow-hidden group">
+      <div class="relative z-10 space-y-3">
         <div class="flex justify-between items-center">
-          <div class="flex items-center gap-3">
-            <div class="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center text-white shadow-lg">
-              <i class="fas fa-truck-fast text-sm"></i>
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 sm:w-10 sm:h-10 bg-slate-900 rounded-lg sm:rounded-xl flex items-center justify-center text-white">
+              <i class="fas fa-truck-fast text-xs sm:text-sm"></i>
             </div>
             <div>
-              <p class="text-xs font-black text-slate-400 uppercase tracking-widest">Delivery Benefits</p>
-              <p id="delivery-hint-main" class="text-sm font-bold text-slate-900">Calculating rewards...</p>
+              <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Rewards</p>
+              <p id="delivery-hint-main" class="text-xs sm:text-sm font-bold text-slate-900">Calculating...</p>
             </div>
           </div>
-          <div id="delivery-status-amount" class="text-right">
-             <span class="text-[10px] font-black text-slate-400 uppercase block">Goal</span>
-             <span class="text-sm font-black text-slate-900">₹{{ free_delivery_threshold }}</span>
+          <div class="text-right">
+             <span class="text-[8px] font-black text-slate-400 uppercase block leading-none mb-1">Goal</span>
+             <span class="text-xs font-black text-slate-900">₹{{ free_delivery_threshold }}</span>
           </div>
         </div>
-        <div class="relative h-4 bg-slate-100 rounded-full overflow-hidden border border-slate-50 shadow-inner">
-          <div id="delivery-progress-bar" class="h-full bg-gradient-to-r from-emerald-400 to-emerald-600 rounded-full transition-all duration-1000 ease-out shadow-[0_0_15px_rgba(16,185,129,0.4)]" style="width: 0%"></div>
+        <div class="relative h-2.5 bg-slate-100 rounded-full overflow-hidden shadow-inner">
+          <div id="delivery-progress-bar" class="h-full bg-gradient-to-r from-emerald-400 to-emerald-600 rounded-full transition-all duration-1000 ease-out" style="width: 0%"></div>
         </div>
-        <p id="delivery-hint-sub" class="text-[10px] font-bold text-slate-400 text-center uppercase tracking-tight"></p>
       </div>
-      <div class="absolute -right-4 -bottom-4 w-24 h-24 bg-emerald-50 rounded-full blur-3xl opacity-0 group-[.free-delivery-active]:opacity-100 transition-opacity"></div>
     </div>
 
-    <div id="cart-items" class="space-y-4"></div>
+    <div id="cart-items" class="space-y-3"></div>
 
-    <div class="bg-white border border-slate-100 rounded-[3rem] p-8 shadow-[0_20px_50px_rgba(0,0,0,0.04)] space-y-6">
-      <h3 class="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 flex items-center gap-2">
+    <div class="bg-white border border-slate-100 rounded-[2rem] sm:rounded-[2.5rem] p-5 sm:p-7 shadow-sm space-y-4">
+      <h3 class="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
         <i class="fas fa-receipt text-emerald-500"></i> Order Summary
       </h3>
-      <div class="space-y-4">
-        <div class="flex items-center justify-between">
-          <span class="text-sm font-bold text-slate-500">Items Subtotal</span>
-          <span id="cart-items-total" class="text-sm font-black text-slate-900">₹0.00</span>
+      <div class="space-y-3">
+        <div class="flex items-center justify-between text-xs sm:text-sm">
+          <span class="font-bold text-slate-500">Items Total</span>
+          <span id="cart-items-total" class="font-black text-slate-900">₹0.00</span>
         </div>
-        <div class="flex items-center justify-between">
-          <span class="text-sm font-bold text-slate-500">Platform Fee</span>
-          <span class="text-sm font-black text-slate-900">₹{{ platform_fee }}.00</span>
+        <div class="flex items-center justify-between text-xs sm:text-sm">
+          <span class="font-bold text-slate-500">Platform Fee</span>
+          <span class="font-black text-slate-900">₹{{ platform_fee }}.00</span>
         </div>
-        <div class="flex items-center justify-between">
-          <span class="text-sm font-bold text-slate-500">Delivery Fee</span>
-          <div class="flex items-center gap-2">
-            <span id="delivery-fee-strike" class="text-xs font-bold text-slate-300 line-through hidden"></span>
-            <span id="delivery-fee" class="text-sm font-black text-slate-900">₹0.00</span>
+        <div class="flex items-center justify-between text-xs sm:text-sm">
+          <span class="font-bold text-slate-500">Delivery Fee</span>
+          <div class="flex items-center gap-1.5">
+            <span id="delivery-fee-strike" class="text-[10px] font-bold text-slate-300 line-through hidden"></span>
+            <span id="delivery-fee" class="font-black text-slate-900">₹0.00</span>
           </div>
         </div>
-        <div class="flex items-center justify-between p-4 bg-emerald-50 rounded-2xl border border-emerald-100">
-          <div class="flex items-center gap-2">
-             <i class="fas fa-magic text-emerald-500 text-xs"></i>
-             <span class="text-[11px] font-black text-emerald-700 uppercase tracking-tight">Handling Fee Discount</span>
-          </div>
-          <span class="text-xs font-black text-emerald-600">FREE</span>
+        <div class="flex items-center justify-between p-3 bg-emerald-50 rounded-xl border border-emerald-100">
+          <span class="text-[10px] font-black text-emerald-700 uppercase">Handling Fee</span>
+          <span class="text-[10px] font-black text-emerald-600">FREE</span>
         </div>
-        <div class="pt-4 mt-2 border-t-2 border-dashed border-slate-100">
-          <div class="flex items-center justify-between">
-            <div>
-               <span class="text-lg font-black text-slate-900">Total Payable</span>
-               <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Incl. all taxes</p>
-            </div>
-            <span id="cart-total" class="text-3xl font-black text-slate-900 tracking-tighter">₹0.00</span>
-          </div>
+        <div class="pt-3 border-t border-dashed border-slate-200 flex items-center justify-between">
+          <span class="text-sm sm:text-base font-black text-slate-900">Payable</span>
+          <span id="cart-total" class="text-xl sm:text-2xl font-black text-slate-900 tracking-tighter">₹0.00</span>
         </div>
       </div>
 
       <button id="checkout-btn" type="button" onclick="handleCheckoutClick()" 
-        class="w-full py-5 px-8 rounded-3xl text-base font-black text-white transition-all shadow-xl flex items-center justify-between group relative overflow-hidden bg-slate-900 hover:bg-emerald-600">
-        <div class="relative z-10 flex flex-col items-start">
-           <span id="checkout-total-footer" class="text-[10px] opacity-70">Total: ₹0.00</span>
-           <span id="checkout-text">{% if is_logged_in %}Proceed to Checkout{% else %}Login to Checkout{% endif %}</span>
+        class="w-full py-4 sm:py-5 px-6 rounded-2xl sm:rounded-3xl text-sm sm:text-base font-black text-white transition-all shadow-xl flex items-center justify-between group bg-slate-900 active:scale-[0.98]">
+        <div class="flex flex-col items-start leading-tight">
+           <span id="checkout-total-footer" class="text-[9px] opacity-70 uppercase tracking-widest">₹0.00 Total</span>
+           <span>{% if is_logged_in %}Checkout{% else %}Login to Pay{% endif %}</span>
         </div>
-        <div class="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center relative z-10 group-hover:bg-white/20 transition-all">
-          <i class="fas fa-chevron-right text-xs group-hover:translate-x-1 transition-transform"></i>
-        </div>
+        <i class="fas fa-chevron-right text-xs group-hover:translate-x-1 transition-transform"></i>
       </button>
     </div>
   </div>
 </div>
 
-<div id="service-area-modal" class="fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-md hidden flex items-center justify-center p-4">
-  <div class="bg-white rounded-[3rem] max-w-md w-full overflow-hidden shadow-2xl scale-up-animation border border-white/20">
-    <div class="p-8 pb-12 text-center">
-        <div id="modal-loading" class="space-y-6">
-            <div class="w-24 h-24 bg-emerald-50 rounded-full mx-auto flex items-center justify-center relative shadow-inner">
-                <div class="absolute inset-0 border-[6px] border-emerald-500/20 rounded-full"></div>
-                <div class="absolute inset-0 border-[6px] border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
-                <i class="fas fa-location-crosshairs text-emerald-500 text-3xl animate-pulse"></i>
+<div id="service-area-modal" class="fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-6">
+  <div class="bg-white rounded-[2rem] max-w-sm w-full overflow-hidden shadow-2xl scale-up-animation">
+    <div class="p-6 sm:p-8 text-center">
+        <div id="modal-loading" class="space-y-4">
+            <div class="w-16 h-16 bg-emerald-50 rounded-full mx-auto flex items-center justify-center relative">
+                <div class="absolute inset-0 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+                <i class="fas fa-location-dot text-emerald-500 text-xl"></i>
             </div>
-            <div>
-              <h4 class="text-2xl font-black text-slate-900 tracking-tight">Checking Area...</h4>
-              <p class="text-sm font-medium text-slate-400 mt-1">Verifying lightning-fast delivery for you.</p>
-            </div>
+            <h4 class="text-lg font-black text-slate-900">Pinning Location...</h4>
         </div>
 
-        <div id="modal-success" class="hidden space-y-6">
-            <div class="w-28 h-28 bg-emerald-500 text-white rounded-full mx-auto flex items-center justify-center shadow-2xl shadow-emerald-200 border-8 border-emerald-50 relative overflow-hidden">
-                <i class="fas fa-truck-fast text-5xl animate-bounce"></i>
-                <div class="absolute bottom-2 bg-white/20 w-full text-[8px] font-black uppercase tracking-tighter">Deliverable</div>
+        <div id="modal-success" class="hidden space-y-5">
+            <div class="w-20 h-20 bg-emerald-500 text-white rounded-full mx-auto flex items-center justify-center shadow-lg">
+                <i class="fas fa-truck-fast text-3xl animate-bounce"></i>
             </div>
             <div>
-                <h4 class="text-3xl font-black text-slate-900 tracking-tighter">Great News!</h4>
-                <p id="modal-coords" class="text-xs font-black text-emerald-600 mt-2 bg-emerald-50 inline-block px-4 py-1.5 rounded-full border border-emerald-100 uppercase"></p>
-                <p class="text-sm font-medium text-slate-400 mt-3 px-4">We are operational in your area. Let's get your essentials ready!</p>
+                <h4 class="text-xl font-black text-slate-900">Available!</h4>
+                <p id="modal-coords" class="text-[10px] font-black text-emerald-600 mt-2 bg-emerald-50 inline-block px-3 py-1 rounded-full uppercase"></p>
             </div>
-            <button onclick="proceedToCheckout()" class="w-full py-5 bg-slate-900 text-white font-black rounded-3xl shadow-xl hover:bg-emerald-600 transition-all hover:-translate-y-1 active:scale-95">
-                Add Address & Place Order
-            </button>
+            <button onclick="proceedToCheckout()" class="w-full py-4 bg-slate-900 text-white font-black rounded-2xl shadow-xl">Continue</button>
         </div>
 
-        <div id="modal-error" class="hidden space-y-6">
-            <div class="w-28 h-28 bg-rose-50 text-rose-500 rounded-full mx-auto flex items-center justify-center border-8 border-rose-100 shadow-xl relative">
-                <i class="fas fa-shield-halved text-5xl opacity-40 absolute scale-125"></i>
-                <i class="fas fa-ban text-4xl relative z-10"></i>
+        <div id="modal-error" class="hidden space-y-5">
+            <div class="w-20 h-20 bg-rose-50 text-rose-500 rounded-full mx-auto flex items-center justify-center border-2 border-rose-100">
+                <i class="fas fa-ban text-3xl"></i>
             </div>
-            <div>
-                <h4 class="text-2xl font-black text-slate-900 tracking-tight">Out of Service</h4>
-                <p id="modal-error-message" class="text-sm font-semibold text-rose-400 mt-2 px-8"></p>
-            </div>
-            <div class="flex flex-col gap-3">
-                <button onclick="retryLocationCheck()" class="w-full py-4 bg-slate-900 text-white font-black rounded-2xl shadow-lg hover:bg-slate-800 transition-all">
-                  <i class="fas fa-rotate-right mr-2"></i> Try Again
-                </button>
-                <button onclick="closeServiceModal()" class="w-full py-3 text-slate-400 font-bold hover:text-slate-600 transition-colors uppercase text-[10px] tracking-[0.2em]">
-                  Back to Basket
-                </button>
+            <h4 class="text-lg font-black text-slate-900">Out of Service</h4>
+            <p id="modal-error-message" class="text-xs font-medium text-slate-400 px-4"></p>
+            <div class="flex gap-2">
+                <button onclick="retryLocationCheck()" class="flex-1 py-3 bg-slate-100 text-slate-900 font-bold rounded-xl text-xs">Retry</button>
+                <button onclick="closeServiceModal()" class="flex-1 py-3 border border-slate-100 text-slate-400 font-bold rounded-xl text-xs">Close</button>
             </div>
         </div>
     </div>
@@ -158,17 +131,10 @@
 </div>
 
 <style>
-  .cart-item-card { transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
-  .cart-item-card:hover { transform: translateY(-2px); border-color: #e2e8f0; }
-  .free-delivery-active { border-color: #10b981 !important; background-color: #f0fdf4 !important; }
-  .checkout-ready { background: #10b981 !important; animation: pulse-emerald 2s infinite; }
-  @keyframes pulse-emerald {
-    0% { box-shadow: 0 0 0 0px rgba(16, 185, 129, 0.4); }
-    70% { box-shadow: 0 0 0 20px rgba(16, 185, 129, 0); }
-    100% { box-shadow: 0 0 0 0px rgba(16, 185, 129, 0); }
-  }
-  .scale-up-animation { animation: scaleUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
-  @keyframes scaleUp { from { transform: scale(0.8) translateY(20px); opacity: 0; } to { transform: scale(1) translateY(0); opacity: 1; } }
+  .cart-item-card { transition: all 0.2s ease; }
+  .checkout-ready { background: #10b981 !important; }
+  .scale-up-animation { animation: scaleUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+  @keyframes scaleUp { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
   .line-clamp-1 { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
 </style>
 
@@ -201,7 +167,6 @@
     const dFeeStrike = document.getElementById("delivery-fee-strike");
     const progressBar = document.getElementById("delivery-progress-bar");
     const hintMain = document.getElementById("delivery-hint-main");
-    const hintSub = document.getElementById("delivery-hint-sub");
     const deliveryCard = document.getElementById("delivery-card");
     const checkoutBtn = document.getElementById("checkout-btn");
     const footerTotal = document.getElementById("checkout-total-footer");
@@ -228,23 +193,23 @@
       subtotal += price * qty;
       
       const card = document.createElement("div");
-      card.className = "cart-item-card bg-white border border-slate-100 rounded-[2rem] p-5 flex items-center gap-5 shadow-sm";
+      card.className = "cart-item-card bg-white border border-slate-100 rounded-2xl p-3 sm:p-4 flex items-center gap-3 sm:gap-4 shadow-sm";
       card.innerHTML = `
-        <div class="w-20 h-20 bg-slate-50 rounded-2xl overflow-hidden border border-slate-100 flex-shrink-0 p-2">
+        <div class="w-16 h-16 sm:w-20 sm:h-20 bg-slate-50 rounded-xl overflow-hidden border border-slate-50 flex-shrink-0 p-1.5">
           <img src="${item.image}" class="w-full h-full object-contain" alt="${item.name}">
         </div>
         <div class="flex-1 min-w-0">
-          <h4 class="text-base font-black text-slate-900 leading-tight mb-0.5 line-clamp-1">${item.name}</h4>
-          <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">${item.unit || ''}</p>
-          <p class="text-sm font-black text-emerald-600 mt-1">₹${price.toFixed(0)}</p>
+          <h4 class="text-xs sm:text-sm font-black text-slate-900 leading-tight mb-0.5 line-clamp-1">${item.name}</h4>
+          <p class="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">${item.unit || ''}</p>
+          <p class="text-xs sm:text-sm font-black text-slate-900 mt-1">₹${price.toFixed(0)}</p>
         </div>
-        <div class="flex items-center bg-slate-900 rounded-2xl p-1 gap-1 shadow-lg">
-          <button onclick="changeQty('${item.slug}', -1)" class="w-8 h-8 flex items-center justify-center text-white/50 hover:text-white transition-colors">
-            <i class="fas fa-minus text-[10px]"></i>
+        <div class="flex items-center bg-slate-900 rounded-xl p-1 gap-0.5 shadow-md">
+          <button onclick="changeQty('${item.slug}', -1)" class="w-7 h-7 flex items-center justify-center text-white/60">
+            <i class="fas fa-minus text-[8px]"></i>
           </button>
-          <span class="text-sm font-black text-white min-w-[20px] text-center">${qty}</span>
-          <button onclick="changeQty('${item.slug}', 1)" class="w-8 h-8 flex items-center justify-center text-white hover:text-emerald-400 transition-colors">
-            <i class="fas fa-plus text-[10px]"></i>
+          <span class="text-xs font-black text-white min-w-[18px] text-center">${qty}</span>
+          <button onclick="changeQty('${item.slug}', 1)" class="w-7 h-7 flex items-center justify-center text-white">
+            <i class="fas fa-plus text-[8px]"></i>
           </button>
         </div>
       `;
@@ -257,23 +222,24 @@
     let finalPayable = subtotal + PLATFORM_FEE;
 
     if (subtotal >= FREE_DELIVERY_THRESHOLD) {
-      if (!confettiFired) { triggerFlowerBurst(); confettiFired = true; }
+      if (!confettiFired) { 
+        confetti({ particleCount: 100, spread: 70, origin: { y: 0.8 }, colors: ['#10b981', '#ffffff'] });
+        confettiFired = true; 
+      }
       deliveryFeeEl.textContent = "FREE";
-      deliveryFeeEl.className = "text-sm font-black text-emerald-600";
+      deliveryFeeEl.className = "text-xs sm:text-sm font-black text-emerald-600";
       dFeeStrike.textContent = `₹${DELIVERY_FEE}`;
       dFeeStrike.classList.remove("hidden");
       hintMain.innerHTML = "Free delivery unlocked!";
-      hintSub.textContent = "You saved ₹" + DELIVERY_FEE + " on this order";
       deliveryCard.classList.add("free-delivery-active");
       checkoutBtn.classList.add("checkout-ready");
     } else {
       confettiFired = false;
       const remaining = FREE_DELIVERY_THRESHOLD - subtotal;
       deliveryFeeEl.textContent = `₹${DELIVERY_FEE}`;
-      deliveryFeeEl.className = "text-sm font-black text-slate-900";
+      deliveryFeeEl.className = "text-xs sm:text-sm font-black text-slate-900";
       dFeeStrike.classList.add("hidden");
-      hintMain.innerHTML = `Add ₹${remaining} more for free delivery`;
-      hintSub.textContent = "Almost there! Keep adding to save on delivery";
+      hintMain.innerHTML = `Add ₹${remaining} for free delivery`;
       deliveryCard.classList.remove("free-delivery-active");
       checkoutBtn.classList.remove("checkout-ready");
       finalPayable += DELIVERY_FEE;
@@ -281,7 +247,7 @@
 
     itemsTotalEl.textContent = `₹${subtotal.toFixed(2)}`;
     totalEl.textContent = `₹${finalPayable.toFixed(2)}`;
-    footerTotal.textContent = `Total: ₹${finalPayable.toFixed(2)}`;
+    footerTotal.textContent = `₹${finalPayable.toFixed(0)} Total`;
   }
 
   function changeQty(slug, delta) {
@@ -301,10 +267,6 @@
     validateServiceAreaBeforeCheckout();
   }
 
-  function triggerFlowerBurst() {
-    confetti({ particleCount: 150, spread: 80, origin: { y: 0.7 }, colors: ['#10b981', '#ffffff', '#34d399'] });
-  }
-
   async function validateServiceAreaBeforeCheckout() {
     const modal = document.getElementById('service-area-modal');
     modal.classList.remove('hidden');
@@ -321,21 +283,21 @@
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
           (pos) => checkServiceArea(pos.coords.latitude, pos.coords.longitude),
-          (err) => showServiceError("GPS access is required to verify delivery area."),
-          { enableHighAccuracy: true, timeout: 10000 }
+          (err) => showServiceError("GPS access required."),
+          { enableHighAccuracy: true, timeout: 8000 }
         );
-      } else showServiceError("Geolocation not supported.");
-    } catch (e) { showServiceError("Connectivity issue."); }
+      } else showServiceError("Not supported.");
+    } catch (e) { showServiceError("Error."); }
   }
 
   function checkServiceArea(lat, lng) {
     const dist = haversineDistanceKm(lat, lng, SERVICE_CENTER.lat, SERVICE_CENTER.lng);
     document.getElementById('modal-loading').classList.add('hidden');
     if (dist <= SERVICE_CENTER.radius_km && SERVICE_CENTER.lat) {
-      document.getElementById('modal-coords').textContent = dist.toFixed(1) + "km within range";
+      document.getElementById('modal-coords').textContent = dist.toFixed(1) + "km range";
       document.getElementById('modal-success').classList.remove('hidden');
     } else {
-      document.getElementById('modal-error-message').textContent = `We deliver within ${SERVICE_CENTER.radius_km}km. You are ${dist.toFixed(1)}km away.`;
+      document.getElementById('modal-error-message').textContent = `Out of ${SERVICE_CENTER.radius_km}km limit.`;
       document.getElementById('modal-error').classList.remove('hidden');
     }
   }
