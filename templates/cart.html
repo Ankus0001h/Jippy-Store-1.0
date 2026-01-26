@@ -2,181 +2,174 @@
 {% block content %}
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
-<div class="max-w-3xl mx-auto px-4 py-8 space-y-6">
-  <div class="flex items-center justify-between mb-2">
-    <h1 class="text-2xl font-black text-slate-900 tracking-tight">Your Basket</h1>
-    <span id="items-count-badge" class="bg-slate-900 text-white text-[10px] font-bold px-2 py-1 rounded-lg uppercase tracking-wider">0 Items</span>
+<div class="max-w-3xl mx-auto px-4 py-8 space-y-8 pb-32 sm:pb-8">
+  <div class="flex items-end justify-between px-2">
+    <div class="space-y-1">
+      <h1 class="text-3xl font-black text-slate-900 tracking-tighter">My Basket</h1>
+      <p class="text-[10px] font-black text-emerald-600 uppercase tracking-widest flex items-center gap-2">
+        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+        Secured Checkout
+      </p>
+    </div>
+    <span id="items-count-badge" class="bg-slate-100 text-slate-900 text-[11px] font-black px-4 py-2 rounded-2xl border border-slate-200 uppercase tracking-tighter shadow-sm">0 Items</span>
   </div>
 
-  <div id="cart-empty" class="hidden bg-white border border-slate-100 rounded-[2rem] p-12 text-center shadow-sm">
-    <div class="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
-      <i class="fas fa-shopping-basket text-slate-300 text-3xl"></i>
+  <div id="cart-empty" class="hidden flex flex-col items-center justify-center py-24 text-center bg-slate-50 rounded-[3rem] border-2 border-dashed border-slate-200 p-10">
+    <div class="w-24 h-24 bg-white rounded-full flex items-center justify-center shadow-inner mb-6 ring-8 ring-slate-100">
+      <i class="fas fa-shopping-basket text-slate-200 text-4xl"></i>
     </div>
-    <h3 class="text-lg font-bold text-slate-800">Your cart is empty</h3>
-    <p class="text-sm text-slate-500 mb-6">Looks like you haven't added anything yet.</p>
-    <a href="{{ url_for('index') }}" class="inline-flex items-center px-6 py-3 bg-emerald-500 text-white font-bold rounded-2xl hover:bg-emerald-600 transition-all">
+    <h3 class="text-2xl font-black text-slate-800 mb-2">Your basket is empty</h3>
+    <p class="text-slate-400 mb-8 max-w-xs mx-auto text-sm font-medium">Add some items to start your lightning-fast delivery experience.</p>
+    <a href="{{ url_for('index') }}" class="px-10 py-4 bg-slate-900 text-white font-black rounded-2xl shadow-2xl hover:bg-emerald-600 transition-all active:scale-95">
       Start Shopping
     </a>
   </div>
 
   <div id="cart-container" class="space-y-6 hidden">
-    <!-- DELIVERY PROGRESS CARD -->
-    <div id="delivery-card" class="bg-white border border-slate-100 rounded-3xl p-5 shadow-sm space-y-3 relative overflow-hidden transition-all duration-500">
-      <div class="flex justify-between items-end">
-        <div class="text-sm font-bold text-slate-800 uppercase tracking-tighter">Delivery Goal</div>
-        <div id="delivery-status-amount" class="text-xs font-black text-emerald-600"></div>
+    <div id="delivery-card" class="bg-white border border-slate-100 rounded-[2.5rem] p-6 shadow-[0_10px_40px_rgba(0,0,0,0.03)] relative overflow-hidden group">
+      <div class="relative z-10 space-y-4">
+        <div class="flex justify-between items-center">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center text-white shadow-lg">
+              <i class="fas fa-truck-fast text-sm"></i>
+            </div>
+            <div>
+              <p class="text-xs font-black text-slate-400 uppercase tracking-widest">Delivery Benefits</p>
+              <p id="delivery-hint-main" class="text-sm font-bold text-slate-900">Calculating rewards...</p>
+            </div>
+          </div>
+          <div id="delivery-status-amount" class="text-right">
+             <span class="text-[10px] font-black text-slate-400 uppercase block">Goal</span>
+             <span class="text-sm font-black text-slate-900">₹{{ free_delivery_threshold }}</span>
+          </div>
+        </div>
+        <div class="relative h-4 bg-slate-100 rounded-full overflow-hidden border border-slate-50 shadow-inner">
+          <div id="delivery-progress-bar" class="h-full bg-gradient-to-r from-emerald-400 to-emerald-600 rounded-full transition-all duration-1000 ease-out shadow-[0_0_15px_rgba(16,185,129,0.4)]" style="width: 0%"></div>
+        </div>
+        <p id="delivery-hint-sub" class="text-[10px] font-bold text-slate-400 text-center uppercase tracking-tight"></p>
       </div>
-      <div class="w-full h-3 bg-slate-100 rounded-full overflow-hidden relative border border-slate-50">
-        <div id="delivery-progress-bar" class="h-full bg-gradient-to-r from-emerald-400 to-emerald-600 transition-all duration-1000 ease-out" style="width: 0%"></div>
-      </div>
-      <div id="delivery-hint" class="text-[11px] font-medium text-slate-500 flex items-center gap-1.5 transition-all duration-300">
-        <i class="fas fa-truck text-emerald-500"></i>
-        <span>Add more for free delivery</span>
-      </div>
+      <div class="absolute -right-4 -bottom-4 w-24 h-24 bg-emerald-50 rounded-full blur-3xl opacity-0 group-[.free-delivery-active]:opacity-100 transition-opacity"></div>
     </div>
 
-    <!-- CART ITEMS -->
-    <div id="cart-items" class="space-y-3"></div>
+    <div id="cart-items" class="space-y-4"></div>
 
-    <!-- ORDER SUMMARY -->
-    <div class="bg-white border border-slate-100 rounded-[2.5rem] p-6 shadow-sm space-y-4">
-      <h3 class="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Order Summary</h3>
-      <div class="space-y-3">
-        <div class="flex items-center justify-between text-sm">
-          <span class="text-slate-500 font-medium">Items Total</span>
-          <span id="cart-items-total" class="font-bold text-slate-800">₹0.00</span>
-        </div>
-        
-        <div id="discounts-section" class="space-y-1 hidden">
-          <div class="flex items-center justify-between text-xs text-emerald-600 font-bold">
-            <span>Discount Applied</span>
-            <span id="discount-amount">-₹0.00</span>
-          </div>
-        </div>
-
-        <div class="flex items-center justify-between text-sm">
-          <span class="text-slate-500 font-medium">Platform Fee</span>
-          <span class="font-bold text-slate-800">₹{{ platform_fee }}.00</span>
-        </div>
-        
-        <div class="flex items-center justify-between text-sm">
-          <span class="text-slate-500 font-medium">Delivery Fee</span>
-          <div class="flex items-center gap-2">
-            <span id="delivery-fee-strike" class="text-slate-300 line-through hidden text-xs"></span>
-            <span id="delivery-fee" class="font-bold text-slate-800">₹0.00</span>
-          </div>
-        </div>
-        
-        <div class="flex items-center justify-between text-sm">
-          <span class="text-slate-500 font-medium">Handling Fee</span>
-          <div class="flex items-center gap-2">
-            <span class="text-slate-300 line-through text-xs">₹10.00</span>
-            <span class="font-bold text-emerald-600">FREE</span>
-          </div>
-        </div>
-        
-        <div class="h-px bg-slate-100 my-2"></div>
+    <div class="bg-white border border-slate-100 rounded-[3rem] p-8 shadow-[0_20px_50px_rgba(0,0,0,0.04)] space-y-6">
+      <h3 class="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 flex items-center gap-2">
+        <i class="fas fa-receipt text-emerald-500"></i> Order Summary
+      </h3>
+      <div class="space-y-4">
         <div class="flex items-center justify-between">
-          <span class="text-base font-black text-slate-900">Total Payable</span>
-          <span id="cart-total" class="text-xl font-black text-emerald-600">₹0.00</span>
+          <span class="text-sm font-bold text-slate-500">Items Subtotal</span>
+          <span id="cart-items-total" class="text-sm font-black text-slate-900">₹0.00</span>
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="text-sm font-bold text-slate-500">Platform Fee</span>
+          <span class="text-sm font-black text-slate-900">₹{{ platform_fee }}.00</span>
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="text-sm font-bold text-slate-500">Delivery Fee</span>
+          <div class="flex items-center gap-2">
+            <span id="delivery-fee-strike" class="text-xs font-bold text-slate-300 line-through hidden"></span>
+            <span id="delivery-fee" class="text-sm font-black text-slate-900">₹0.00</span>
+          </div>
+        </div>
+        <div class="flex items-center justify-between p-4 bg-emerald-50 rounded-2xl border border-emerald-100">
+          <div class="flex items-center gap-2">
+             <i class="fas fa-magic text-emerald-500 text-xs"></i>
+             <span class="text-[11px] font-black text-emerald-700 uppercase tracking-tight">Handling Fee Discount</span>
+          </div>
+          <span class="text-xs font-black text-emerald-600">FREE</span>
+        </div>
+        <div class="pt-4 mt-2 border-t-2 border-dashed border-slate-100">
+          <div class="flex items-center justify-between">
+            <div>
+               <span class="text-lg font-black text-slate-900">Total Payable</span>
+               <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Incl. all taxes</p>
+            </div>
+            <span id="cart-total" class="text-3xl font-black text-slate-900 tracking-tighter">₹0.00</span>
+          </div>
         </div>
       </div>
 
       <button id="checkout-btn" type="button" onclick="handleCheckoutClick()" 
-        class="w-full py-4 px-6 rounded-2xl text-base font-black text-white transition-all shadow-lg flex items-center justify-center gap-3 group relative overflow-hidden z-10 bg-emerald-500 hover:bg-emerald-600 min-h-[56px] mt-4">
-        {% if is_logged_in %}
-          <span id="checkout-text">Proceed to Checkout</span>
-          <i class="fas fa-chevron-right text-xs transition-transform group-hover:translate-x-1"></i>
-        {% else %}
-          <i class="fas fa-lock text-xs"></i>
-          <span>🔐 Login to Checkout</span>
-        {% endif %}
+        class="w-full py-5 px-8 rounded-3xl text-base font-black text-white transition-all shadow-xl flex items-center justify-between group relative overflow-hidden bg-slate-900 hover:bg-emerald-600">
+        <div class="relative z-10 flex flex-col items-start">
+           <span id="checkout-total-footer" class="text-[10px] opacity-70">Total: ₹0.00</span>
+           <span id="checkout-text">{% if is_logged_in %}Proceed to Checkout{% else %}Login to Checkout{% endif %}</span>
+        </div>
+        <div class="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center relative z-10 group-hover:bg-white/20 transition-all">
+          <i class="fas fa-chevron-right text-xs group-hover:translate-x-1 transition-transform"></i>
+        </div>
       </button>
     </div>
   </div>
 </div>
 
-<!-- SERVICE MODAL -->
-<div id="service-area-modal" class="fixed inset-0 z-[9999] bg-black/50 backdrop-blur-sm hidden flex items-center justify-center p-4">
-  <div class="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl scale-up-animation max-h-[90vh] overflow-y-auto">
-    <div class="p-6 border-b border-slate-50 flex items-center justify-between sticky top-0 bg-white z-20">
-      <div class="flex items-center gap-3">
-        <div class="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center">
-          <i class="fas fa-map-marker-alt"></i>
+<div id="service-area-modal" class="fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-md hidden flex items-center justify-center p-4">
+  <div class="bg-white rounded-[3rem] max-w-md w-full overflow-hidden shadow-2xl scale-up-animation border border-white/20">
+    <div class="p-8 pb-12 text-center">
+        <div id="modal-loading" class="space-y-6">
+            <div class="w-24 h-24 bg-emerald-50 rounded-full mx-auto flex items-center justify-center relative shadow-inner">
+                <div class="absolute inset-0 border-[6px] border-emerald-500/20 rounded-full"></div>
+                <div class="absolute inset-0 border-[6px] border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+                <i class="fas fa-location-crosshairs text-emerald-500 text-3xl animate-pulse"></i>
+            </div>
+            <div>
+              <h4 class="text-2xl font-black text-slate-900 tracking-tight">Checking Area...</h4>
+              <p class="text-sm font-medium text-slate-400 mt-1">Verifying lightning-fast delivery for you.</p>
+            </div>
         </div>
-        <h3 class="font-black text-slate-900 uppercase tracking-tight">Verify Location</h3>
-      </div>
-      <button onclick="closeServiceModal()" class="text-slate-300 hover:text-slate-900 transition-colors p-2 hover:bg-slate-100 rounded-lg min-w-[40px] h-[40px] flex items-center justify-center">
-        <i class="fas fa-times text-lg"></i>
-      </button>
-    </div>
 
-    <div class="p-8 pb-12">
-      <div id="modal-loading" class="text-center space-y-4">
-        <div class="relative w-16 h-16 mx-auto">
-          <div class="absolute inset-0 border-4 border-emerald-100 rounded-full"></div>
-          <div class="absolute inset-0 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+        <div id="modal-success" class="hidden space-y-6">
+            <div class="w-28 h-28 bg-emerald-500 text-white rounded-full mx-auto flex items-center justify-center shadow-2xl shadow-emerald-200 border-8 border-emerald-50 relative overflow-hidden">
+                <i class="fas fa-truck-fast text-5xl animate-bounce"></i>
+                <div class="absolute bottom-2 bg-white/20 w-full text-[8px] font-black uppercase tracking-tighter">Deliverable</div>
+            </div>
+            <div>
+                <h4 class="text-3xl font-black text-slate-900 tracking-tighter">Great News!</h4>
+                <p id="modal-coords" class="text-xs font-black text-emerald-600 mt-2 bg-emerald-50 inline-block px-4 py-1.5 rounded-full border border-emerald-100 uppercase"></p>
+                <p class="text-sm font-medium text-slate-400 mt-3 px-4">We are operational in your area. Let's get your essentials ready!</p>
+            </div>
+            <button onclick="proceedToCheckout()" class="w-full py-5 bg-slate-900 text-white font-black rounded-3xl shadow-xl hover:bg-emerald-600 transition-all hover:-translate-y-1 active:scale-95">
+                Add Address & Place Order
+            </button>
         </div>
-        <p class="text-slate-600 font-bold">Checking delivery availability...</p>
-      </div>
 
-      <div id="modal-success" class="hidden text-center space-y-6">
-        <div class="w-20 h-20 bg-emerald-500 text-white rounded-full mx-auto flex items-center justify-center shadow-lg">
-          <i class="fas fa-check text-3xl"></i>
+        <div id="modal-error" class="hidden space-y-6">
+            <div class="w-28 h-28 bg-rose-50 text-rose-500 rounded-full mx-auto flex items-center justify-center border-8 border-rose-100 shadow-xl relative">
+                <i class="fas fa-shield-halved text-5xl opacity-40 absolute scale-125"></i>
+                <i class="fas fa-ban text-4xl relative z-10"></i>
+            </div>
+            <div>
+                <h4 class="text-2xl font-black text-slate-900 tracking-tight">Out of Service</h4>
+                <p id="modal-error-message" class="text-sm font-semibold text-rose-400 mt-2 px-8"></p>
+            </div>
+            <div class="flex flex-col gap-3">
+                <button onclick="retryLocationCheck()" class="w-full py-4 bg-slate-900 text-white font-black rounded-2xl shadow-lg hover:bg-slate-800 transition-all">
+                  <i class="fas fa-rotate-right mr-2"></i> Try Again
+                </button>
+                <button onclick="closeServiceModal()" class="w-full py-3 text-slate-400 font-bold hover:text-slate-600 transition-colors uppercase text-[10px] tracking-[0.2em]">
+                  Back to Basket
+                </button>
+            </div>
         </div>
-        <div>
-          <h4 class="text-xl font-black text-slate-900">Deliverable!</h4>
-          <p class="text-slate-500 text-sm" id="modal-coords"></p>
-        </div>
-        <button onclick="proceedToCheckout()" class="w-full py-4 px-6 bg-slate-900 text-white font-black rounded-2xl hover:bg-emerald-600 transition-all min-h-[56px] shadow-lg">
-          Continue to Address
-        </button>
-      </div>
-
-      <div id="modal-error" class="hidden text-center space-y-6">
-        <div class="w-20 h-20 bg-rose-500 text-white rounded-full mx-auto flex items-center justify-center shadow-lg">
-          <i class="fas fa-exclamation-triangle text-3xl"></i>
-        </div>
-        <div>
-          <h4 class="text-xl font-black text-slate-900">Out of Service</h4>
-          <p id="modal-error-message" class="text-slate-500 text-sm px-4"></p>
-          <p id="modal-location-error" class="text-[10px] font-mono text-slate-300 mt-2"></p>
-        </div>
-        <div class="grid grid-cols-2 gap-3">
-          <button onclick="retryLocationCheck()" class="py-3 px-4 bg-slate-100 text-slate-900 font-bold rounded-xl hover:bg-slate-200 transition-all shadow-sm min-h-[44px] flex items-center justify-center">
-            Retry
-          </button>
-          <button onclick="closeServiceModal()" class="py-3 px-4 border-2 border-slate-100 text-slate-400 font-bold rounded-xl hover:bg-slate-50 transition-all min-h-[44px] flex items-center justify-center">
-            Close
-          </button>
-        </div>
-      </div>
     </div>
   </div>
 </div>
 
 <style>
+  .cart-item-card { transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+  .cart-item-card:hover { transform: translateY(-2px); border-color: #e2e8f0; }
+  .free-delivery-active { border-color: #10b981 !important; background-color: #f0fdf4 !important; }
+  .checkout-ready { background: #10b981 !important; animation: pulse-emerald 2s infinite; }
   @keyframes pulse-emerald {
     0% { box-shadow: 0 0 0 0px rgba(16, 185, 129, 0.4); }
-    70% { box-shadow: 0 0 0 15px rgba(16, 185, 129, 0); }
+    70% { box-shadow: 0 0 0 20px rgba(16, 185, 129, 0); }
     100% { box-shadow: 0 0 0 0px rgba(16, 185, 129, 0); }
   }
-  .free-delivery-active { 
-    border-color: #10b981 !important; 
-    background-color: #f0fdf4 !important; 
-  }
-  .checkout-ready { 
-    background: linear-gradient(135deg, #059669, #047857) !important; 
-    animation: pulse-emerald 2s infinite; 
-    box-shadow: 0 10px 25px rgba(16, 185, 129, 0.3) !important;
-  }
-  .scale-up-animation { 
-    animation: scaleUp 0.3s cubic-bezier(0.16, 1, 0.3, 1); 
-  }
-  @keyframes scaleUp { 
-    from { opacity: 0; transform: scale(0.95) translateY(10px); } 
-    to { opacity: 1; transform: scale(1) translateY(0); } 
-  }
+  .scale-up-animation { animation: scaleUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
+  @keyframes scaleUp { from { transform: scale(0.8) translateY(20px); opacity: 0; } to { transform: scale(1) translateY(0); opacity: 1; } }
+  .line-clamp-1 { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
 </style>
 
 <script>
@@ -188,11 +181,8 @@
   let SERVICE_CENTER = { lat: null, lng: null, radius_km: 0 };
 
   function getCart() { 
-    try { 
-      return JSON.parse(localStorage.getItem("cart") || "[]"); 
-    } catch (e) { 
-      return []; 
-    } 
+    try { return JSON.parse(localStorage.getItem("cart") || "[]"); } 
+    catch (e) { return []; } 
   }
   
   function saveCart(cart) { 
@@ -206,15 +196,15 @@
     const containerEl = document.getElementById("cart-container");
     const itemsEl = document.getElementById("cart-items");
     const itemsTotalEl = document.getElementById("cart-items-total");
-    const discountsEl = document.getElementById("discounts-section");
-    const discountAmtEl = document.getElementById("discount-amount");
     const totalEl = document.getElementById("cart-total");
     const deliveryFeeEl = document.getElementById("delivery-fee");
     const dFeeStrike = document.getElementById("delivery-fee-strike");
     const progressBar = document.getElementById("delivery-progress-bar");
-    const hintText = document.getElementById("delivery-hint");
+    const hintMain = document.getElementById("delivery-hint-main");
+    const hintSub = document.getElementById("delivery-hint-sub");
     const deliveryCard = document.getElementById("delivery-card");
     const checkoutBtn = document.getElementById("checkout-btn");
+    const footerTotal = document.getElementById("checkout-total-footer");
     const itemsCountBadge = document.getElementById("items-count-badge");
 
     if (!cart.length) {
@@ -232,110 +222,89 @@
     const totalQty = cart.reduce((sum, item) => sum + Number(item.qty || 1), 0);
     itemsCountBadge.innerText = `${totalQty} Item${totalQty !== 1 ? 's' : ''}`;
 
-    cart.forEach((item, index) => {
+    cart.forEach((item) => {
       const qty = Number(item.qty || 1);
       const price = Number(item.price || 0);
       subtotal += price * qty;
       
       const card = document.createElement("div");
-      card.className = "bg-white border border-slate-100 rounded-2xl p-4 shadow-sm hover:shadow-md transition-all group";
+      card.className = "cart-item-card bg-white border border-slate-100 rounded-[2rem] p-5 flex items-center gap-5 shadow-sm";
       card.innerHTML = `
-        <div class="flex items-start justify-between gap-4">
-          <!-- Image & Details -->
-          <div class="flex items-start gap-4 flex-1 min-w-0">
-            <div class="w-16 h-16 bg-slate-50 rounded-xl overflow-hidden p-1 border border-slate-100 flex-shrink-0">
-              <img src="${item.image || 'https://placehold.co/100x100?text=Item'}" 
-                   class="w-full h-full object-contain" 
-                   alt="${item.name || 'Product'}">
-            </div>
-            <div class="flex-1 min-w-0 py-1">
-              <h4 class="text-sm font-black text-slate-900 leading-tight mb-1">${item.name || 'Product'}</h4>
-              <p class="text-xs font-bold text-slate-500 uppercase mb-1">${item.unit || ''}</p>
-              <div class="text-sm font-bold text-emerald-600">₹${price.toFixed(2)}</div>
-            </div>
-          </div>
-          
-          <!-- Quantity Controls -->
-          <div class="flex items-center bg-slate-100 rounded-xl p-2 border border-slate-200 flex-shrink-0 ml-2">
-            <button onclick="changeQty('${item.slug}', -1)" 
-                    class="w-10 h-10 rounded-xl bg-white text-slate-700 hover:bg-rose-50 hover:text-rose-500 transition-all flex items-center justify-center shadow-sm border border-slate-200 text-sm font-bold"
-                    title="Remove one">
-              <i class="fas fa-minus"></i>
-            </button>
-            <span class="mx-3 text-sm font-black text-slate-900 min-w-[28px] text-center">${qty}</span>
-            <button onclick="changeQty('${item.slug}', 1)"
-                    class="w-10 h-10 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 transition-all flex items-center justify-center shadow-sm text-sm font-bold"
-                    title="Add one">
-              <i class="fas fa-plus"></i>
-            </button>
-          </div>
+        <div class="w-20 h-20 bg-slate-50 rounded-2xl overflow-hidden border border-slate-100 flex-shrink-0 p-2">
+          <img src="${item.image}" class="w-full h-full object-contain" alt="${item.name}">
+        </div>
+        <div class="flex-1 min-w-0">
+          <h4 class="text-base font-black text-slate-900 leading-tight mb-0.5 line-clamp-1">${item.name}</h4>
+          <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">${item.unit || ''}</p>
+          <p class="text-sm font-black text-emerald-600 mt-1">₹${price.toFixed(0)}</p>
+        </div>
+        <div class="flex items-center bg-slate-900 rounded-2xl p-1 gap-1 shadow-lg">
+          <button onclick="changeQty('${item.slug}', -1)" class="w-8 h-8 flex items-center justify-center text-white/50 hover:text-white transition-colors">
+            <i class="fas fa-minus text-[10px]"></i>
+          </button>
+          <span class="text-sm font-black text-white min-w-[20px] text-center">${qty}</span>
+          <button onclick="changeQty('${item.slug}', 1)" class="w-8 h-8 flex items-center justify-center text-white hover:text-emerald-400 transition-colors">
+            <i class="fas fa-plus text-[10px]"></i>
+          </button>
         </div>
       `;
       itemsEl.appendChild(card);
     });
 
-    // Update totals
-    itemsTotalEl.textContent = `₹${subtotal.toFixed(2)}`;
-    
-    // Delivery progress
     const progress = Math.min((subtotal / FREE_DELIVERY_THRESHOLD) * 100, 100);
     progressBar.style.width = `${progress}%`;
 
+    let finalPayable = subtotal + PLATFORM_FEE;
+
     if (subtotal >= FREE_DELIVERY_THRESHOLD) {
-      if (!confettiFired) {
-        triggerFlowerBurst();
-        confettiFired = true;
-      }
+      if (!confettiFired) { triggerFlowerBurst(); confettiFired = true; }
       deliveryFeeEl.textContent = "FREE";
-      deliveryFeeEl.className = "font-black text-emerald-600 text-sm";
-      dFeeStrike.textContent = `₹${DELIVERY_FEE.toFixed(2)}`;
+      deliveryFeeEl.className = "text-sm font-black text-emerald-600";
+      dFeeStrike.textContent = `₹${DELIVERY_FEE}`;
       dFeeStrike.classList.remove("hidden");
-      hintText.innerHTML = '<i class="fas fa-check-circle text-emerald-500"></i><span class="text-emerald-600 font-black uppercase ml-1">Free Delivery!</span>';
-      deliveryCard.classList.add("free-delivery-active", "ring-2", "ring-emerald-200");
-      if (IS_LOGGED_IN) checkoutBtn.classList.add("checkout-ready");
-      totalEl.textContent = `₹${(subtotal + PLATFORM_FEE).toFixed(2)}`;
+      hintMain.innerHTML = "Free delivery unlocked!";
+      hintSub.textContent = "You saved ₹" + DELIVERY_FEE + " on this order";
+      deliveryCard.classList.add("free-delivery-active");
+      checkoutBtn.classList.add("checkout-ready");
     } else {
       confettiFired = false;
       const remaining = FREE_DELIVERY_THRESHOLD - subtotal;
-      deliveryFeeEl.textContent = `₹${DELIVERY_FEE.toFixed(2)}`;
-      deliveryFeeEl.className = "font-bold text-slate-900";
+      deliveryFeeEl.textContent = `₹${DELIVERY_FEE}`;
+      deliveryFeeEl.className = "text-sm font-black text-slate-900";
       dFeeStrike.classList.add("hidden");
-      hintText.innerHTML = `<i class="fas fa-truck text-emerald-500"></i><span class="ml-1">Add <strong>₹${remaining.toFixed(0)}</strong> for FREE delivery</span>`;
-      deliveryCard.classList.remove("free-delivery-active", "ring-2", "ring-emerald-200");
+      hintMain.innerHTML = `Add ₹${remaining} more for free delivery`;
+      hintSub.textContent = "Almost there! Keep adding to save on delivery";
+      deliveryCard.classList.remove("free-delivery-active");
       checkoutBtn.classList.remove("checkout-ready");
-      totalEl.textContent = `₹${(subtotal + PLATFORM_FEE + DELIVERY_FEE).toFixed(2)}`;
+      finalPayable += DELIVERY_FEE;
     }
-  }
 
-  function handleCheckoutClick() {
-    const cart = getCart();
-    if (!cart.length) return;
-    
-    if (!IS_LOGGED_IN) {
-      window.location.href = "{{ url_for('login') }}?redirect=cart";
-      return;
-    }
-    
-    validateServiceAreaBeforeCheckout();
+    itemsTotalEl.textContent = `₹${subtotal.toFixed(2)}`;
+    totalEl.textContent = `₹${finalPayable.toFixed(2)}`;
+    footerTotal.textContent = `Total: ₹${finalPayable.toFixed(2)}`;
   }
 
   function changeQty(slug, delta) {
     let cart = getCart();
     const idx = cart.findIndex(i => i.slug === slug);
     if (idx === -1) return;
-    
     let newQty = Number(cart[idx].qty || 1) + delta;
-    if (newQty <= 0) {
-      cart.splice(idx, 1);
-    } else {
-      cart[idx].qty = newQty;
-    }
-    
+    if (newQty <= 0) cart.splice(idx, 1);
+    else cart[idx].qty = newQty;
     saveCart(cart);
     renderCartPage();
   }
 
-  // Service area functions (unchanged)
+  function handleCheckoutClick() {
+    if (!getCart().length) return;
+    if (!IS_LOGGED_IN) { window.location.href = "{{ url_for('login') }}?redirect=cart"; return; }
+    validateServiceAreaBeforeCheckout();
+  }
+
+  function triggerFlowerBurst() {
+    confetti({ particleCount: 150, spread: 80, origin: { y: 0.7 }, colors: ['#10b981', '#ffffff', '#34d399'] });
+  }
+
   async function validateServiceAreaBeforeCheckout() {
     const modal = document.getElementById('service-area-modal');
     modal.classList.remove('hidden');
@@ -347,34 +316,36 @@
 
   async function fetchServiceConfig() {
     try {
-      const response = await fetch('/api/service-config');
-      SERVICE_CENTER = await response.json();
+      const resp = await fetch('/api/service-config');
+      SERVICE_CENTER = await resp.json();
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
           (pos) => checkServiceArea(pos.coords.latitude, pos.coords.longitude),
-          (err) => showServiceError("Location access denied. Please enable GPS."),
-          { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+          (err) => showServiceError("GPS access is required to verify delivery area."),
+          { enableHighAccuracy: true, timeout: 10000 }
         );
-      } else {
-        showServiceError("Geolocation not supported by your browser.");
-      }
-    } catch (e) {
-      showServiceError("Network error. Please check your connection.");
-    }
+      } else showServiceError("Geolocation not supported.");
+    } catch (e) { showServiceError("Connectivity issue."); }
   }
 
   function checkServiceArea(lat, lng) {
     const dist = haversineDistanceKm(lat, lng, SERVICE_CENTER.lat, SERVICE_CENTER.lng);
     document.getElementById('modal-loading').classList.add('hidden');
-    
     if (dist <= SERVICE_CENTER.radius_km && SERVICE_CENTER.lat) {
-      document.getElementById('modal-coords').textContent = `✅ ${dist.toFixed(1)}km from center`;
+      document.getElementById('modal-coords').textContent = dist.toFixed(1) + "km within range";
       document.getElementById('modal-success').classList.remove('hidden');
     } else {
-      document.getElementById('modal-error-message').textContent = 
-        `Sorry! We deliver only within ${SERVICE_CENTER.radius_km}km.\nYour distance: ${dist.toFixed(1)}km`;
+      document.getElementById('modal-error-message').textContent = `We deliver within ${SERVICE_CENTER.radius_km}km. You are ${dist.toFixed(1)}km away.`;
       document.getElementById('modal-error').classList.remove('hidden');
     }
+  }
+
+  function haversineDistanceKm(lat1, lng1, lat2, lng2) {
+    const toRad = d => d * Math.PI / 180;
+    const R = 6371;
+    const dLat = toRad(lat2 - lat1), dLng = toRad(lng2 - lng1);
+    const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng/2)**2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
   }
 
   function showServiceError(msg) {
@@ -383,42 +354,11 @@
     document.getElementById('modal-error').classList.remove('hidden');
   }
 
-  function haversineDistanceKm(lat1, lng1, lat2, lng2) {
-    const toRad = d => d * Math.PI / 180;
-    const R = 6371;
-    const dLat = toRad(lat2 - lat1);
-    const dLng = toRad(lng2 - lng1);
-    const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng/2)**2;
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-  }
+  function closeServiceModal() { document.getElementById('service-area-modal').classList.add('hidden'); }
+  function retryLocationCheck() { validateServiceAreaBeforeCheckout(); }
+  function proceedToCheckout() { window.location.href = "{{ url_for('address_page') }}"; }
 
-  function triggerFlowerBurst() {
-    confetti({
-      particleCount: 100,
-      spread: 70,
-      origin: { y: 0.6 },
-      colors: ['#10b981', '#34d399', '#6ee7b7']
-    });
-  }
-
-  function closeServiceModal() {
-    document.getElementById('service-area-modal').classList.add('hidden');
-  }
-
-  function retryLocationCheck() {
-    document.getElementById('modal-error').classList.add('hidden');
-    document.getElementById('modal-loading').classList.remove('hidden');
-    fetchServiceConfig();
-  }
-
-  function proceedToCheckout() {
-    window.location.href = "{{ url_for('address_page') }}";
-  }
-
-  // Initialize
   document.addEventListener("DOMContentLoaded", renderCartPage);
-  
-  // Listen for cart updates from other pages
   window.addEventListener('cartUpdated', renderCartPage);
 </script>
 {% endblock %}
