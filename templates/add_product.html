@@ -25,66 +25,28 @@
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div class="space-y-1.5">
           <label class="block text-[11px] font-black uppercase tracking-wider text-slate-500 ml-1">Product Identity</label>
-          <input
-            type="text"
-            name="name"
-            placeholder="e.g. Fresh Alphanso Mango"
-            class="w-full border-2 border-slate-100 bg-slate-50 text-slate-900 rounded-2xl px-4 py-3 text-sm font-bold focus:outline-none focus:bg-white focus:border-emerald-500 transition-all placeholder-slate-300"
-            required
-          >
+          <input type="text" name="name" placeholder="e.g. Fresh Alphanso Mango" class="w-full border-2 border-slate-100 bg-slate-50 text-slate-900 rounded-2xl px-4 py-3 text-sm font-bold focus:outline-none focus:bg-white focus:border-emerald-500 transition-all placeholder-slate-300" required>
         </div>
 
-        <!-- ORIGINAL PRICE -->
         <div class="space-y-1.5">
           <label class="block text-[11px] font-black uppercase tracking-wider text-slate-500 ml-1">Listing Price (₹)</label>
-          <input
-            type="number"
-            step="0.01"
-            name="price"
-            placeholder="0.00"
-            class="w-full border-2 border-slate-100 bg-slate-50 text-slate-900 rounded-2xl px-4 py-3 text-sm font-bold focus:outline-none focus:bg-white focus:border-emerald-500 transition-all placeholder-slate-300"
-            required
-          >
+          <input type="number" step="0.01" name="price" placeholder="0.00" class="w-full border-2 border-slate-100 bg-slate-50 text-slate-900 rounded-2xl px-4 py-3 text-sm font-bold focus:outline-none focus:bg-white focus:border-emerald-500 transition-all placeholder-slate-300" required>
         </div>
 
-        <!-- NEW: DISCOUNTED PRICE (OPTIONAL) -->
         <div class="space-y-1.5">
-          <label class="block text-[11px] font-black uppercase tracking-wider text-emerald-600 ml-1">
-            Discounted Price (₹)
-            <span class="text-slate-400 text-[10px]">(optional)</span>
-          </label>
-          <input
-            type="number"
-            step="0.01"
-            name="discount_price"
-            placeholder="e.g. 79.00"
-            class="w-full border-2 border-emerald-50 bg-emerald-50/40 text-slate-900 rounded-2xl px-4 py-3 text-sm font-bold focus:outline-none focus:bg-white focus:border-emerald-500 transition-all placeholder-slate-300"
-          >
-          <p class="text-[10px] font-bold text-emerald-500 uppercase tracking-wide ml-1">
-            Leave empty if no discount
-          </p>
+          <label class="block text-[11px] font-black uppercase tracking-wider text-emerald-600 ml-1">Discounted Price (₹) <span class="text-slate-400 text-[10px]">(optional)</span></label>
+          <input type="number" step="0.01" name="discount_price" placeholder="e.g. 79.00" class="w-full border-2 border-emerald-50 bg-emerald-50/40 text-slate-900 rounded-2xl px-4 py-3 text-sm font-bold focus:outline-none focus:bg-white focus:border-emerald-500 transition-all placeholder-slate-300">
         </div>
 
         <div class="space-y-1.5">
           <label class="block text-[11px] font-black uppercase tracking-wider text-slate-500 ml-1">Packaging Unit</label>
-          <input
-            type="text"
-            name="unit"
-            placeholder="e.g. 1kg, 500ml, 12 Pcs"
-            class="w-full border-2 border-slate-100 bg-slate-50 text-slate-900 rounded-2xl px-4 py-3 text-sm font-bold focus:outline-none focus:bg-white focus:border-emerald-500 transition-all placeholder-slate-300"
-            required
-          >
+          <input type="text" name="unit" placeholder="e.g. 1kg, 500ml, 12 Pcs" class="w-full border-2 border-slate-100 bg-slate-50 text-slate-900 rounded-2xl px-4 py-3 text-sm font-bold focus:outline-none focus:bg-white focus:border-emerald-500 transition-all placeholder-slate-300" required>
         </div>
 
         <div class="space-y-1.5">
           <label class="block text-[11px] font-black uppercase tracking-wider text-slate-500 ml-1">Sourcing Category</label>
           <div class="flex gap-3">
-            <select
-              name="category"
-              id="categorySelect"
-              class="w-full border-2 border-slate-100 bg-slate-50 text-slate-900 rounded-2xl px-4 py-3 text-sm font-bold focus:outline-none focus:bg-white focus:border-emerald-500 transition-all appearance-none cursor-pointer"
-              required
-            >
+            <select name="category" id="categorySelect" class="w-full border-2 border-slate-100 bg-slate-50 text-slate-900 rounded-2xl px-4 py-3 text-sm font-bold focus:outline-none focus:bg-white focus:border-emerald-500 transition-all appearance-none cursor-pointer" required>
               <option value="">Choose...</option>
               <option value="Fruits">Fruits</option>
               <option value="Vegetables">Vegetables</option>
@@ -96,66 +58,55 @@
               <option value="Household">Household</option>
               <option value="Other">Other (Custom)</option>
             </select>
-
-            <input
-              type="text"
-              name="other_category"
-              id="otherCategoryInput"
-              placeholder="Specify Category"
-              class="w-full border-2 border-slate-100 bg-slate-50 text-slate-900 rounded-2xl px-4 py-3 text-sm font-bold focus:outline-none focus:bg-white focus:border-emerald-500 transition-all hidden"
-            >
+            <input type="text" name="other_category" id="otherCategoryInput" placeholder="Specify Category" class="w-full border-2 border-slate-100 bg-slate-50 text-slate-900 rounded-2xl px-4 py-3 text-sm font-bold focus:outline-none focus:bg-white focus:border-emerald-500 transition-all hidden">
           </div>
         </div>
       </div>
 
       <div class="p-6 bg-slate-50 rounded-[2rem] border-2 border-dashed border-slate-200">
         <label class="block text-[11px] font-black uppercase tracking-widest text-slate-400 mb-4 text-center">Product Showcase Image</label>
-
         <input type="file" id="imageInput" name="image" accept="image/*" class="hidden" required>
-
         <div class="flex flex-col items-center justify-center gap-4">
-          <div
-            id="imagePreviewWrapper"
-            class="w-32 h-32 rounded-3xl border-4 border-white shadow-xl flex items-center justify-center bg-white overflow-hidden group"
-          >
+          <div id="imagePreviewWrapper" class="w-32 h-32 rounded-3xl border-4 border-white shadow-xl flex items-center justify-center bg-white overflow-hidden group">
             <i class="fas fa-image text-4xl text-slate-200 group-hover:scale-110 transition-transform"></i>
           </div>
-          
-          <button
-            type="button"
-            id="triggerImageInput"
-            class="px-6 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest bg-slate-900 text-white hover:bg-emerald-600 transition-all shadow-lg active:scale-95"
-          >
+          <button type="button" id="triggerImageInput" class="px-6 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest bg-slate-900 text-white hover:bg-emerald-600 transition-all shadow-lg active:scale-95">
             <i class="fas fa-cloud-arrow-up mr-2"></i> Select File
           </button>
         </div>
       </div>
 
-      <button
-        type="submit"
-        id="add-product-btn"
-        class="w-full bg-emerald-600 text-white py-4 rounded-3xl text-sm font-black uppercase tracking-[0.2em] hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-100 active:scale-[0.98]"
-      >
+      <button type="submit" id="add-product-btn" class="w-full bg-emerald-600 text-white py-4 rounded-3xl text-sm font-black uppercase tracking-[0.2em] hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-100 active:scale-[0.98]">
         <span id="add-product-text">Publish Product</span>
       </button>
     </form>
   </div>
 
-  <!-- INVENTORY TABLE WITH DISCOUNT SUPPORT -->
   <div class="bg-white border border-slate-200 rounded-[2.5rem] shadow-xl p-6 md:p-10">
-    <div class="flex items-center justify-between mb-8">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
       <div>
         <h3 class="text-xl font-black text-slate-900 tracking-tight leading-none">Inventory Vault</h3>
         <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2">Active SKUs</p>
       </div>
-      <div class="px-4 py-2 bg-slate-50 border border-slate-100 rounded-2xl text-[11px] font-black text-slate-600">
-        {{ products|length }} Items Total
+      
+      <div class="relative w-full md:w-96 group z-50">
+        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-emerald-500 transition-colors">
+          <i class="fas fa-search text-xs"></i>
+        </div>
+        <input 
+          type="text" 
+          id="inventory-search" 
+          placeholder="Search items, categories..." 
+          class="w-full bg-slate-50 border-2 border-slate-100 text-slate-900 rounded-2xl pl-10 pr-4 py-3 text-xs font-bold focus:outline-none focus:bg-white focus:border-emerald-500 transition-all"
+          autocomplete="off"
+        >
+        <div id="product-suggestions" class="absolute left-0 right-0 top-full mt-2 bg-white border border-slate-100 rounded-2xl shadow-2xl max-h-80 overflow-y-auto hidden"></div>
       </div>
     </div>
 
     {% if products %}
       <div class="overflow-x-auto">
-        <table class="min-w-full text-left">
+        <table class="min-w-full text-left" id="inventory-table">
           <thead>
             <tr class="border-b border-slate-100">
               <th class="px-4 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Product</th>
@@ -167,7 +118,7 @@
           </thead>
           <tbody class="divide-y divide-slate-50">
             {% for p in products %}
-            <tr class="hover:bg-slate-50/80 transition-colors group">
+            <tr class="product-row hover:bg-slate-50/80 transition-colors group" data-name="{{ p.name|lower }}" data-category="{{ p.category|lower }}">
               <td class="px-4 py-4">
                 <div class="flex items-center gap-4">
                   <div class="w-12 h-12 rounded-2xl bg-slate-100 border border-slate-200 overflow-hidden shadow-sm group-hover:scale-110 transition-transform">
@@ -186,52 +137,28 @@
               <td class="px-4 py-4 text-center">
                 <span class="text-xs font-bold text-slate-500">{{ p.unit }}</span>
               </td>
-              <!-- UPDATED PRICE COLUMN WITH DISCOUNT SUPPORT -->
               <td class="px-4 py-4">
                 {% if p.discount_price %}
                   <div class="space-y-1">
-                    <div class="text-[10px] font-bold uppercase tracking-[0.16em] text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded-full inline-block w-fit">
-                      OFFER ACTIVE
+                    <div class="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full inline-block uppercase tracking-wider">
+                        {{ (((p.price - p.discount_price) / p.price) * 100)|round(0)|int }}% OFF
                     </div>
                     <div class="flex items-baseline gap-2">
-                      <span class="text-xs font-medium text-slate-400 line-through">
-                        ₹{{ "%.2f"|format(p.price) }}
-                      </span>
-                      <span class="text-sm font-black text-emerald-600">
-                        ₹{{ "%.2f"|format(p.discount_price) }}
-                      </span>
-                      {% set off_pct = ((p.price - p.discount_price) / p.price * 100)|round(0, 'floor') %}
-                      <span class="text-[9px] font-black text-white bg-emerald-600 px-1.5 py-px rounded-full">
-                        {{ off_pct }}% OFF
-                      </span>
+                      <span class="text-[10px] font-medium text-slate-400 line-through">₹{{ "%.2f"|format(p.price) }}</span>
+                      <span class="text-sm font-black text-slate-900">₹{{ "%.2f"|format(p.discount_price) }}</span>
                     </div>
                   </div>
                 {% else %}
-                  <div class="text-sm font-black text-emerald-600 tracking-tighter">
-                    ₹{{ "%.2f"|format(p.price) }}
-                  </div>
+                  <div class="text-sm font-black text-slate-900 tracking-tighter">₹{{ "%.2f"|format(p.price) }}</div>
                 {% endif %}
               </td>
               <td class="px-4 py-4 text-right">
                 <div class="flex items-center justify-end gap-2">
-                  <a
-                    href="{{ url_for('edit_product', product_id=p._id) }}"
-                    class="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-900 hover:text-white transition-all shadow-sm"
-                    title="Edit"
-                  >
+                  <a href="{{ url_for('edit_product', product_id=p._id) }}" class="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-900 hover:text-white transition-all shadow-sm">
                     <i class="fas fa-pen-nib text-xs"></i>
                   </a>
-                  <form
-                    method="post"
-                    action="{{ url_for('delete_product', product_id=p._id) }}"
-                    onsubmit="return confirm('Erase this product from catalog?');"
-                    class="inline"
-                  >
-                    <button
-                      type="submit"
-                      class="w-9 h-9 flex items-center justify-center rounded-xl bg-rose-50 text-rose-500 hover:bg-rose-600 hover:text-white transition-all shadow-sm"
-                      title="Delete"
-                    >
+                  <form method="post" action="{{ url_for('delete_product', product_id=p._id) }}" onsubmit="return confirm('Erase product?');" class="inline">
+                    <button type="submit" class="w-9 h-9 flex items-center justify-center rounded-xl bg-rose-50 text-rose-500 hover:bg-rose-600 hover:text-white transition-all shadow-sm">
                       <i class="fas fa-trash-can text-xs"></i>
                     </button>
                   </form>
@@ -242,6 +169,10 @@
           </tbody>
         </table>
       </div>
+      <div id="no-results" class="hidden py-20 text-center">
+        <i class="fas fa-magnifying-glass text-4xl text-slate-100 mb-4"></i>
+        <p class="text-sm font-bold text-slate-400">No matching items found in vault.</p>
+      </div>
     {% else %}
       <div class="py-20 text-center">
         <i class="fas fa-box-open text-5xl text-slate-100 mb-4"></i>
@@ -251,7 +182,6 @@
   </div>
 </div>
 
-<!-- CROP MODAL (unchanged) -->
 <div id="cropModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-[100] hidden p-4">
   <div class="bg-white border border-slate-200 rounded-[2.5rem] w-full max-w-md shadow-2xl overflow-hidden animate-zoom-in">
     <div class="flex items-center justify-between px-8 py-5 border-b border-slate-100">
@@ -264,25 +194,10 @@
       <div class="w-full max-h-[40vh] bg-slate-50 rounded-3xl overflow-hidden border-2 border-slate-100 shadow-inner">
         <img id="cropImage" alt="Crop" class="max-w-full block mx-auto">
       </div>
-      <p class="mt-4 text-[10px] font-bold text-slate-400 uppercase tracking-wide text-center">
-        Scale and position to fit the square grid perfectly.
-      </p>
     </div>
     <div class="grid grid-cols-2 gap-4 px-8 pb-8">
-      <button
-        type="button"
-        class="py-3.5 rounded-2xl text-[11px] font-black uppercase bg-slate-100 text-slate-600 hover:bg-slate-200"
-        onclick="closeCropModal()"
-      >
-        Discard
-      </button>
-      <button
-        type="button"
-        class="py-3.5 rounded-2xl text-[11px] font-black uppercase bg-emerald-600 text-white hover:bg-emerald-700 shadow-lg shadow-emerald-100"
-        onclick="applyCrop()"
-      >
-        Confirm Crop
-      </button>
+      <button type="button" class="py-3.5 rounded-2xl text-[11px] font-black uppercase bg-slate-100 text-slate-600 hover:bg-slate-200" onclick="closeCropModal()">Discard</button>
+      <button type="button" class="py-3.5 rounded-2xl text-[11px] font-black uppercase bg-emerald-600 text-white hover:bg-emerald-700 shadow-lg shadow-emerald-100" onclick="applyCrop()">Confirm Crop</button>
     </div>
   </div>
 </div>
@@ -294,43 +209,114 @@
     body { background-color: #fcfdfe !important; }
     .animate-fade-in { animation: fadeIn 0.5s ease-out forwards; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-    
     .animate-zoom-in { animation: zoomIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
     @keyframes zoomIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
 </style>
 
 <script>
-  // Category logic (unchanged)
-  const categorySelect = document.getElementById("categorySelect");
-  const otherInput = document.getElementById("otherCategoryInput");
+  const searchInput = document.getElementById("inventory-search");
+  const suggestBox = document.getElementById("product-suggestions");
+  const productRows = document.querySelectorAll(".product-row");
+  const noResults = document.getElementById("no-results");
+  const inventoryTable = document.getElementById("inventory-table");
 
-  if (categorySelect && otherInput) {
-    categorySelect.addEventListener("change", () => {
-      if (categorySelect.value === "Other") {
-        otherInput.classList.remove("hidden");
-        categorySelect.classList.add("hidden");
-        otherInput.required = true;
-        otherInput.focus();
+  // 🔍 LIVE FILTERING FUNCTION
+  function filterInventory(query) {
+    const q = query.toLowerCase().trim();
+    let matchCount = 0;
+
+    productRows.forEach(row => {
+      const name = row.getAttribute("data-name");
+      const category = row.getAttribute("data-category");
+      if (name.includes(q) || category.includes(q)) {
+        row.style.display = "";
+        matchCount++;
       } else {
-        otherInput.classList.add("hidden");
-        otherInput.required = false;
-        otherInput.value = "";
+        row.style.display = "none";
       }
     });
+
+    if (matchCount === 0 && q !== "") {
+      noResults.classList.remove("hidden");
+      inventoryTable.classList.add("hidden");
+    } else {
+      noResults.classList.add("hidden");
+      inventoryTable.classList.remove("hidden");
+    }
   }
 
-  // Prevent multiple submit (unchanged)
-  const addProductForm = document.getElementById("add-product-form");
-  if (addProductForm) {
-    addProductForm.addEventListener("submit", () => {
-      const btn = document.getElementById("add-product-btn");
-      const textSpan = document.getElementById("add-product-text");
-      if (btn) { btn.disabled = true; btn.classList.add("opacity-70"); }
-      if (textSpan) { textSpan.textContent = "Processing Inventory..."; }
-    });
+  // 🧠 RECOMMENDATION LOGIC (Mirroring products.html)
+  searchInput?.addEventListener("input", async (e) => {
+    const q = e.target.value.toLowerCase().trim();
+    localStorage.setItem("adminInventorySearch", q);
+    
+    // Immediate on-screen filter
+    filterInventory(q);
+
+    if (q.length === 0) { 
+      suggestBox.classList.add("hidden"); 
+      return; 
+    }
+
+    try {
+      const resp = await fetch(`/api/suggestions?q=${encodeURIComponent(q)}`);
+      const suggestions = await resp.json();
+
+      if (suggestions.length > 0) {
+        suggestBox.classList.remove("hidden");
+        suggestBox.innerHTML = suggestions.map(item => `
+          <div onclick="handleSuggestionClick('${item.name.replace(/'/g, "\\'")}')" 
+               class="px-5 py-4 hover:bg-emerald-50 cursor-pointer border-b border-slate-50 last:border-0 flex items-center justify-between group">
+            <div class="flex items-center gap-3">
+              <i class="fas fa-search text-slate-300 group-hover:text-emerald-500 text-xs"></i>
+              <span class="text-sm font-bold text-slate-700 capitalize">
+                  ${item.name.toLowerCase().replace(q, `<span class="text-emerald-600 font-black">${q}</span>`)}
+              </span>
+            </div>
+            <span class="text-[9px] font-black text-slate-300 uppercase">${item.type}</span>
+          </div>
+        `).join('');
+      } else {
+        suggestBox.classList.add("hidden");
+      }
+    } catch (err) { console.error("Search failed:", err); }
+  });
+
+  function handleSuggestionClick(name) {
+    searchInput.value = name;
+    localStorage.setItem("adminInventorySearch", name);
+    suggestBox.classList.add("hidden");
+    filterInventory(name);
   }
 
-  // Image crop logic (unchanged)
+  // Close suggestions on click outside
+  document.addEventListener("click", (e) => {
+    if (!searchInput?.contains(e.target) && !suggestBox?.contains(e.target)) {
+      suggestBox?.classList.add("hidden");
+    }
+  });
+
+  // Restore search on load
+  document.addEventListener("DOMContentLoaded", () => {
+    const saved = localStorage.getItem("adminInventorySearch");
+    if (saved) {
+      searchInput.value = saved;
+      filterInventory(saved);
+    }
+  });
+
+  // ➕ CATEGORY & IMAGE LOGIC (Baki same)
+  const categorySelect = document.getElementById("categorySelect");
+  const otherInput = document.getElementById("otherCategoryInput");
+  categorySelect?.addEventListener("change", () => {
+    if (categorySelect.value === "Other") {
+      otherInput.classList.remove("hidden");
+      categorySelect.classList.add("hidden");
+      otherInput.required = true;
+      otherInput.focus();
+    }
+  });
+
   const triggerBtn = document.getElementById("triggerImageInput");
   const imageInput = document.getElementById("imageInput");
   const cropModal = document.getElementById("cropModal");
@@ -340,55 +326,32 @@
   let cropper = null;
   let originalFile = null;
 
-  if (triggerBtn && imageInput) {
-    triggerBtn.addEventListener("click", () => { imageInput.click(); });
-    imageInput.addEventListener("change", (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      originalFile = file;
-      const url = URL.createObjectURL(file);
-      cropImage.src = url;
-      openCropModal();
-    });
-  }
-
-  function openCropModal() {
+  triggerBtn?.addEventListener("click", () => imageInput.click());
+  imageInput?.addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    originalFile = file;
+    cropImage.src = URL.createObjectURL(file);
     cropModal.classList.remove("hidden");
     cropImage.onload = () => {
-      if (cropper) { cropper.destroy(); }
-      cropper = new Cropper(cropImage, {
-        aspectRatio: 1,
-        viewMode: 2,
-        autoCropArea: 1,
-        background: false,
-      });
+      if (cropper) cropper.destroy();
+      cropper = new Cropper(cropImage, { aspectRatio: 1, viewMode: 2 });
     };
-  }
+  });
 
   function closeCropModal() {
     cropModal.classList.add("hidden");
-    if (cropper) { cropper.destroy(); cropper = null; }
+    if (cropper) cropper.destroy();
   }
 
   function applyCrop() {
     if (!cropper) return;
-    const canvas = cropper.getCroppedCanvas({ width: 1000, height: 1000 });
-    if (!canvas) return;
-
-    canvas.toBlob((blob) => {
-      if (!blob) return;
-      const croppedFile = new File(
-        [blob],
-        originalFile ? originalFile.name : "product.jpg",
-        { type: "image/jpeg", lastModified: Date.now() }
-      );
-
+    cropper.getCroppedCanvas({ width: 1000, height: 1000 }).toBlob((blob) => {
+      const croppedFile = new File([blob], originalFile.name, { type: "image/jpeg" });
       const dt = new DataTransfer();
       dt.items.add(croppedFile);
       imageInput.files = dt.files;
-
-      const previewUrl = URL.createObjectURL(blob);
-      previewWrapper.innerHTML = `<img src="${previewUrl}" class="w-full h-full object-cover">`;
+      previewWrapper.innerHTML = `<img src="${URL.createObjectURL(blob)}" class="w-full h-full object-cover">`;
       closeCropModal();
     }, "image/jpeg", 0.9);
   }
