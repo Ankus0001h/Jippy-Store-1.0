@@ -2062,5 +2062,34 @@ def search_suggestions():
         
     return jsonify(suggestions[:20])
 
+   
+from flask import render_template, abort
+# Baki imports ke saath ise bhi rakhein
+
+@app.route('/download-invoice/<order_id>')
+def download_invoice(order_id):
+    """📄 Jippy Store Premium Invoice Route"""
+    try:
+        # 1. Database se order fetch karein
+        # Agar aap MongoDB use kar rahe hain toh:
+        order = orders.find_one({"order_id": order_id})
+        
+        if not order:
+            return "Order not found", 404
+            
+        # 2. Check karein ki order DELIVERED hai ya nahi (Safety Check)
+        raw_status = (order.get('status') or 'pending').lower()
+        if raw_status != 'delivered':
+            return "Invoice is only available for delivered orders.", 403
+
+        # 3. Invoice template render karein
+        # Note: 'invoice.html' wahi file hai jo maine pichle message mein di thi
+        return render_template("invoice.html", order=order)
+
+    except Exception as e:
+        print(f"❌ Invoice Error: {e}")
+        return "Internal Server Error", 500
+ 
 if __name__ == "__main__":
     app.run(debug=True)
+
