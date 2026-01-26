@@ -2031,6 +2031,36 @@ def handle_exception(e):
 @app.route("/privacy") 
 def privacy(): 
     return render_template("privacy.html")   
-     
+
+from flask import jsonify # Ise top par import karein
+
+@app.route("/api/suggestions")
+def search_suggestions():
+    q = request.args.get('q', '').strip()
+    if not q: return jsonify([]) # Khali input par kuch nahi dikhayenge
+    
+    # 1. Search in Categories (Matching start of string for better single-char results)
+    cat_matches = products.distinct("category", {"category": {"$regex": f"^{q}", "$options": "i"}})
+    # Agar start se nahi milta toh kahin bhi dhundhein
+    if not cat_matches:
+        cat_matches = products.distinct("category", {"category": {"$regex": q, "$options": "i"}})
+        
+    suggestions = [{"name": c, "type": "category", "url": f"/category/{urllib.parse.quote(c)}"} for c in cat_matches]
+    
+    # 2. Search in Products (Limit to 15 for speed)
+    prod_matches = list(products.find(
+        {"name": {"$regex": q, "$options": "i"}},
+        {"name": 1, "category": 1}
+    ).limit(15))
+    
+    for p in prod_matches:
+        suggestions.append({
+            "name": p['name'],
+            "type": "product",
+            "url": f"/category/{urllib.parse.quote(p['category'])}"
+        })
+        
+    return jsonify(suggestions[:20])
+
 if __name__ == "__main__":
     app.run(debug=True)
