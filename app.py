@@ -1151,11 +1151,10 @@ def checkout():
         return jsonify({"error": "Cart is empty"}), 400
 
     address = data.get("address")
-    
     if not address:
         return jsonify({"error": "Address is required"}), 400
 
-    # ---- lat / lng normalize (frontend se aa rahe) ----
+    # ---- lat / lng normalize ----
     raw_lat = address.get("lat")
     raw_lng = address.get("lng")
     try:
@@ -1165,7 +1164,7 @@ def checkout():
         lat = None
         lng = None
 
-    # ---- STEP 1: logged-in user ke liye address save / update karo ----
+    # ---- STEP 1: logged-in user ke liye address save / update ----
     if user_id:
         try:
             user_doc = users.find_one({"_id": ObjectId(user_id), "role": "customer"})
@@ -1174,8 +1173,6 @@ def checkout():
 
         if user_doc:
             existing_addrs = user_doc.get("addresses", []) or []
-
-            # same address definition: line1 + line2 + city + pincode
             same_indexes = [
                 idx for idx, a in enumerate(existing_addrs)
                 if (a.get("line1") == address.get("line1"))
@@ -1185,22 +1182,16 @@ def checkout():
             ]
 
             if same_indexes:
-                # purane address ka alt_phone update karo (sirf sabse pehle match par)
                 idx = same_indexes[0]
                 updates = {
                     f"addresses.{idx}.alt_phone": address.get("alt_phone"),
                     f"addresses.{idx}.location_text": address.get("location_text", ""),
                 }
-                # optional: saved address me bhi coords update karo
                 if lat is not None and lng is not None:
                     updates[f"addresses.{idx}.coords"] = {"lat": lat, "lng": lng}
 
-                users.update_one(
-                    {"_id": ObjectId(user_id)},
-                    {"$set": updates},
-                )
+                users.update_one({"_id": ObjectId(user_id)}, {"$set": updates})
             else:
-                # naya address insert
                 new_addr = {
                     "label": address.get("label") or f"Address {len(existing_addrs) + 1}",
                     "alt_phone": address.get("alt_phone"),
@@ -1212,34 +1203,36 @@ def checkout():
                     "coords": {"lat": lat, "lng": lng} if (lat is not None and lng is not None) else None,
                     "created_at": datetime.datetime.now(datetime.timezone.utc),
                 }
-                users.update_one(
-                    {"_id": ObjectId(user_id)},
-                    {"$push": {"addresses": new_addr}},
-                )
+                users.update_one({"_id": ObjectId(user_id)}, {"$push": {"addresses": new_addr}})
 
-    # ---- STEP 2: totals calculate karo ----
+    # ---- STEP 2: Totals Calculation with Handling & Surge ----
     subtotal = 0
     for item in cart:
         price = float(item.get("price", 0))
         qty   = int(item.get("qty", 1))
         subtotal += price * qty
 
-    s = settings.find_one({"key": "platform_fee"})
-    platform_fee = int(s["value"]) if s and "value" in s else 0
-
+    # Fetch Financial Config from Settings
+    pf_doc = settings.find_one({"key": "platform_fee"}) or {"value": 0}
     thr_doc = settings.find_one({"key": "free_delivery_threshold"}) or {"value": 49}
     fee_doc = settings.find_one({"key": "delivery_fee"}) or {"value": 10}
-    FREE_DELIVERY_THRESHOLD = int(thr_doc.get("value", 49))
-    DELIVERY_FEE            = int(fee_doc.get("value", 10))
+    hf_doc = settings.find_one({"key": "handling_fee"}) or {"value": 0} # NEW
+    sc_doc = settings.find_one({"key": "surge_charge"}) or {"value": 0} # NEW
 
-    delivery_fee = 0
-    if subtotal < FREE_DELIVERY_THRESHOLD:
-        delivery_fee = DELIVERY_FEE
+    platform_fee = int(pf_doc.get("value", 0))
+    free_threshold = int(thr_doc.get("value", 49))
+    base_delivery_fee = int(fee_doc.get("value", 10))
+    handling_fee = int(hf_doc.get("value", 0)) # NEW
+    surge_charge = int(sc_doc.get("value", 0)) # NEW
 
-    grand_total = subtotal + platform_fee + delivery_fee
+    # Apply Delivery Fee logic
+    delivery_fee = 0 if subtotal >= free_threshold else base_delivery_fee
+
+    # Final Grand Total Calculation
+    grand_total = subtotal + platform_fee + delivery_fee + handling_fee + surge_charge
     order_id = generate_order_id()
 
-    # ---- STEP 3: order object (GPS coords included) ----
+    # ---- STEP 3: Order object creation ----
     order = {
         "user_id": user_id,
         "order_id": order_id,
@@ -1249,6 +1242,8 @@ def checkout():
         "subtotal": subtotal,
         "platform_fee": platform_fee,
         "delivery_fee": delivery_fee,
+        "handling_fee": handling_fee, # Saved in order
+        "surge_charge": surge_charge, # Saved in order
         "total": grand_total,
         "status": "pending",
         "payment_method": "COD",
@@ -1266,27 +1261,33 @@ def checkout():
 
     orders.insert_one(order)
 
-    return jsonify(
-        {
-            "message": "Order placed successfully",
-            "order_id": order_id,
-            "total": grand_total,
-        }
-    )
+    return jsonify({
+        "message": "Order placed successfully",
+        "order_id": order_id,
+        "total": grand_total,
+    })
 
 @app.route("/cart")
 def cart_page():
     is_logged_in = bool(session.get("user_id"))
 
-    # Platform fee from settings
-    s = settings.find_one({"key": "platform_fee"})
-    platform_fee = int(s["value"]) if s and "value" in s else 0
+    # 1. Platform Fee
+    pf_doc = settings.find_one({"key": "platform_fee"})
+    platform_fee = int(pf_doc["value"]) if pf_doc and "value" in pf_doc else 0
 
-    # Free delivery threshold + delivery fee from settings
+    # 2. Free Delivery Threshold & Fee
     thr_doc = settings.find_one({"key": "free_delivery_threshold"}) or {"value": 49}
     fee_doc = settings.find_one({"key": "delivery_fee"}) or {"value": 10}
     FREE_DELIVERY_THRESHOLD = int(thr_doc.get("value", 49))
     DELIVERY_FEE = int(fee_doc.get("value", 10))
+
+    # 3. Handling Fee (NEW)
+    hf_doc = settings.find_one({"key": "handling_fee"}) or {"value": 0}
+    handling_fee = int(hf_doc.get("value", 0))
+
+    # 4. Surge Charge (NEW)
+    sc_doc = settings.find_one({"key": "surge_charge"}) or {"value": 0}
+    surge_charge = int(sc_doc.get("value", 0))
 
     return render_template(
         "cart.html",
@@ -1294,9 +1295,10 @@ def cart_page():
         platform_fee=platform_fee,
         free_delivery_threshold=FREE_DELIVERY_THRESHOLD,
         delivery_fee=DELIVERY_FEE,
+        handling_fee=handling_fee, # Passed to HTML
+        surge_charge=surge_charge   # Passed to HTML
     )
-
-
+    
 @app.route("/address", methods=["GET"])
 def address_page():
     user_id = session.get("user_id")
@@ -1355,19 +1357,28 @@ def admin_fees_settings():
     if not session.get("admin_logged_in"):
         return redirect(url_for("admin_login"))
 
+    # Settings fetch karein
     pf = settings.find_one({"key": "platform_fee"}) or {"value": 0}
     thr = settings.find_one({"key": "free_delivery_threshold"}) or {"value": 49}
     df = settings.find_one({"key": "delivery_fee"}) or {"value": 10}
+    hf = settings.find_one({"key": "handling_fee"}) or {"value": 0} # NEW
+    sc = settings.find_one({"key": "surge_charge"}) or {"value": 0} # NEW
 
     if request.method == "POST":
-        raw_pf = request.form.get("platform_fee", "").strip()
-        raw_thr = request.form.get("free_delivery_threshold", "").strip()
-        raw_df = request.form.get("delivery_fee", "").strip()
+        raw_pf = request.form.get("platform_fee", "0").strip()
+        raw_thr = request.form.get("free_delivery_threshold", "49").strip()
+        raw_df = request.form.get("delivery_fee", "10").strip()
+        raw_hf = request.form.get("handling_fee", "0").strip() # NEW
+        raw_sc = request.form.get("surge_charge", "0").strip() # NEW
+        
         try:
             pf_val = int(raw_pf)
             thr_val = int(raw_thr)
             df_val = int(raw_df)
-            if pf_val < 0 or thr_val < 0 or df_val < 0:
+            hf_val = int(raw_hf) # NEW
+            sc_val = int(raw_sc) # NEW
+            
+            if any(v < 0 for v in [pf_val, thr_val, df_val, hf_val, sc_val]):
                 raise ValueError
         except ValueError:
             return render_template(
@@ -1376,18 +1387,25 @@ def admin_fees_settings():
                 current_platform_fee=pf.get("value", 0),
                 current_threshold=thr.get("value", 49),
                 current_delivery_fee=df.get("value", 10),
+                current_handling_fee=hf.get("value", 0),
+                current_surge_charge=sc.get("value", 0)
             )
 
+        # Update Database
         settings.update_one({"key": "platform_fee"}, {"$set": {"value": pf_val}}, upsert=True)
         settings.update_one({"key": "free_delivery_threshold"}, {"$set": {"value": thr_val}}, upsert=True)
         settings.update_one({"key": "delivery_fee"}, {"$set": {"value": df_val}}, upsert=True)
+        settings.update_one({"key": "handling_fee"}, {"$set": {"value": hf_val}}, upsert=True) # NEW
+        settings.update_one({"key": "surge_charge"}, {"$set": {"value": sc_val}}, upsert=True) # NEW
 
         return render_template(
             "admin_fees_settings.html",
-            success="Fees and delivery settings updated.",
+            success="All financial rules updated successfully.",
             current_platform_fee=pf_val,
             current_threshold=thr_val,
             current_delivery_fee=df_val,
+            current_handling_fee=hf_val,
+            current_surge_charge=sc_val,
         )
 
     return render_template(
@@ -1395,8 +1413,10 @@ def admin_fees_settings():
         current_platform_fee=pf.get("value", 0),
         current_threshold=thr.get("value", 49),
         current_delivery_fee=df.get("value", 10),
+        current_handling_fee=hf.get("value", 0),
+        current_surge_charge=sc.get("value", 0)
     )
-
+    
 @app.route("/portal/refresh-captcha", methods=["POST"])
 def portal_refresh_captcha():
     # 4-digit random code
@@ -2061,7 +2081,6 @@ def search_suggestions():
         })
         
     return jsonify(suggestions[:20])
-
    
 from flask import render_template, abort
 # Baki imports ke saath ise bhi rakhein
@@ -2089,7 +2108,6 @@ def download_invoice(order_id):
     except Exception as e:
         print(f"❌ Invoice Error: {e}")
         return "Internal Server Error", 500
- 
+      
 if __name__ == "__main__":
     app.run(debug=True)
-
