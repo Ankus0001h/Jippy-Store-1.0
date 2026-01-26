@@ -60,24 +60,20 @@
           <span class="font-bold text-slate-500">Items Total</span>
           <span id="cart-items-total" class="font-black text-slate-900">₹0.00</span>
         </div>
-
         <div class="flex items-center justify-between text-xs sm:text-sm">
           <span class="font-bold text-slate-500">Handling Fee</span>
           <span class="font-black text-slate-900">₹{{ handling_fee }}.00</span>
         </div>
-
         <div id="surge-row" class="flex items-center justify-between text-xs sm:text-sm {% if surge_charge == 0 %}hidden{% endif %}">
           <span class="font-bold text-slate-500 flex items-center gap-1.5">
             Surge Charge <i class="fas fa-bolt-lightning text-[10px] text-amber-500"></i>
           </span>
           <span class="font-black text-rose-500">₹{{ surge_charge }}.00</span>
         </div>
-
         <div class="flex items-center justify-between text-xs sm:text-sm">
           <span class="font-bold text-slate-500">Platform Fee</span>
           <span class="font-black text-slate-900">₹{{ platform_fee }}.00</span>
         </div>
-
         <div class="flex items-center justify-between text-xs sm:text-sm">
           <span class="font-bold text-slate-500">Delivery Fee</span>
           <div class="flex items-center gap-1.5">
@@ -85,7 +81,6 @@
             <span id="delivery-fee" class="font-black text-slate-900">₹0.00</span>
           </div>
         </div>
-
         <div class="pt-3 border-t border-dashed border-slate-200 flex items-center justify-between">
           <span class="text-sm sm:text-base font-black text-slate-900">Payable</span>
           <span id="cart-total" class="text-xl sm:text-2xl font-black text-emerald-600 tracking-tighter">₹0.00</span>
@@ -140,6 +135,7 @@
 <style>
   .cart-item-card { transition: all 0.2s ease; }
   .checkout-ready { background: #10b981 !important; }
+  .free-delivery-active { border-color: #10b981 !important; background-color: #f0fdf4 !important; }
   .scale-up-animation { animation: scaleUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
   @keyframes scaleUp { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
   .line-clamp-1 { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
@@ -152,10 +148,21 @@
   const SURGE_CHARGE = {{ surge_charge }};
   const FREE_DELIVERY_THRESHOLD = {{ free_delivery_threshold }};
   const DELIVERY_FEE = {{ delivery_fee }};
+  
   let SERVICE_CENTER = { lat: null, lng: null, radius_km: 0 };
+  let hasFiredConfetti = false; // 🎊 Track if confetti was already fired
 
   function getCart() { try { return JSON.parse(localStorage.getItem("cart") || "[]"); } catch (e) { return []; } }
   function saveCart(cart) { localStorage.setItem("cart", JSON.stringify(cart)); window.dispatchEvent(new Event('cartUpdated')); }
+
+  function triggerConfetti() {
+    confetti({
+      particleCount: 150,
+      spread: 70,
+      origin: { y: 0.7 },
+      colors: ['#10b981', '#ffffff', '#34d399']
+    });
+  }
 
   function renderCartPage() {
     const cart = getCart();
@@ -168,6 +175,7 @@
     const dFeeStrike = document.getElementById("delivery-fee-strike");
     const progressBar = document.getElementById("delivery-progress-bar");
     const hintMain = document.getElementById("delivery-hint-main");
+    const deliveryCard = document.getElementById("delivery-card");
     const checkoutBtn = document.getElementById("checkout-btn");
     const footerTotal = document.getElementById("checkout-total-footer");
     const itemsCountBadge = document.getElementById("items-count-badge");
@@ -186,9 +194,9 @@
       card.innerHTML = `
         <div class="w-16 h-16 bg-slate-50 rounded-xl overflow-hidden flex-shrink-0 p-1.5"><img src="${item.image}" class="w-full h-full object-contain"></div>
         <div class="flex-1 min-w-0">
-          <h4 class="text-xs font-black text-slate-900 leading-tight mb-0.5 line-clamp-1">${item.name}</h4>
+          <h4 class="text-xs sm:text-sm font-black text-slate-900 leading-tight mb-0.5 line-clamp-1">${item.name}</h4>
           <p class="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">${item.unit || ''}</p>
-          <p class="text-xs font-black text-slate-900 mt-1">₹${Number(item.price).toFixed(0)}</p>
+          <p class="text-xs sm:text-sm font-black text-slate-900 mt-1">₹${Number(item.price).toFixed(0)}</p>
         </div>
         <div class="flex items-center bg-slate-900 rounded-xl p-1 gap-0.5 shadow-md">
           <button onclick="changeQty('${item.slug}', -1)" class="w-7 h-7 flex items-center justify-center text-white/60"><i class="fas fa-minus text-[8px]"></i></button>
@@ -207,15 +215,23 @@
     let finalPayable = subtotal + PLATFORM_FEE + HANDLING_FEE + SURGE_CHARGE;
 
     if (subtotal >= FREE_DELIVERY_THRESHOLD) {
+      // 🎊 CHECK AND FIRE CONFETTI
+      if (!hasFiredConfetti) {
+        triggerConfetti();
+        hasFiredConfetti = true;
+      }
       deliveryFeeEl.textContent = "FREE"; deliveryFeeEl.className = "text-xs sm:text-sm font-black text-emerald-600";
       dFeeStrike.textContent = `₹${DELIVERY_FEE}`; dFeeStrike.classList.remove("hidden");
-      hintMain.innerHTML = "Free delivery unlocked!";
+      hintMain.innerHTML = '<i class="fas fa-gift text-emerald-500"></i> Free delivery unlocked!';
+      deliveryCard.classList.add("free-delivery-active");
       checkoutBtn.classList.add("checkout-ready");
     } else {
+      hasFiredConfetti = false; // Reset if they remove items
       const remaining = FREE_DELIVERY_THRESHOLD - subtotal;
       deliveryFeeEl.textContent = `₹${DELIVERY_FEE}`; deliveryFeeEl.className = "text-xs sm:text-sm font-black text-slate-900";
       dFeeStrike.classList.add("hidden");
       hintMain.innerHTML = `Add ₹${remaining} for free delivery`;
+      deliveryCard.classList.remove("free-delivery-active");
       checkoutBtn.classList.remove("checkout-ready");
       finalPayable += DELIVERY_FEE;
     }
