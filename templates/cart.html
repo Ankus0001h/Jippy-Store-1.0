@@ -60,10 +60,24 @@
           <span class="font-bold text-slate-500">Items Total</span>
           <span id="cart-items-total" class="font-black text-slate-900">₹0.00</span>
         </div>
+
+        <div class="flex items-center justify-between text-xs sm:text-sm">
+          <span class="font-bold text-slate-500">Handling Fee</span>
+          <span class="font-black text-slate-900">₹{{ handling_fee }}.00</span>
+        </div>
+
+        <div id="surge-row" class="flex items-center justify-between text-xs sm:text-sm {% if surge_charge == 0 %}hidden{% endif %}">
+          <span class="font-bold text-slate-500 flex items-center gap-1.5">
+            Surge Charge <i class="fas fa-bolt-lightning text-[10px] text-amber-500"></i>
+          </span>
+          <span class="font-black text-rose-500">₹{{ surge_charge }}.00</span>
+        </div>
+
         <div class="flex items-center justify-between text-xs sm:text-sm">
           <span class="font-bold text-slate-500">Platform Fee</span>
           <span class="font-black text-slate-900">₹{{ platform_fee }}.00</span>
         </div>
+
         <div class="flex items-center justify-between text-xs sm:text-sm">
           <span class="font-bold text-slate-500">Delivery Fee</span>
           <div class="flex items-center gap-1.5">
@@ -71,13 +85,10 @@
             <span id="delivery-fee" class="font-black text-slate-900">₹0.00</span>
           </div>
         </div>
-        <div class="flex items-center justify-between p-3 bg-emerald-50 rounded-xl border border-emerald-100">
-          <span class="text-[10px] font-black text-emerald-700 uppercase">Handling Fee</span>
-          <span class="text-[10px] font-black text-emerald-600">FREE</span>
-        </div>
+
         <div class="pt-3 border-t border-dashed border-slate-200 flex items-center justify-between">
           <span class="text-sm sm:text-base font-black text-slate-900">Payable</span>
-          <span id="cart-total" class="text-xl sm:text-2xl font-black text-slate-900 tracking-tighter">₹0.00</span>
+          <span id="cart-total" class="text-xl sm:text-2xl font-black text-emerald-600 tracking-tighter">₹0.00</span>
         </div>
       </div>
 
@@ -103,18 +114,14 @@
             </div>
             <h4 class="text-lg font-black text-slate-900">Pinning Location...</h4>
         </div>
-
         <div id="modal-success" class="hidden space-y-5">
             <div class="w-20 h-20 bg-emerald-500 text-white rounded-full mx-auto flex items-center justify-center shadow-lg">
                 <i class="fas fa-truck-fast text-3xl animate-bounce"></i>
             </div>
-            <div>
-                <h4 class="text-xl font-black text-slate-900">Available!</h4>
-                <p id="modal-coords" class="text-[10px] font-black text-emerald-600 mt-2 bg-emerald-50 inline-block px-3 py-1 rounded-full uppercase"></p>
-            </div>
+            <h4 class="text-xl font-black text-slate-900">Available!</h4>
+            <p id="modal-coords" class="text-[10px] font-black text-emerald-600 mt-2 bg-emerald-50 inline-block px-3 py-1 rounded-full uppercase"></p>
             <button onclick="proceedToCheckout()" class="w-full py-4 bg-slate-900 text-white font-black rounded-2xl shadow-xl">Continue</button>
         </div>
-
         <div id="modal-error" class="hidden space-y-5">
             <div class="w-20 h-20 bg-rose-50 text-rose-500 rounded-full mx-auto flex items-center justify-center border-2 border-rose-100">
                 <i class="fas fa-ban text-3xl"></i>
@@ -141,20 +148,14 @@
 <script>
   const IS_LOGGED_IN = {{ 'true' if is_logged_in else 'false' }};
   const PLATFORM_FEE = {{ platform_fee }};
+  const HANDLING_FEE = {{ handling_fee }};
+  const SURGE_CHARGE = {{ surge_charge }};
   const FREE_DELIVERY_THRESHOLD = {{ free_delivery_threshold }};
   const DELIVERY_FEE = {{ delivery_fee }};
-  let confettiFired = false;
   let SERVICE_CENTER = { lat: null, lng: null, radius_km: 0 };
 
-  function getCart() { 
-    try { return JSON.parse(localStorage.getItem("cart") || "[]"); } 
-    catch (e) { return []; } 
-  }
-  
-  function saveCart(cart) { 
-    localStorage.setItem("cart", JSON.stringify(cart)); 
-    window.dispatchEvent(new Event('cartUpdated')); 
-  }
+  function getCart() { try { return JSON.parse(localStorage.getItem("cart") || "[]"); } catch (e) { return []; } }
+  function saveCart(cart) { localStorage.setItem("cart", JSON.stringify(cart)); window.dispatchEvent(new Event('cartUpdated')); }
 
   function renderCartPage() {
     const cart = getCart();
@@ -167,80 +168,54 @@
     const dFeeStrike = document.getElementById("delivery-fee-strike");
     const progressBar = document.getElementById("delivery-progress-bar");
     const hintMain = document.getElementById("delivery-hint-main");
-    const deliveryCard = document.getElementById("delivery-card");
     const checkoutBtn = document.getElementById("checkout-btn");
     const footerTotal = document.getElementById("checkout-total-footer");
     const itemsCountBadge = document.getElementById("items-count-badge");
 
     if (!cart.length) {
-      emptyEl.classList.remove("hidden");
-      containerEl.classList.add("hidden");
-      itemsCountBadge.innerText = "0 Items";
-      return;
+      emptyEl.classList.remove("hidden"); containerEl.classList.add("hidden");
+      itemsCountBadge.innerText = "0 Items"; return;
     }
 
-    emptyEl.classList.add("hidden");
-    containerEl.classList.remove("hidden");
-    itemsEl.innerHTML = "";
-
+    emptyEl.classList.add("hidden"); containerEl.classList.remove("hidden"); itemsEl.innerHTML = "";
     let subtotal = 0;
-    const totalQty = cart.reduce((sum, item) => sum + Number(item.qty || 1), 0);
-    itemsCountBadge.innerText = `${totalQty} Item${totalQty !== 1 ? 's' : ''}`;
-
     cart.forEach((item) => {
-      const qty = Number(item.qty || 1);
-      const price = Number(item.price || 0);
-      subtotal += price * qty;
-      
+      subtotal += Number(item.price) * Number(item.qty);
       const card = document.createElement("div");
-      card.className = "cart-item-card bg-white border border-slate-100 rounded-2xl p-3 sm:p-4 flex items-center gap-3 sm:gap-4 shadow-sm";
+      card.className = "cart-item-card bg-white border border-slate-100 rounded-2xl p-3 flex items-center gap-3 shadow-sm";
       card.innerHTML = `
-        <div class="w-16 h-16 sm:w-20 sm:h-20 bg-slate-50 rounded-xl overflow-hidden border border-slate-50 flex-shrink-0 p-1.5">
-          <img src="${item.image}" class="w-full h-full object-contain" alt="${item.name}">
-        </div>
+        <div class="w-16 h-16 bg-slate-50 rounded-xl overflow-hidden flex-shrink-0 p-1.5"><img src="${item.image}" class="w-full h-full object-contain"></div>
         <div class="flex-1 min-w-0">
-          <h4 class="text-xs sm:text-sm font-black text-slate-900 leading-tight mb-0.5 line-clamp-1">${item.name}</h4>
+          <h4 class="text-xs font-black text-slate-900 leading-tight mb-0.5 line-clamp-1">${item.name}</h4>
           <p class="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">${item.unit || ''}</p>
-          <p class="text-xs sm:text-sm font-black text-slate-900 mt-1">₹${price.toFixed(0)}</p>
+          <p class="text-xs font-black text-slate-900 mt-1">₹${Number(item.price).toFixed(0)}</p>
         </div>
         <div class="flex items-center bg-slate-900 rounded-xl p-1 gap-0.5 shadow-md">
-          <button onclick="changeQty('${item.slug}', -1)" class="w-7 h-7 flex items-center justify-center text-white/60">
-            <i class="fas fa-minus text-[8px]"></i>
-          </button>
-          <span class="text-xs font-black text-white min-w-[18px] text-center">${qty}</span>
-          <button onclick="changeQty('${item.slug}', 1)" class="w-7 h-7 flex items-center justify-center text-white">
-            <i class="fas fa-plus text-[8px]"></i>
-          </button>
-        </div>
-      `;
+          <button onclick="changeQty('${item.slug}', -1)" class="w-7 h-7 flex items-center justify-center text-white/60"><i class="fas fa-minus text-[8px]"></i></button>
+          <span class="text-xs font-black text-white min-w-[18px] text-center">${item.qty}</span>
+          <button onclick="changeQty('${item.slug}', 1)" class="w-7 h-7 flex items-center justify-center text-white"><i class="fas fa-plus text-[8px]"></i></button>
+        </div>`;
       itemsEl.appendChild(card);
     });
 
+    const totalQty = cart.reduce((sum, i) => sum + Number(i.qty), 0);
+    itemsCountBadge.innerText = `${totalQty} Item${totalQty !== 1 ? 's' : ''}`;
+    
     const progress = Math.min((subtotal / FREE_DELIVERY_THRESHOLD) * 100, 100);
     progressBar.style.width = `${progress}%`;
 
-    let finalPayable = subtotal + PLATFORM_FEE;
+    let finalPayable = subtotal + PLATFORM_FEE + HANDLING_FEE + SURGE_CHARGE;
 
     if (subtotal >= FREE_DELIVERY_THRESHOLD) {
-      if (!confettiFired) { 
-        confetti({ particleCount: 100, spread: 70, origin: { y: 0.8 }, colors: ['#10b981', '#ffffff'] });
-        confettiFired = true; 
-      }
-      deliveryFeeEl.textContent = "FREE";
-      deliveryFeeEl.className = "text-xs sm:text-sm font-black text-emerald-600";
-      dFeeStrike.textContent = `₹${DELIVERY_FEE}`;
-      dFeeStrike.classList.remove("hidden");
+      deliveryFeeEl.textContent = "FREE"; deliveryFeeEl.className = "text-xs sm:text-sm font-black text-emerald-600";
+      dFeeStrike.textContent = `₹${DELIVERY_FEE}`; dFeeStrike.classList.remove("hidden");
       hintMain.innerHTML = "Free delivery unlocked!";
-      deliveryCard.classList.add("free-delivery-active");
       checkoutBtn.classList.add("checkout-ready");
     } else {
-      confettiFired = false;
       const remaining = FREE_DELIVERY_THRESHOLD - subtotal;
-      deliveryFeeEl.textContent = `₹${DELIVERY_FEE}`;
-      deliveryFeeEl.className = "text-xs sm:text-sm font-black text-slate-900";
+      deliveryFeeEl.textContent = `₹${DELIVERY_FEE}`; deliveryFeeEl.className = "text-xs sm:text-sm font-black text-slate-900";
       dFeeStrike.classList.add("hidden");
       hintMain.innerHTML = `Add ₹${remaining} for free delivery`;
-      deliveryCard.classList.remove("free-delivery-active");
       checkoutBtn.classList.remove("checkout-ready");
       finalPayable += DELIVERY_FEE;
     }
@@ -251,14 +226,11 @@
   }
 
   function changeQty(slug, delta) {
-    let cart = getCart();
-    const idx = cart.findIndex(i => i.slug === slug);
+    let cart = getCart(); const idx = cart.findIndex(i => i.slug === slug);
     if (idx === -1) return;
-    let newQty = Number(cart[idx].qty || 1) + delta;
-    if (newQty <= 0) cart.splice(idx, 1);
-    else cart[idx].qty = newQty;
-    saveCart(cart);
-    renderCartPage();
+    cart[idx].qty = Number(cart[idx].qty) + delta;
+    if (cart[idx].qty <= 0) cart.splice(idx, 1);
+    saveCart(cart); renderCartPage();
   }
 
   function handleCheckoutClick() {
@@ -268,43 +240,30 @@
   }
 
   async function validateServiceAreaBeforeCheckout() {
-    const modal = document.getElementById('service-area-modal');
-    modal.classList.remove('hidden');
+    document.getElementById('service-area-modal').classList.remove('hidden');
     document.getElementById('modal-loading').classList.remove('hidden');
     document.getElementById('modal-success').classList.add('hidden');
     document.getElementById('modal-error').classList.add('hidden');
-    await fetchServiceConfig();
-  }
-
-  async function fetchServiceConfig() {
     try {
-      const resp = await fetch('/api/service-config');
-      SERVICE_CENTER = await resp.json();
+      const resp = await fetch('/api/service-config'); SERVICE_CENTER = await resp.json();
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
-          (pos) => checkServiceArea(pos.coords.latitude, pos.coords.longitude),
-          (err) => showServiceError("GPS access required."),
-          { enableHighAccuracy: true, timeout: 8000 }
+          (pos) => {
+            const dist = haversineDistanceKm(pos.coords.latitude, pos.coords.longitude, SERVICE_CENTER.lat, SERVICE_CENTER.lng);
+            document.getElementById('modal-loading').classList.add('hidden');
+            if (dist <= SERVICE_CENTER.radius_km) {
+                document.getElementById('modal-coords').textContent = dist.toFixed(1) + "km range";
+                document.getElementById('modal-success').classList.remove('hidden');
+            } else showServiceError(`Out of ${SERVICE_CENTER.radius_km}km limit.`);
+          },
+          () => showServiceError("GPS access required."), { enableHighAccuracy: true, timeout: 8000 }
         );
       } else showServiceError("Not supported.");
-    } catch (e) { showServiceError("Error."); }
-  }
-
-  function checkServiceArea(lat, lng) {
-    const dist = haversineDistanceKm(lat, lng, SERVICE_CENTER.lat, SERVICE_CENTER.lng);
-    document.getElementById('modal-loading').classList.add('hidden');
-    if (dist <= SERVICE_CENTER.radius_km && SERVICE_CENTER.lat) {
-      document.getElementById('modal-coords').textContent = dist.toFixed(1) + "km range";
-      document.getElementById('modal-success').classList.remove('hidden');
-    } else {
-      document.getElementById('modal-error-message').textContent = `Out of ${SERVICE_CENTER.radius_km}km limit.`;
-      document.getElementById('modal-error').classList.remove('hidden');
-    }
+    } catch (e) { showServiceError("Network Error."); }
   }
 
   function haversineDistanceKm(lat1, lng1, lat2, lng2) {
-    const toRad = d => d * Math.PI / 180;
-    const R = 6371;
+    const toRad = d => d * Math.PI / 180; const R = 6371;
     const dLat = toRad(lat2 - lat1), dLng = toRad(lng2 - lng1);
     const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng/2)**2;
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
