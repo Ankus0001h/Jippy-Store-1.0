@@ -84,12 +84,13 @@
         <div id="products-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6 lg:gap-8">
           {% for p in items %}
           {% set is_oos = p.get('out_of_stock', false) %}
+          {% set has_discount = p.discount_price is defined and p.discount_price < p.price %}
           <div class="product-card group bg-white rounded-[2rem] border border-slate-100 p-3 sm:p-5 transition-all duration-300 shadow-sm hover:shadow-2xl flex flex-col relative h-full" data-name="{{ p.name|lower|e }}">
             <div class="relative overflow-hidden rounded-[1.5rem] bg-slate-50 aspect-square mb-3">
               <img src="{{ p.image }}" class="w-full h-full object-cover transition-transform duration-500 lg:group-hover:scale-110 {% if is_oos %} opacity-60 grayscale {% endif %}">
               {% if is_oos %}
                 <span class="absolute top-3 left-3 px-3 py-1.5 rounded-full bg-rose-600/95 text-white text-[10px] font-black uppercase tracking-wider shadow-lg">Out of stock</span>
-              {% elif p.discount_price and p.discount_price < p.price %}
+              {% elif has_discount %}
                 <div class="absolute top-0 left-0 bg-emerald-600 text-white px-3 py-1.5 rounded-br-2xl rounded-tl-lg shadow-lg">
                     <p class="text-[10px] font-black leading-none">{{ (((p.price - p.discount_price) / p.price) * 100)|round(0)|int }}% OFF</p>
                 </div>
@@ -98,11 +99,16 @@
             <div class="flex flex-col flex-1 space-y-1 px-1">
               <h3 class="text-sm sm:text-base font-bold text-slate-800 leading-tight line-clamp-2 min-h-[2.5rem]">{{ p.name }}</h3>
               <p class="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">{{ p.unit }}</p>
-              <div class="flex items-end gap-2 py-1">
-                <span class="text-[20px] sm:text-[24px] font-black text-slate-900 tracking-tighter">₹{{ p.discount_price or p.price }}</span>
+              
+              <div class="flex items-center gap-2 py-1">
+                <span class="text-[18px] sm:text-[22px] font-black text-slate-900 tracking-tighter">₹{{ p.discount_price if has_discount else p.price }}</span>
+                {% if has_discount %}
+                  <span class="text-[12px] sm:text-[14px] font-medium text-slate-400 line-through">₹{{ p.price }}</span>
+                {% endif %}
               </div>
+
               <div class="mt-auto pt-2">
-                <div class="cart-btn-wrapper" data-slug="{{ p.slug }}" data-name="{{ p.name }}" data-price="{{ p.discount_price or p.price }}" data-image="{{ p.image }}" data-unit="{{ p.unit }}" data-oos="{{ 'true' if is_oos else 'false' }}"></div>
+                <div class="cart-btn-wrapper" data-slug="{{ p.slug }}" data-name="{{ p.name }}" data-price="{{ p.discount_price if has_discount else p.price }}" data-image="{{ p.image }}" data-unit="{{ p.unit }}" data-oos="{{ 'true' if is_oos else 'false' }}"></div>
               </div>
             </div>
           </div>
@@ -117,14 +123,13 @@
   const searchInput = document.getElementById("product-search");
   const suggestBox = document.getElementById("product-suggestions");
 
-  // ✅ CRITICAL FIX: Handle Back Button / Forward Cache
+  // Handle Back Button Cache Reset
   window.addEventListener("pageshow", (event) => {
-      // Agar user back button dabakar aaya hai
       if (event.persisted || (window.performance && window.performance.navigation.type === 2)) {
-          localStorage.removeItem('lastSearch'); // Memory saaf karo
+          localStorage.removeItem('lastSearch');
           if (searchInput) {
-              searchInput.value = ""; // Box saaf karo
-              filterOnScreenItems(""); // Saare items dikhao
+              searchInput.value = "";
+              filterOnScreenItems("");
           }
       }
   });
@@ -132,7 +137,7 @@
   document.addEventListener("DOMContentLoaded", () => {
     updateCartButtons();
     
-    // Typewriter effect...
+    // Typewriter
     const part1 = "Daily ", part2 = "Essentials";
     const target1 = document.getElementById("typewriter-daily");
     const target2 = document.getElementById("typewriter-essentials");
@@ -144,7 +149,6 @@
     }
     setTimeout(typeEffect, 500);
 
-    // Restore search ONLY on fresh forward navigation
     const savedSearch = localStorage.getItem('lastSearch');
     if (savedSearch) {
       searchInput.value = savedSearch;
@@ -209,7 +213,6 @@
     });
   }
 
-  // Cart logic remains same...
   function updateCartButtons() {
     const cart = JSON.parse(localStorage.getItem("cart") || "[]");
     document.querySelectorAll(".cart-btn-wrapper").forEach(wrapper => {
