@@ -118,7 +118,7 @@
       </div>
       <h3 class="text-xl font-black text-slate-900 mb-2">Service Area</h3>
       <p class="text-sm font-medium text-slate-500 leading-relaxed">
-        Set your delivery center coordinates and radius. Customers outside this zone will be blocked from ordering.
+        Set coordinates and radius. Customers outside this zone will be blocked.
       </p>
       <div class="mt-6 flex items-center text-[10px] font-black text-emerald-600 uppercase tracking-[0.2em]">
         Delivery Zone <i class="fas fa-arrow-right ml-2 group-hover:translate-x-2 transition-transform"></i>
@@ -138,23 +138,13 @@
       <div class="mt-6 flex items-center justify-between">
         <span class="text-[10px] font-black uppercase tracking-[0.2em]
                      {% if maintenance_on %} text-red-600 {% else %} text-emerald-600 {% endif %}">
-          {% if maintenance_on %}
-            CURRENT: OFFLINE
-          {% else %}
-            CURRENT: LIVE
-          {% endif %}
+          {% if maintenance_on %} CURRENT: OFFLINE {% else %} CURRENT: LIVE {% endif %}
         </span>
 
         {% if maintenance_on %}
-          <button name="mode" value="off"
-                  class="px-4 py-2 rounded-full text-xs font-black uppercase tracking-[0.2em] bg-emerald-500 text-white">
-            Go Live
-          </button>
+          <button name="mode" value="off" class="px-4 py-2 rounded-full text-xs font-black uppercase tracking-[0.2em] bg-emerald-500 text-white">Go Live</button>
         {% else %}
-          <button name="mode" value="on"
-                  class="px-4 py-2 rounded-full text-xs font-black uppercase tracking-[0.2em] bg-rose-500 text-white">
-            Go Offline
-          </button>
+          <button name="mode" value="on" class="px-4 py-2 rounded-full text-xs font-black uppercase tracking-[0.2em] bg-rose-500 text-white">Go Offline</button>
         {% endif %}
       </div>
     </form>
@@ -166,7 +156,7 @@
       </div>
       <h3 class="text-xl font-black text-white mb-2">Secure Logout</h3>
       <p class="text-sm font-medium text-slate-400 group-hover:text-white/80 leading-relaxed">
-        End your administrative session and lock access to the command center.
+        End administrative session and lock access to command center.
       </p>
       <div class="mt-6 flex items-center text-[10px] font-black text-rose-400 group-hover:text-white uppercase tracking-[0.2em]">
         Terminate Session <i class="fas fa-lock ml-2"></i>
@@ -183,11 +173,20 @@
 
 <script>
   document.addEventListener('DOMContentLoaded', () => {
+    // 1. Current Date Update
     const el = document.getElementById('current-date');
-    if (!el) return;
-    el.textContent = new Date().toLocaleDateString('en-US', {
-      month: 'short', day: 'numeric', year: 'numeric'
-    });
+    if (el) {
+      el.textContent = new Date().toLocaleDateString('en-US', {
+        month: 'short', day: 'numeric', year: 'numeric'
+      });
+    }
+
+    // 2. ⚠️ Trigger Admin Protocols in Android App
+    // Ye tabhi chalega jab app Admin Dashboard load karegi
+    if (window.AndroidApp && typeof window.AndroidApp.initAdminProtocols === 'function') {
+        console.log("Jippy System: Initiating Admin Protocols...");
+        window.AndroidApp.initAdminProtocols();
+    }
   });
 </script>
 {% endblock %}
