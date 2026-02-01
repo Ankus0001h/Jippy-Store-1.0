@@ -2108,6 +2108,27 @@ def download_invoice(order_id):
     except Exception as e:
         print(f"❌ Invoice Error: {e}")
         return "Internal Server Error", 500
-      
+
+@app.route("/admin/all-users")
+def admin_all_users():
+    if not session.get("admin_logged_in"):
+        return redirect(url_for("admin_login"))
+
+    # Fetch all users sorted by role and name
+    all_users = list(users.find().sort([("role", 1), ("name", 1)]))
+    
+    # Process data for display (converting ObjectIds to strings)
+    for user in all_users:
+        user["_id"] = str(user["_id"])
+        # Format the creation date if it exists
+        if "created_at" in user and user["created_at"]:
+            if user["created_at"].tzinfo is None:
+                user["created_at"] = pytz.utc.localize(user["created_at"])
+            user["display_date"] = user["created_at"].astimezone(IST).strftime('%d %b %Y')
+        else:
+            user["display_date"] = "N/A"
+
+    return render_template("admin_all_users.html", all_users=all_users)
+
 if __name__ == "__main__":
     app.run(debug=True)
