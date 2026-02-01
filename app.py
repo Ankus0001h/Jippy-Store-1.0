@@ -2130,5 +2130,32 @@ def admin_all_users():
 
     return render_template("admin_all_users.html", all_users=all_users)
 
+# --- ANDROID NOTIFICATION API ---
+@app.route('/admin/api/check-new-orders')
+def check_new_orders():
+    """
+    Android Service ise har 2 minute mein call karegi.
+    Sirf un orders ko dhundega jo 'pending' hain aur pichle 150 seconds mein aaye hain.
+    """
+    try:
+        # Piche ke 2.5 minutes ka time nikalna (150 seconds buffer ke liye)
+        threshold_time = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(seconds=150)
+
+        # Database query: Status 'pending' aur Time threshold se zyada
+        new_order = orders.find_one({
+            "created_at": {"$gte": threshold_time},
+            "status": "pending"
+        })
+
+        if new_order:
+            # Android Service 'NEW_ORDER' string ka hi wait kar rahi hai
+            return "NEW_ORDER", 200
+        else:
+            return "IDLE", 200
+
+    except Exception as e:
+        print(f"❌ Notification API Error: {e}")
+        return "ERROR", 500
+        
 if __name__ == "__main__":
     app.run(debug=True)
