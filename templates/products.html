@@ -48,14 +48,12 @@
       <a href="{{ url_for('category_page', name=c) }}" 
          class="category-card group bg-white rounded-3xl p-4 border border-slate-100 hover:border-emerald-200 transition-all duration-500 hover:shadow-2xl hover:shadow-emerald-100 flex flex-col items-center" 
          data-name="{{ c|lower }}" onclick="localStorage.removeItem('lastSearch')">
-        
         <div class="w-full aspect-square rounded-2xl bg-slate-50 overflow-hidden mb-4 border border-slate-50">
           {% set img_name = c|lower|replace(' ', '_') %}
           <img src="{{ url_for('static', filename='images/categories/' + img_name + '.jpg') }}" 
                class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
                onerror="this.parentElement.innerHTML='<div class=\'bg-emerald-50 w-full h-full flex items-center justify-center\'><i class=\'fas fa-leaf text-3xl text-emerald-200\'></i></div>'">
         </div>
-        
         <div class="text-center space-y-1">
           <h3 class="font-bold text-slate-800 group-hover:text-emerald-600 transition-colors uppercase text-xs tracking-wide">{{ c }}</h3>
           <p class="text-[10px] font-black text-emerald-600 uppercase tracking-widest opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all">Shop Now <i class="fas fa-chevron-right ml-1"></i></p>
@@ -86,7 +84,7 @@
               <img src="{{ p.image }}" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 {% if is_oos %} opacity-50 grayscale {% endif %}">
               {% if is_oos %}
                 <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-[2px] flex items-center justify-center">
-                  <span class="bg-white text-slate-900 text-[10px] font-black px-3 py-1.5 rounded-full uppercase">Sold Out</span>
+                  <span class="bg-white text-slate-900 text-[10px] font-black px-3 py-1.5 rounded-full uppercase text-center">Sold Out</span>
                 </div>
               {% elif has_discount %}
                 <div class="absolute top-2 left-2 bg-emerald-600 text-white px-2.5 py-1 rounded-lg shadow-lg">
@@ -98,14 +96,16 @@
               <h3 class="text-sm font-bold text-slate-800 line-clamp-2 min-h-[2.5rem] leading-tight mb-1">{{ p.name }}</h3>
               <p class="text-[11px] font-semibold text-slate-400 mb-3">{{ p.unit }}</p>
               <div class="mt-auto">
-                <div class="flex items-center justify-between gap-2 mb-3">
-                  <div class="flex flex-col">
-                    <span class="text-lg font-extrabold text-slate-900">₹{{ p.discount_price if has_discount else p.price }}</span>
-                    {% if has_discount %}
-                    <span class="text-[11px] font-medium text-slate-400 line-through -mt-1">₹{{ p.price }}</span>
-                    {% endif %}
+                <div class="flex flex-col gap-3">
+                  <div class="flex items-center justify-between">
+                    <div class="flex flex-col">
+                      <span class="text-lg font-extrabold text-slate-900 leading-none">₹{{ p.discount_price if has_discount else p.price }}</span>
+                      {% if has_discount %}
+                      <span class="text-[11px] font-medium text-slate-400 line-through">₹{{ p.price }}</span>
+                      {% endif %}
+                    </div>
                   </div>
-                  <div class="cart-btn-wrapper w-24" data-slug="{{ p.slug }}" data-name="{{ p.name }}" data-price="{{ p.discount_price if has_discount else p.price }}" data-image="{{ p.image }}" data-unit="{{ p.unit }}" data-oos="{{ 'true' if is_oos else 'false' }}"></div>
+                  <div class="cart-btn-wrapper w-full" data-slug="{{ p.slug }}" data-name="{{ p.name }}" data-price="{{ p.discount_price if has_discount else p.price }}" data-image="{{ p.image }}" data-unit="{{ p.unit }}" data-oos="{{ 'true' if is_oos else 'false' }}"></div>
                 </div>
               </div>
             </div>
@@ -128,7 +128,7 @@
       const cards = Array.from(categoryGrid.children);
       for (let i = cards.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
-        categoryGrid.appendChild(cards[j]); // Randomly re-append
+        categoryGrid.appendChild(cards[j]);
       }
     }
 
@@ -165,13 +165,10 @@
     });
 
     document.addEventListener("click", (e) => {
-      if (!searchInput.contains(e.target) && !suggestBox.contains(e.target)) suggestBox.classList.add("hidden");
+      if (!searchInput?.contains(e.target) && !suggestBox?.contains(e.target)) suggestBox?.classList.add("hidden");
     });
   });
 
-  // REST OF THE FUNCTIONS (fetchSuggestions, handleSuggestionClick, filterOnScreenItems, updateCartButtons, handleCartClick, changeQty)
-  // ... (All logic kept intact as per previous code)
-  
   async function fetchSuggestions(q) {
     try {
       const resp = await fetch(`/api/suggestions?q=${encodeURIComponent(q)}`);
@@ -219,7 +216,7 @@
     document.querySelectorAll(".cart-btn-wrapper").forEach(wrapper => {
       const { slug, oos } = wrapper.dataset;
       if (oos === "true") {
-        wrapper.innerHTML = `<button disabled class="w-full py-2.5 rounded-xl text-[10px] font-bold bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed uppercase">OOS</button>`;
+        wrapper.innerHTML = `<button disabled class="w-full py-2 rounded-xl text-[10px] font-bold bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed uppercase">OOS</button>`;
         return;
       }
       const item = cart.find(i => i.slug === slug);
@@ -227,10 +224,10 @@
         wrapper.innerHTML = `<button class="w-full py-2.5 rounded-xl text-xs font-black border-2 border-emerald-600 text-emerald-600 hover:bg-emerald-600 hover:text-white transition-all duration-300 uppercase tracking-tight" onclick="handleCartClick(this.parentElement)">Add</button>`;
       } else {
         wrapper.innerHTML = `
-          <div class="flex items-center justify-between bg-emerald-600 p-1 rounded-xl shadow-lg shadow-emerald-100">
-            <button onclick="changeQty('${slug}', -1, event)" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/10 text-white transition-colors"><i class="fas fa-minus text-[10px]"></i></button>
-            <span class="text-white font-black text-sm">${item.qty}</span>
-            <button onclick="changeQty('${slug}', 1, event)" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/10 text-white transition-colors"><i class="fas fa-plus text-[10px]"></i></button>
+          <div class="flex items-center justify-between bg-emerald-600 p-1 rounded-xl shadow-lg shadow-emerald-100 w-full">
+            <button onclick="changeQty('${slug}', -1, event)" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/20 text-white transition-colors active:scale-95"><i class="fas fa-minus text-[10px]"></i></button>
+            <span class="text-white font-black text-sm tabular-nums">${item.qty}</span>
+            <button onclick="changeQty('${slug}', 1, event)" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/20 text-white transition-colors active:scale-95"><i class="fas fa-plus text-[10px]"></i></button>
           </div>`;
       }
     });
@@ -262,13 +259,15 @@
 
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
-  body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #fcfdfd; }
+  body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #fcfdfd; -webkit-tap-highlight-color: transparent; }
   @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
   .animate-marquee { animation: marquee 35s linear infinite; width: max-content; }
   .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
   .product-card:hover { transform: translateY(-4px); }
   input::placeholder { color: #94a3b8; font-weight: 500; }
   #product-suggestions::-webkit-scrollbar { width: 6px; }
   #product-suggestions::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+  .tabular-nums { font-variant-numeric: tabular-nums; }
 </style>
 {% endblock %}
