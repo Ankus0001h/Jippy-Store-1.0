@@ -97,13 +97,11 @@
               <p class="text-[11px] font-semibold text-slate-400 mb-3">{{ p.unit }}</p>
               <div class="mt-auto">
                 <div class="flex flex-col gap-3">
-                  <div class="flex items-center justify-between">
-                    <div class="flex flex-col">
-                      <span class="text-lg font-extrabold text-slate-900 leading-none">₹{{ p.discount_price if has_discount else p.price }}</span>
-                      {% if has_discount %}
-                      <span class="text-[11px] font-medium text-slate-400 line-through">₹{{ p.price }}</span>
-                      {% endif %}
-                    </div>
+                  <div class="flex flex-col">
+                    <span class="text-lg font-extrabold text-slate-900 leading-none">₹{{ p.discount_price if has_discount else p.price }}</span>
+                    {% if has_discount %}
+                    <span class="text-[11px] font-medium text-slate-400 line-through">₹{{ p.price }}</span>
+                    {% endif %}
                   </div>
                   <div class="cart-btn-wrapper w-full" data-slug="{{ p.slug }}" data-name="{{ p.name }}" data-price="{{ p.discount_price if has_discount else p.price }}" data-image="{{ p.image }}" data-unit="{{ p.unit }}" data-oos="{{ 'true' if is_oos else 'false' }}"></div>
                 </div>
@@ -121,8 +119,19 @@
   const searchInput = document.getElementById("product-search");
   const suggestBox = document.getElementById("product-suggestions");
 
+  // Handle Back Button Cache Reset
+  window.addEventListener("pageshow", (event) => {
+      if (event.persisted || (window.performance && window.performance.navigation.type === 2)) {
+          localStorage.removeItem('lastSearch');
+          if (searchInput) {
+              searchInput.value = "";
+              filterOnScreenItems("");
+          }
+      }
+  });
+
   document.addEventListener("DOMContentLoaded", () => {
-    // 1. Shuffle Categories Logic
+    // 1. Shuffle Categories
     const categoryGrid = document.getElementById("category-grid");
     if (categoryGrid) {
       const cards = Array.from(categoryGrid.children);
@@ -146,6 +155,7 @@
     }
     setTimeout(typeEffect, 500);
 
+    // Restore Search
     const savedSearch = localStorage.getItem('lastSearch');
     if (savedSearch) {
       searchInput.value = savedSearch;
@@ -263,7 +273,6 @@
   @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
   .animate-marquee { animation: marquee 35s linear infinite; width: max-content; }
   .no-scrollbar::-webkit-scrollbar { display: none; }
-  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
   .product-card:hover { transform: translateY(-4px); }
   input::placeholder { color: #94a3b8; font-weight: 500; }
   #product-suggestions::-webkit-scrollbar { width: 6px; }
