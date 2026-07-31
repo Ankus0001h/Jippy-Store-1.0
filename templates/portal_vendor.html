@@ -1,0 +1,219 @@
+{# templates/portal_vendor.html #}
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8 font-['Plus_Jakarta_Sans']">
+
+  <div class="lg:col-span-8 space-y-6">
+
+    <div class="flex items-center justify-between px-2">
+      <h3 class="text-[12px] font-black uppercase tracking-[0.2em] text-gray-500">Active Orders</h3>
+      <span class="px-4 py-1.5 rounded-full bg-[#0C831F] text-[10px] font-black text-white uppercase tracking-widest shadow-sm">
+        {{ vendor_orders|length }} Task{{ 's' if vendor_orders|length != 1 }}
+      </span>
+    </div>
+
+    {% if vendor_orders|length == 0 %}
+      <div class="bg-white border-2 border-dashed border-gray-200 rounded-[2rem] p-20 text-center shadow-sm">
+        <div class="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
+          <i class="fas fa-clipboard-check text-2xl text-gray-300"></i>
+        </div>
+        <p class="text-sm font-black text-gray-400 uppercase tracking-widest">No Active Orders</p>
+        <p class="text-[11px] font-bold text-gray-400 mt-2">New orders will appear here automatically.</p>
+      </div>
+    {% else %}
+      <div class="space-y-6">
+        {% for o in vendor_orders %}
+          {% set vstatus = o.vendor_status or 'received' %}
+          <div class="bg-white border border-gray-100 rounded-[2rem] p-6 sm:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all duration-300">
+            
+            <!-- Order Header -->
+            <div class="flex flex-wrap justify-between items-start gap-4 mb-6 pb-6 border-b border-gray-100">
+              <div>
+                <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Order ID</span>
+                <span class="text-lg font-black text-gray-900 font-mono tracking-tighter">
+                  #{{ o.order_id[-12:]|upper }}
+                </span>
+                <p class="text-[11px] font-bold text-gray-500 mt-1 flex items-center gap-1.5">
+                  <i class="far fa-clock text-gray-400"></i>
+                  {{ o.created_at.strftime('%d %b, %I:%M %p') }}
+                </p>
+              </div>
+              <div class="text-right">
+                <span class="text-[9px] font-black text-gray-400 uppercase tracking-widest block mb-1.5">Current Status</span>
+                <span class="px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider {{ 'bg-[#0C831F] text-white shadow-sm' if vstatus == 'delivered' else 'bg-blue-50 text-blue-600 border border-blue-100' }}">
+                  {{ vstatus|replace('_', ' ') }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Delivery Address (Vital for Vendor) -->
+            <div class="mb-6">
+              <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1 mb-2">Delivery Details</p>
+              <div class="p-4 bg-gray-50 rounded-2xl border border-gray-100 flex items-start gap-3">
+                <div class="w-8 h-8 rounded-full bg-white flex items-center justify-center text-[#0C831F] shrink-0 shadow-sm border border-gray-100">
+                  <i class="fas fa-map-marker-alt text-sm"></i>
+                </div>
+                <div>
+                  <p class="text-[13px] font-black text-gray-900 mb-0.5">
+                    {{ o.user_name or 'Customer' }} • 
+                    <a href="tel:{{ o.user_phone }}" class="text-[#0C831F] hover:underline">{{ o.user_phone }}</a>
+                  </p>
+                  <p class="text-[12px] font-medium text-gray-600 leading-snug">
+                    {{ o.address.line1 }}, {{ o.address.line2 }}<br>
+                    {{ o.address.city }} - {{ o.address.pincode }}
+                  </p>
+                  {% if o.address.alt_phone %}
+                  <p class="text-[11px] font-bold text-gray-500 mt-1.5 flex items-center gap-1">
+                    <i class="fas fa-phone-alt text-[9px]"></i> {{ o.address.alt_phone }}
+                  </p>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+
+            <!-- Items Manifest -->
+            <div class="mb-8">
+              <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1 mb-2">Items to Pack</p>
+              <div class="space-y-2">
+              {% for it in o["items"] %}
+                {% if it.vendor_id and (it.vendor_id|string == session['portal_user_id']|string) %}
+                  <div class="flex items-center justify-between p-3 bg-white rounded-xl border border-gray-100 shadow-sm">
+                    <div class="flex items-center gap-3 min-w-0">
+                      <div class="w-10 h-10 rounded-lg bg-gray-50 border border-gray-100 flex items-center justify-center shrink-0">
+                        <i class="fas fa-shopping-bag text-gray-400"></i>
+                      </div>
+                      <div class="min-w-0">
+                        <p class="text-[13px] font-black text-gray-800 truncate">{{ it.name }}</p>
+                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mt-0.5">{{ it.unit or 'PCS' }}</p>
+                      </div>
+                    </div>
+                    <div class="text-right shrink-0 px-4 py-1.5 bg-gray-50 rounded-lg">
+                      <span class="text-[14px] font-black text-gray-900">×{{ it.qty or 1 }}</span>
+                    </div>
+                  </div>
+                {% endif %}
+              {% endfor %}
+              </div>
+            </div>
+
+            <!-- Status Update Workflow -->
+            <div class="pt-6 border-t border-gray-100">
+              <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1 mb-3 text-center">Update Order Status</p>
+              
+              {% set btns = [('received', 'Received', 'fa-inbox'), ('packed', 'Packed', 'fa-box'), ('out_for_delivery', 'Out for Delivery', 'fa-motorcycle'), ('delivered', 'Delivered', 'fa-check-circle')] %}
+              {% set workflow = ['received', 'packed', 'out_for_delivery', 'delivered'] %}
+              {% set current_index = workflow.index(vstatus) if vstatus in workflow else (0 if vstatus == 'processing' or vstatus == 'ready' else -1) %}
+              {% set lock_all = (o.status == 'delivered') %}
+
+              <form method="post" action="{{ url_for('portal_update_vendor_status', order_id=o.order_id) }}" class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {% for val, lab, icon in btns %}
+                  {% set idx = workflow.index(val) %}
+                  {% set is_done = (current_index >= idx) %}
+                  {% set is_current = (vstatus == val) %}
+                  {% set disabled_btn = lock_all or (idx < current_index) %}
+
+                  <button type="submit" name="vendor_status" value="{{ val }}"
+                          class="relative flex flex-col items-center justify-center py-3 px-2 rounded-xl border-2 transition-all active:scale-95
+                                 {% if is_current %} 
+                                   border-[#0C831F] bg-emerald-50 text-[#0C831F] shadow-sm
+                                 {% elif is_done %} 
+                                   border-gray-200 bg-white text-[#0C831F]
+                                 {% else %} 
+                                   border-transparent bg-gray-50 text-gray-400 hover:bg-gray-100 
+                                 {% endif %}
+                                 {% if disabled_btn %} opacity-50 cursor-not-allowed {% endif %}"
+                          {% if disabled_btn %}disabled{% endif %}>
+                    
+                    {% if is_done and not is_current %}
+                      <div class="absolute -top-1 -right-1 w-4 h-4 bg-[#0C831F] text-white rounded-full flex items-center justify-center shadow-sm">
+                        <i class="fas fa-check text-[8px]"></i>
+                      </div>
+                    {% endif %}
+                    
+                    <i class="fas {{ icon }} text-lg mb-1.5 {{ 'animate-pulse' if is_current else '' }}"></i>
+                    <span class="text-[9px] font-black uppercase tracking-wider text-center leading-tight">{{ lab }}</span>
+                  </button>
+                {% endfor %}
+              </form>
+            </div>
+            
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    {# VENDOR HISTORY SECTION #}
+    {% if vendor_orders_history and vendor_orders_history|length > 0 %}
+      <div class="mt-8 bg-white border border-gray-100 rounded-[2rem] p-6 shadow-sm">
+        <h4 class="text-[11px] font-black uppercase tracking-widest text-gray-400 mb-4 px-2">Recently Completed (Today)</h4>
+        <div class="space-y-2 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+          {% for o in vendor_orders_history %}
+            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100">
+              <div class="min-w-0">
+                <p class="font-mono text-[13px] font-black text-gray-800 truncate">#{{ o.order_id[-12:]|upper }}</p>
+                <p class="text-[10px] font-bold text-gray-400 mt-0.5">{{ o.created_at.strftime('%I:%M %p') }}</p>
+              </div>
+              <div class="text-right shrink-0 flex items-center gap-1.5 text-[#0C831F]">
+                <i class="fas fa-check-circle text-xs"></i>
+                <p class="text-[10px] font-black uppercase tracking-wider">Fulfilled</p>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+  </div>
+
+  {# LG:COL-SPAN-4 (OPERATIONAL OVERVIEW) #}
+  <div class="lg:col-span-4">
+    <div class="sticky top-6 space-y-6">
+      <h3 class="text-[12px] font-black uppercase tracking-[0.2em] text-gray-500 px-2">Dashboard</h3>
+
+      <div class="bg-slate-900 rounded-[2.5rem] p-8 shadow-xl relative overflow-hidden text-white">
+        <div class="absolute -bottom-10 -right-10 w-40 h-40 bg-emerald-500/20 rounded-full blur-2xl"></div>
+        <div class="absolute top-10 -left-10 w-32 h-32 bg-blue-500/20 rounded-full blur-2xl"></div>
+
+        {% set ns = namespace(total_qty=0, orders_count=0) %}
+        {% for o in vendor_orders %}
+            {% set ns.orders_count = ns.orders_count + 1 %}
+            {% for it in o["items"] %}
+              {% if it.vendor_id and (it.vendor_id|string == session['portal_user_id']|string) %}
+                {% set ns.total_qty = ns.total_qty + (it.qty or 1) %}
+              {% endif %}
+            {% endfor %}
+        {% endfor %}
+        {% for o in vendor_orders_history %}
+            {% set ns.orders_count = ns.orders_count + 1 %}
+            {% for it in o["items"] %}
+              {% if it.vendor_id and (it.vendor_id|string == session['portal_user_id']|string) %}
+                {% set ns.total_qty = ns.total_qty + (it.qty or 1) %}
+              {% endif %}
+            {% endfor %}
+        {% endfor %}
+
+        <div class="relative z-10">
+          <p class="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1">Total Orders</p>
+          <p class="text-6xl font-black tracking-tighter mb-8">{{ ns.orders_count }}</p>
+
+          <div class="space-y-3">
+            <div class="flex items-center justify-between p-4 bg-white/10 rounded-2xl backdrop-blur-sm border border-white/10">
+              <span class="text-xs font-bold text-gray-300">Total Items Packed</span>
+              <span class="text-xl font-black text-emerald-400">{{ ns.total_qty }}</span>
+            </div>
+            
+            <div class="p-4 bg-emerald-500/10 rounded-2xl border border-emerald-500/20">
+              <p class="text-[10px] font-bold text-emerald-300 leading-relaxed uppercase tracking-widest flex gap-2">
+                <i class="fas fa-bolt mt-0.5"></i>
+                Maintain fast packing times for higher store ratings.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+    </div>
+  </div>
+</div>
+
+<style>
+  .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+  .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+</style>

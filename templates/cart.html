@@ -1,0 +1,352 @@
+{% extends "base.html" %}
+
+{% block navbar %}
+<nav class="sticky top-0 z-[60] bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between font-['Plus_Jakarta_Sans']">
+   <div class="flex items-center gap-3 max-w-[500px] mx-auto w-full">
+     <button onclick="history.back()" class="w-10 h-10 flex items-center justify-center text-gray-700 bg-gray-50 rounded-full hover:bg-gray-100 transition-colors">
+       <i class="fas fa-arrow-left"></i>
+     </button>
+     <div>
+       <h1 class="text-[18px] font-black text-gray-900 leading-tight">Checkout</h1>
+       <p class="text-[11px] font-bold text-[#0C831F] uppercase tracking-widest">Delivery in 10 mins</p>
+     </div>
+   </div>
+</nav>
+{% endblock %}
+
+{% block content %}
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+<div class="bg-[#F5F7FA] min-h-screen font-['Plus_Jakarta_Sans'] pb-[140px] pt-4">
+  <div class="max-w-[500px] mx-auto px-4 space-y-4">
+
+    <!-- Empty State -->
+    <div id="cart-empty" class="hidden bg-white rounded-[24px] p-10 flex flex-col items-center justify-center text-center shadow-sm border border-gray-100 mt-10">
+      <div class="w-24 h-24 bg-gray-50 rounded-full flex items-center justify-center mb-6">
+        <i class="fas fa-shopping-basket text-gray-300 text-4xl"></i>
+      </div>
+      <h3 class="text-[20px] font-black text-gray-900 mb-2">Your cart is empty</h3>
+      <p class="text-[14px] text-gray-500 font-medium mb-8">Add items to start your fast delivery experience.</p>
+      <a href="{{ url_for('index') }}" class="w-full py-4 bg-[#0C831F] hover:bg-[#0A6D19] text-white font-bold rounded-2xl transition-colors shadow-sm text-center">
+        Start Shopping
+      </a>
+    </div>
+
+    <!-- Main Cart Container -->
+    <div id="cart-container" class="space-y-4 hidden">
+      
+      <!-- Delivery Time Hint Card -->
+      <div class="bg-white rounded-[20px] p-4 flex items-start gap-4 shadow-sm border border-gray-100">
+        <div class="w-12 h-12 rounded-full bg-emerald-50 text-[#0C831F] flex items-center justify-center text-xl shrink-0">
+          <i class="fas fa-clock"></i>
+        </div>
+        <div>
+          <h3 class="text-[15px] font-extrabold text-gray-900">Delivery in 10 minutes</h3>
+          <p class="text-[13px] text-gray-500 font-medium leading-snug mt-0.5 line-clamp-1">
+             {{ session.get('user_address', "Location verified at checkout") }}
+          </p>
+        </div>
+      </div>
+
+      <!-- Free Delivery Progress Card -->
+      <div id="delivery-card" class="bg-white border border-gray-100 rounded-[20px] p-5 shadow-sm relative overflow-hidden transition-colors">
+        <div class="relative z-10">
+          <div class="flex justify-between items-center mb-3">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center text-sm">
+                <i class="fas fa-gift"></i>
+              </div>
+              <p id="delivery-hint-main" class="text-[14px] font-extrabold text-gray-900">Calculating...</p>
+            </div>
+            <span class="text-[12px] font-bold text-gray-400">Goal: ₹{{ free_delivery_threshold }}</span>
+          </div>
+          <div class="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
+            <div id="delivery-progress-bar" class="h-full bg-[#0C831F] rounded-full transition-all duration-700 ease-out" style="width: 0%"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cart Items Header -->
+      <div class="flex items-center justify-between pt-2 px-1">
+         <h3 class="text-[15px] font-extrabold text-gray-900">Items Added</h3>
+         <span id="items-count-badge" class="text-[12px] font-bold text-gray-500">0 Items</span>
+      </div>
+
+      <!-- Cart Items List -->
+      <div id="cart-items" class="space-y-3"></div>
+
+      <!-- Bill Details -->
+      <div class="bg-white border border-gray-100 rounded-[24px] p-6 shadow-sm mt-6">
+        <h3 class="text-[15px] font-extrabold text-gray-900 mb-5">Bill Details</h3>
+        
+        <div class="space-y-3.5 text-[13px]">
+          <div class="flex justify-between items-center">
+            <span class="text-gray-500 font-medium flex items-center gap-2"><i class="fas fa-file-invoice text-gray-300"></i> Item Total</span>
+            <span id="cart-items-total" class="font-bold text-gray-900 line-through decoration-gray-400">₹0</span>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-gray-500 font-medium flex items-center gap-2"><i class="fas fa-box text-gray-300"></i> Handling Fee</span>
+            <span class="font-bold text-gray-900">₹{{ handling_fee }}</span>
+          </div>
+          <div id="surge-row" class="flex justify-between items-center {% if surge_charge == 0 %}hidden{% endif %}">
+            <span class="text-rose-500 font-medium flex items-center gap-2"><i class="fas fa-bolt text-rose-400"></i> Surge Charge</span>
+            <span class="font-bold text-rose-600">₹{{ surge_charge }}</span>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-gray-500 font-medium flex items-center gap-2"><i class="fas fa-server text-gray-300"></i> Platform Fee</span>
+            <span class="font-bold text-gray-900">₹{{ platform_fee }}</span>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-gray-500 font-medium flex items-center gap-2"><i class="fas fa-motorcycle text-gray-300"></i> Delivery Fee</span>
+            <div class="flex items-center gap-1.5">
+              <span id="delivery-fee-strike" class="text-[11px] font-bold text-gray-400 line-through hidden"></span>
+              <span id="delivery-fee" class="font-bold text-gray-900">₹0</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="h-px bg-dashed border-b border-dashed border-gray-200 my-5"></div>
+
+        <div class="flex justify-between items-center">
+          <span class="text-[16px] font-extrabold text-gray-900">Grand Total</span>
+          <span id="cart-total" class="text-[18px] font-black text-gray-900">₹0</span>
+        </div>
+      </div>
+      
+    </div>
+  </div>
+</div>
+
+<!-- Fixed Bottom Checkout Bar -->
+<div id="checkout-bar" class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-4 pb-10 sm:pb-6 z-[70] shadow-[0_-10px_20px_rgba(0,0,0,0.03)] hidden transform transition-transform font-['Plus_Jakarta_Sans']">
+  <div class="max-w-[500px] mx-auto flex items-center justify-between gap-4">
+    <div class="flex flex-col pl-2">
+      <span class="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Pay using App</span>
+      <span id="checkout-total-footer" class="text-[20px] font-black text-gray-900">₹0</span>
+    </div>
+    <button id="checkout-btn" onclick="handleCheckoutClick()" class="flex-1 h-14 bg-[#0C831F] hover:bg-[#0A6D19] text-white rounded-[16px] font-bold text-[16px] flex items-center justify-center gap-2 transition-transform active:scale-[0.98] shadow-sm">
+      <span>{% if is_logged_in %}Place Order{% else %}Login to Continue{% endif %}</span>
+      <i class="fas fa-chevron-right text-sm"></i>
+    </button>
+  </div>
+</div>
+
+<!-- Service Area Modal -->
+<div id="service-area-modal" class="fixed inset-0 z-[9999] bg-gray-900/40 backdrop-blur-sm hidden flex items-center justify-center p-6 font-['Plus_Jakarta_Sans']">
+  <div class="bg-white rounded-[24px] max-w-[340px] w-full overflow-hidden shadow-2xl scale-up-animation p-8 text-center">
+      <div id="modal-loading" class="space-y-5">
+          <div class="w-16 h-16 bg-emerald-50 rounded-full mx-auto flex items-center justify-center relative">
+              <div class="absolute inset-0 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+              <i class="fas fa-location-dot text-[#0C831F] text-2xl"></i>
+          </div>
+          <h4 class="text-[18px] font-black text-gray-900">Verifying Location...</h4>
+      </div>
+      <div id="modal-success" class="hidden space-y-6">
+          <div class="w-20 h-20 bg-[#0C831F] text-white rounded-full mx-auto flex items-center justify-center shadow-lg">
+              <i class="fas fa-check text-4xl animate-bounce"></i>
+          </div>
+          <div>
+            <h4 class="text-[20px] font-black text-gray-900">Delivery Available!</h4>
+            <p id="modal-coords" class="text-[12px] font-bold text-[#0C831F] mt-1 bg-emerald-50 inline-block px-3 py-1 rounded-full uppercase"></p>
+          </div>
+          <button onclick="proceedToCheckout()" class="w-full py-4 bg-[#0C831F] text-white font-bold text-[15px] rounded-[14px] shadow-sm active:scale-[0.98] transition-transform">Continue to Payment</button>
+      </div>
+      <div id="modal-error" class="hidden space-y-6">
+          <div class="w-20 h-20 bg-rose-50 text-rose-500 rounded-full mx-auto flex items-center justify-center">
+              <i class="fas fa-times text-4xl"></i>
+          </div>
+          <div>
+            <h4 class="text-[20px] font-black text-gray-900">Out of Service</h4>
+            <p id="modal-error-message" class="text-[13px] font-medium text-gray-500 px-4 mt-2"></p>
+          </div>
+          <div class="flex gap-3">
+              <button onclick="retryLocationCheck()" class="flex-1 py-3.5 bg-gray-100 hover:bg-gray-200 text-gray-900 font-bold rounded-[14px] text-[14px] transition-colors">Retry</button>
+              <button onclick="closeServiceModal()" class="flex-1 py-3.5 border border-gray-200 text-gray-500 hover:bg-gray-50 font-bold rounded-[14px] text-[14px] transition-colors">Close</button>
+          </div>
+      </div>
+  </div>
+</div>
+
+<style>
+  .cart-item-card { transition: all 0.2s ease; }
+  .free-delivery-active { border-color: #10b981 !important; background-color: #F0FDF4 !important; }
+  .scale-up-animation { animation: scaleUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+  @keyframes scaleUp { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+</style>
+
+<script>
+  const IS_LOGGED_IN = "{{ 'true' if is_logged_in else 'false' }}" === "true";
+  const PLATFORM_FEE = Number("{{ platform_fee }}");
+  const HANDLING_FEE = Number("{{ handling_fee }}");
+  const SURGE_CHARGE = Number("{{ surge_charge }}");
+  const FREE_DELIVERY_THRESHOLD = Number("{{ free_delivery_threshold }}");
+  const DELIVERY_FEE = Number("{{ delivery_fee }}");
+  
+  let SERVICE_CENTER = { lat: null, lng: null, radius_km: 0 };
+  let hasFiredConfetti = false;
+
+  function getCart() { try { return JSON.parse(localStorage.getItem("cart") || "[]"); } catch (e) { return []; } }
+  function saveCart(cart) { localStorage.setItem("cart", JSON.stringify(cart)); window.dispatchEvent(new Event('cartUpdated')); }
+
+  function triggerConfetti() {
+    confetti({
+      particleCount: 150,
+      spread: 70,
+      origin: { y: 0.5 },
+      colors: ['#0C831F', '#ffffff', '#34d399']
+    });
+  }
+
+  function renderCartPage() {
+    const cart = getCart();
+    const emptyEl = document.getElementById("cart-empty");
+    const containerEl = document.getElementById("cart-container");
+    const itemsEl = document.getElementById("cart-items");
+    const itemsTotalEl = document.getElementById("cart-items-total");
+    const totalEl = document.getElementById("cart-total");
+    const deliveryFeeEl = document.getElementById("delivery-fee");
+    const dFeeStrike = document.getElementById("delivery-fee-strike");
+    const progressBar = document.getElementById("delivery-progress-bar");
+    const hintMain = document.getElementById("delivery-hint-main");
+    const deliveryCard = document.getElementById("delivery-card");
+    const checkoutBar = document.getElementById("checkout-bar");
+    const footerTotal = document.getElementById("checkout-total-footer");
+    const itemsCountBadge = document.getElementById("items-count-badge");
+
+    if (!cart.length) {
+      emptyEl.classList.remove("hidden"); 
+      containerEl.classList.add("hidden");
+      checkoutBar.classList.add("hidden");
+      itemsCountBadge.innerText = "0 Items"; 
+      return;
+    }
+
+    emptyEl.classList.add("hidden"); 
+    containerEl.classList.remove("hidden"); 
+    checkoutBar.classList.remove("hidden");
+    itemsEl.innerHTML = "";
+    
+    let subtotal = 0;
+    cart.forEach((item) => {
+      subtotal += Number(item.price) * Number(item.qty);
+      const card = document.createElement("div");
+      card.className = "cart-item-card bg-white border border-gray-100 rounded-[20px] p-3 flex items-center gap-3 shadow-sm";
+      card.innerHTML = `
+        <div class="w-16 h-16 bg-[#F5F7FA] rounded-2xl overflow-hidden flex-shrink-0 p-1 flex items-center justify-center border border-gray-50">
+          <img src="${item.image}" class="max-w-full max-h-full object-contain">
+        </div>
+        <div class="flex-1 min-w-0 pr-2">
+          <h4 class="text-[14px] font-bold text-gray-900 leading-tight mb-1 truncate">${item.name}</h4>
+          <p class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">${item.unit || '1 Unit'}</p>
+          <p class="text-[14px] font-black text-gray-900 mt-1">₹${Number(item.price).toFixed(0)}</p>
+        </div>
+        <div class="flex items-center bg-[#0C831F] rounded-[10px] p-1 gap-1 shadow-sm mr-1">
+          <button onclick="changeQty('${item.slug}', -1)" class="w-7 h-7 flex items-center justify-center text-white/80 hover:text-white transition-colors"><i class="fas fa-minus text-[10px]"></i></button>
+          <span class="text-[13px] font-bold text-white min-w-[20px] text-center">${item.qty}</span>
+          <button onclick="changeQty('${item.slug}', 1)" class="w-7 h-7 flex items-center justify-center text-white hover:scale-110 transition-transform"><i class="fas fa-plus text-[10px]"></i></button>
+        </div>`;
+      itemsEl.appendChild(card);
+    });
+
+    const totalQty = cart.reduce((sum, i) => sum + Number(i.qty), 0);
+    itemsCountBadge.innerText = `${totalQty} Item${totalQty !== 1 ? 's' : ''}`;
+    
+    const progress = Math.min((subtotal / FREE_DELIVERY_THRESHOLD) * 100, 100);
+    progressBar.style.width = `${progress}%`;
+
+    let finalPayable = subtotal + PLATFORM_FEE + HANDLING_FEE + SURGE_CHARGE;
+
+    if (subtotal >= FREE_DELIVERY_THRESHOLD) {
+      if (!hasFiredConfetti) {
+        triggerConfetti();
+        hasFiredConfetti = true;
+      }
+      deliveryFeeEl.textContent = "FREE"; 
+      deliveryFeeEl.className = "font-black text-[#0C831F]";
+      dFeeStrike.textContent = `₹${DELIVERY_FEE}`; 
+      dFeeStrike.classList.remove("hidden");
+      hintMain.innerHTML = 'Free delivery unlocked!';
+      deliveryCard.classList.add("free-delivery-active");
+    } else {
+      hasFiredConfetti = false;
+      const remaining = FREE_DELIVERY_THRESHOLD - subtotal;
+      deliveryFeeEl.textContent = `₹${DELIVERY_FEE}`; 
+      deliveryFeeEl.className = "font-bold text-gray-900";
+      dFeeStrike.classList.add("hidden");
+      hintMain.innerHTML = `Add ₹${remaining} for free delivery`;
+      deliveryCard.classList.remove("free-delivery-active");
+      finalPayable += DELIVERY_FEE;
+    }
+
+    itemsTotalEl.textContent = `₹${subtotal.toFixed(0)}`;
+    itemsTotalEl.classList.remove('line-through', 'decoration-gray-400');
+    totalEl.textContent = `₹${finalPayable.toFixed(0)}`;
+    footerTotal.textContent = `₹${finalPayable.toFixed(0)}`;
+  }
+
+  function changeQty(slug, delta) {
+    let cart = getCart(); 
+    const idx = cart.findIndex(i => i.slug === slug);
+    if (idx === -1) return;
+    cart[idx].qty = Number(cart[idx].qty) + delta;
+    if (cart[idx].qty <= 0) cart.splice(idx, 1);
+    saveCart(cart); 
+    renderCartPage();
+  }
+
+  function handleCheckoutClick() {
+    if (!getCart().length) return;
+    if (!IS_LOGGED_IN) { window.location.href = "{{ url_for('login') }}?redirect=cart"; return; }
+    // Skip redundant location check and proceed directly
+    proceedToCheckout();
+  }
+
+  async function validateServiceAreaBeforeCheckout() {
+    document.getElementById('service-area-modal').classList.remove('hidden');
+    document.getElementById('modal-loading').classList.remove('hidden');
+    document.getElementById('modal-success').classList.add('hidden');
+    document.getElementById('modal-error').classList.add('hidden');
+    try {
+      const resp = await fetch('/api/service-config'); 
+      SERVICE_CENTER = await resp.json();
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            const dist = haversineDistanceKm(pos.coords.latitude, pos.coords.longitude, SERVICE_CENTER.lat, SERVICE_CENTER.lng);
+            document.getElementById('modal-loading').classList.add('hidden');
+            if (dist <= SERVICE_CENTER.radius_km) {
+                document.getElementById('modal-coords').textContent = "Within " + dist.toFixed(1) + "km range";
+                document.getElementById('modal-success').classList.remove('hidden');
+            } else showServiceError(`Sorry, you are out of our ${SERVICE_CENTER.radius_km}km delivery limit.`);
+          },
+          () => showServiceError("GPS access required. Please allow location access."), { enableHighAccuracy: true, timeout: 8000 }
+        );
+      } else showServiceError("Location services not supported.");
+    } catch (e) { showServiceError("Network Error. Please try again."); }
+  }
+
+  function haversineDistanceKm(lat1, lng1, lat2, lng2) {
+    const toRad = d => d * Math.PI / 180; 
+    const R = 6371;
+    const dLat = toRad(lat2 - lat1), dLng = toRad(lng2 - lng1);
+    const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng/2)**2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  }
+
+  function showServiceError(msg) {
+    document.getElementById('modal-loading').classList.add('hidden');
+    document.getElementById('modal-error-message').textContent = msg;
+    document.getElementById('modal-error').classList.remove('hidden');
+  }
+
+  function closeServiceModal() { document.getElementById('service-area-modal').classList.add('hidden'); }
+  function retryLocationCheck() { validateServiceAreaBeforeCheckout(); }
+  function proceedToCheckout() { window.location.href = "{{ url_for('address_page') }}"; }
+
+  document.addEventListener("DOMContentLoaded", renderCartPage);
+  window.addEventListener('cartUpdated', renderCartPage);
+</script>
+
+{% block mobile_nav %}{% endblock %}
+{% block footer %}{% endblock %}
+{% endblock %}

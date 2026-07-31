@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block content %}
+
+<!-- Header with Address -->
+<div class="sticky top-0 z-40 bg-white border-b border-slate-100 shadow-[0_4px_20px_-10px_rgba(0,0,0,0.05)] pb-4 pt-6 px-4">
+  <a href="{{ url_for('index') }}" class="inline-flex items-center gap-2 mb-4 text-emerald-600 hover:text-emerald-700 font-bold text-sm transition-colors">
+    <i class="fas fa-arrow-left"></i> Change Location
+  </a>
+  
+  <div class="flex items-start gap-3">
+    <div class="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 mt-1">
+      <i class="fas fa-map-marker-alt"></i>
+    </div>
+    <div>
+      <p class="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Delivering to</p>
+      <h2 class="text-sm font-bold text-slate-900 leading-tight line-clamp-2 pr-4">{{ user_address }}</h2>
+    </div>
+  </div>
+</div>
+
+<div class="min-h-screen bg-slate-50 pt-6 px-4 pb-20">
+  <div class="max-w-6xl mx-auto w-full">
+    <h3 class="text-xl sm:text-2xl font-black text-slate-800 mb-6 tracking-tight">Select your society</h3>
+    
+    {% if societies %}
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+        {% for soc in societies %}
+          <a href="/society/{{ soc.id }}/shops" class="relative block h-40 rounded-[2rem] overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 group">
+            <!-- Background Image -->
+            <img src="{{ soc.image or 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&q=80&w=600' }}" class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" alt="{{ soc.name }}">
+            
+            <!-- Gradient Overlay -->
+            <div class="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/30 to-slate-900/10"></div>
+            
+            <!-- Content -->
+            <div class="absolute inset-0 p-5 flex flex-col justify-end">
+              <div class="flex items-end justify-between">
+                <div>
+                  <h4 class="text-lg font-black text-white leading-tight tracking-wide drop-shadow-md">{{ soc.name }}</h4>
+                  <p class="text-xs font-medium text-slate-200 mt-1 drop-shadow-sm">
+                    {{ soc.city }}
+                    {% if soc.distance is not none %}
+                      <span class="text-emerald-400 font-bold ml-1">• {{ soc.distance }} km away</span>
+                    {% elif soc.pincode %}
+                      <span class="ml-1 text-slate-300">• {{ soc.pincode }}</span>
+                    {% endif %}
+                  </p>
+                </div>
+                <div class="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white shrink-0 group-hover:bg-emerald-500 transition-colors shadow-lg">
+                  <i class="fas fa-chevron-right text-sm"></i>
+                </div>
+              </div>
+            </div>
+          </a>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="bg-white border border-slate-100 rounded-3xl p-8 flex flex-col items-center justify-center text-center shadow-sm">
+        <div class="w-16 h-16 bg-rose-50 rounded-full flex items-center justify-center text-rose-500 mb-4">
+          <i class="fas fa-search-location text-2xl"></i>
+        </div>
+        <h4 class="text-lg font-bold text-slate-800 mb-2">No societies found</h4>
+        <p class="text-sm font-medium text-slate-500 mb-6">We couldn't find any Jippy serviceable societies near this location.</p>
+        <a href="{{ url_for('index') }}" class="bg-slate-900 text-white px-6 py-3 rounded-xl text-sm font-bold shadow-md hover:bg-slate-800 transition-colors">Try Another Location</a>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}

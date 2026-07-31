@@ -1,0 +1,338 @@
+{% extends "base.html" %}
+
+{% block navbar %}
+<nav class="sticky top-0 z-[60] bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between font-['Plus_Jakarta_Sans']">
+   <div class="flex items-center gap-3 max-w-[500px] mx-auto w-full">
+     <button onclick="history.back()" class="w-10 h-10 flex items-center justify-center text-gray-700 bg-gray-50 rounded-full hover:bg-gray-100 transition-colors">
+       <i class="fas fa-arrow-left"></i>
+     </button>
+     <div>
+       <h1 class="text-[18px] font-black text-gray-900 leading-tight">Delivery Address</h1>
+       <p class="text-[11px] font-bold text-[#0C831F] uppercase tracking-widest mt-0.5">Final Step</p>
+     </div>
+   </div>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="bg-[#F5F7FA] min-h-screen pb-[140px] pt-4 font-['Plus_Jakarta_Sans']">
+  <div class="max-w-[500px] mx-auto px-4 space-y-4">
+    
+    <!-- Saved Addresses -->
+    {% if saved_addresses and saved_addresses|length > 0 %}
+    <div class="mb-6 -mx-4 px-4 overflow-x-auto hide-scrollbar">
+      <p class="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-3 ml-1">Saved Addresses</p>
+      <div class="flex gap-3 pb-2 w-max">
+        {% for addr in saved_addresses %}
+          <button type="button"
+                  class="group w-[260px] bg-white border border-gray-100 rounded-[20px] p-4 text-left shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:border-[#0C831F] hover:bg-emerald-50/30 transition-all focus:outline-none"
+                  data-address="{{ addr|tojson|forceescape }}"
+                  onclick='fillAddressFromSaved(JSON.parse(this.dataset.address))'>
+            <div class="flex items-center justify-between mb-2">
+              <div class="flex items-center gap-2">
+                <i class="fas fa-home text-[#0C831F]"></i>
+                <span class="text-[12px] font-black text-gray-900 uppercase tracking-wider">
+                  {{ addr.label or ("Address " ~ loop.index) }}
+                </span>
+              </div>
+            </div>
+            <div class="text-[13px] font-medium text-gray-500 leading-snug line-clamp-2">
+              {{ addr.line1 }}{% if addr.line2 %}, {{ addr.line2 }}{% endif %}
+              <br>{{ addr.city }} - {{ addr.pincode }}
+            </div>
+            {% if addr.alt_phone %}
+            <div class="mt-2 text-[11px] font-bold text-gray-400">
+              <i class="fas fa-phone-alt text-[10px] mr-1"></i> {{ addr.alt_phone }}
+            </div>
+            {% endif %}
+          </button>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <div id="addr-alert" class="hidden mb-4 text-[13px] font-bold px-4 py-3 rounded-2xl bg-rose-50 text-rose-600 border border-rose-100 text-center"></div>
+
+    <form id="address-form" class="space-y-4">
+      
+      <!-- Pinned Location Display -->
+      <div class="bg-white rounded-[24px] p-5 shadow-sm border border-gray-100">
+        <div class="flex items-start gap-4">
+           <div class="w-12 h-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-xl shrink-0">
+             <i class="fas fa-map-pin"></i>
+           </div>
+           <div>
+             <h3 class="text-[14px] font-extrabold text-gray-900 mb-1">Pinned Location</h3>
+             <p class="text-[13px] text-gray-500 font-medium leading-snug line-clamp-2">
+                {{ session.get('user_address', 'Location not set') }}
+             </p>
+           </div>
+        </div>
+        
+        <!-- Hidden inputs for coordinates (populated from session) -->
+        <input type="hidden" id="lat" value="{{ session.get('user_lat', '') }}" />
+        <input type="hidden" id="lng" value="{{ session.get('user_lng', '') }}" />
+        <input type="hidden" id="location-line" value="{{ session.get('user_address', '') }}" />
+      </div>
+
+      <!-- Address Input Fields -->
+      <div class="bg-white rounded-[24px] p-6 shadow-sm border border-gray-100 space-y-4">
+        
+        <div>
+          <label class="block text-[11px] font-bold uppercase tracking-wider text-gray-500 ml-1 mb-1.5">
+            Flat / House No / Floor / Building <span class="text-rose-500">*</span>
+          </label>
+          <input
+            type="text"
+            id="addr-line1"
+            class="w-full px-5 h-14 rounded-2xl bg-gray-50 border border-gray-100 text-[15px] font-bold text-gray-900 focus:outline-none focus:bg-white focus:border-[#0C831F] focus:ring-4 focus:ring-emerald-500/10 transition-all placeholder:text-gray-400 placeholder:font-medium"
+            placeholder="e.g. Flat 101, B Wing"
+            required
+          />
+        </div>
+
+        <div>
+          <label class="block text-[11px] font-bold uppercase tracking-wider text-gray-500 ml-1 mb-1.5">
+            Area / Sector / Locality <span class="text-rose-500">*</span>
+          </label>
+          <input
+            type="text"
+            id="addr-line2"
+            class="w-full px-5 h-14 rounded-2xl bg-gray-50 border border-gray-100 text-[15px] font-bold text-gray-900 focus:outline-none focus:bg-white focus:border-[#0C831F] focus:ring-4 focus:ring-emerald-500/10 transition-all placeholder:text-gray-400 placeholder:font-medium"
+            placeholder="e.g. Bandra West"
+            value="{{ session.get('user_address', '').split(',')[0] if session.get('user_address') else '' }}"
+            required
+          />
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-[11px] font-bold uppercase tracking-wider text-gray-500 ml-1 mb-1.5">
+              City <span class="text-rose-500">*</span>
+            </label>
+            <input
+              type="text"
+              id="addr-city"
+              class="w-full px-5 h-14 rounded-2xl bg-gray-50 border border-gray-100 text-[15px] font-bold text-gray-900 focus:outline-none focus:bg-white focus:border-[#0C831F] focus:ring-4 focus:ring-emerald-500/10 transition-all placeholder:text-gray-400 placeholder:font-medium"
+              placeholder="City"
+              required
+            />
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold uppercase tracking-wider text-gray-500 ml-1 mb-1.5">
+              PIN Code <span class="text-rose-500">*</span>
+            </label>
+            <input
+              type="text"
+              id="addr-pincode"
+              maxlength="6"
+              inputmode="numeric"
+              class="w-full px-5 h-14 rounded-2xl bg-gray-50 border border-gray-100 text-[15px] font-bold text-gray-900 focus:outline-none focus:bg-white focus:border-[#0C831F] focus:ring-4 focus:ring-emerald-500/10 transition-all placeholder:text-gray-400 placeholder:font-medium"
+              placeholder="6 Digits"
+              required
+            />
+          </div>
+        </div>
+      </div>
+
+      <!-- Contact Details -->
+      <div class="bg-white rounded-[24px] p-6 shadow-sm border border-gray-100 grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-[11px] font-bold uppercase tracking-wider text-gray-500 ml-1 mb-1.5">
+            Phone Number <span class="text-rose-500">*</span>
+          </label>
+          <div class="relative">
+            <span class="absolute left-5 top-1/2 -translate-y-1/2 text-[14px] font-bold text-gray-400">+91</span>
+            <input
+              type="tel"
+              id="delivery-phone"
+              class="w-full pl-14 pr-5 h-14 rounded-2xl bg-gray-100 border border-gray-100 text-[15px] font-bold text-gray-500 cursor-not-allowed"
+              value="{{ session.get('user_phone', '') | replace('+91', '') }}"
+              readonly
+            />
+          </div>
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold uppercase tracking-wider text-gray-500 ml-1 mb-1.5">
+            Alternate Phone
+          </label>
+          <div class="relative">
+            <span class="absolute left-5 top-1/2 -translate-y-1/2 text-[14px] font-bold text-gray-400">+91</span>
+            <input
+              type="tel"
+              id="alt-phone"
+              maxlength="10"
+              inputmode="numeric"
+              class="w-full pl-14 pr-5 h-14 rounded-2xl bg-gray-50 border border-gray-100 text-[15px] font-bold text-gray-900 focus:outline-none focus:bg-white focus:border-[#0C831F] focus:ring-4 focus:ring-emerald-500/10 transition-all placeholder:text-gray-400 placeholder:font-medium"
+              placeholder="Optional"
+            />
+          </div>
+        </div>
+      </div>
+
+      <!-- Payment Method -->
+      <div class="bg-white rounded-[24px] p-4 shadow-sm border border-gray-100 flex items-center justify-between">
+        <div class="flex items-center gap-4">
+          <div class="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center text-[#0C831F]">
+            <i class="fas fa-wallet text-xl"></i>
+          </div>
+          <div>
+            <h4 class="text-[15px] font-extrabold text-gray-900 mb-0.5">Pay on Delivery</h4>
+            <p class="text-[12px] font-medium text-gray-500">Cash, UPI, or Card</p>
+          </div>
+        </div>
+        <div class="w-6 h-6 rounded-full bg-[#0C831F] flex items-center justify-center text-white mr-2 shadow-sm border-2 border-white ring-1 ring-emerald-500">
+          <i class="fas fa-check text-[10px]"></i>
+        </div>
+      </div>
+      
+    </form>
+  </div>
+</div>
+
+<!-- Fixed Bottom Checkout Bar -->
+<div id="checkout-bar" class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-4 pb-10 sm:pb-6 z-[70] shadow-[0_-10px_20px_rgba(0,0,0,0.03)] font-['Plus_Jakarta_Sans']">
+  <div class="max-w-[500px] mx-auto">
+    <button
+      type="button"
+      id="place-order-btn"
+      class="w-full h-14 bg-[#0C831F] hover:bg-[#0A6D19] text-white rounded-[16px] font-bold text-[16px] flex items-center justify-center gap-2 transition-transform active:scale-[0.98] shadow-sm disabled:opacity-70 disabled:cursor-not-allowed group"
+    >
+      <span id="place-order-text">Place Order</span>
+      <span id="place-order-spinner" class="hidden">
+        <i class="fas fa-circle-notch fa-spin"></i>
+      </span>
+      <i class="fas fa-chevron-right text-sm group-hover:translate-x-1 transition-transform" id="place-order-icon"></i>
+    </button>
+  </div>
+</div>
+
+<style>
+  .hide-scrollbar::-webkit-scrollbar { display: none; }
+  .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+</style>
+
+<script>
+  // Simple regex to extract city and pincode from address string (India specific)
+  document.addEventListener("DOMContentLoaded", () => {
+      const fullAddr = "{{ session.get('user_address', '') }}";
+      
+      if (fullAddr) {
+          // Extract pincode (6 consecutive digits usually at the end)
+          const pinMatch = fullAddr.match(/\b\d{6}\b/);
+          if (pinMatch) {
+              document.getElementById("addr-pincode").value = pinMatch[0];
+          }
+          
+          // Basic city extraction (often appears before state/pincode, delimited by comma)
+          const parts = fullAddr.split(',').map(p => p.trim());
+          if (parts.length >= 3) {
+             // Heuristic: city is usually the 3rd or 4th part from the end in nominatim addresses
+             // e.g. "..., Bandra, Mumbai, Maharashtra, 400050, India"
+             let cityIndex = parts.length - 4;
+             if (cityIndex >= 0) {
+                 document.getElementById("addr-city").value = parts[cityIndex];
+             }
+          }
+      }
+  });
+
+  const alertBox = document.getElementById("addr-alert");
+  const submitBtn = document.getElementById("place-order-btn");
+  const submitText = document.getElementById("place-order-text");
+  const submitSpinner = document.getElementById("place-order-spinner");
+  const submitIcon = document.getElementById("place-order-icon");
+
+  function showAlert(msg) {
+    if (!alertBox) return;
+    alertBox.textContent = msg;
+    alertBox.classList.remove("hidden");
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function fillAddressFromSaved(addr) {
+    document.getElementById("addr-line1").value   = addr.line1 || "";
+    document.getElementById("addr-line2").value   = addr.line2 || "";
+    document.getElementById("addr-city").value    = addr.city || "";
+    document.getElementById("addr-pincode").value = addr.pincode || "";
+    document.getElementById("alt-phone").value    = (addr.alt_phone || "").replace("+91", "");
+
+    if (alertBox) alertBox.classList.add("hidden");
+  }
+
+  let isSubmitting = false;
+
+  submitBtn.addEventListener("click", async (e) => {
+    e.preventDefault();
+    if (isSubmitting) return;
+
+    // Validate form natively
+    const addressForm = document.getElementById("address-form");
+    if (!addressForm.checkValidity()) {
+        addressForm.reportValidity();
+        return;
+    }
+
+    const address = {
+      phone: document.getElementById("delivery-phone").value,
+      alt_phone: document.getElementById("alt-phone").value ? "+91" + document.getElementById("alt-phone").value : null,
+      line1: document.getElementById("addr-line1").value.trim(),
+      line2: document.getElementById("addr-line2").value.trim(),
+      city: document.getElementById("addr-city").value.trim(),
+      pincode: document.getElementById("addr-pincode").value.trim(),
+      lat: document.getElementById("lat").value || 0,
+      lng: document.getElementById("lng").value || 0,
+      location_text: document.getElementById("location-line").value || ""
+    };
+
+    if (!address.line1 || !address.line2 || !address.city || !address.pincode) {
+      showAlert("Please fill in all mandatory fields (House No, Area, City, PIN Code).");
+      return;
+    }
+
+    const cartData = JSON.parse(localStorage.getItem("cart") || "[]");
+    if (!cartData.length) {
+      showAlert("Your cart is empty!");
+      return;
+    }
+
+    isSubmitting = true;
+    submitBtn.disabled = true;
+    submitText.textContent = "Processing...";
+    submitSpinner.classList.remove("hidden");
+    submitIcon.classList.add("hidden");
+
+    try {
+      const resp = await fetch("/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cart: cartData, address: address })
+      });
+      const resData = await resp.json();
+
+      if (resData.order_id) {
+        localStorage.removeItem("cart");
+        window.dispatchEvent(new Event('cartUpdated'));
+        window.location.href = `/order-confirmation?order_id=${resData.order_id}`;
+      } else {
+        showAlert(resData.error || "Failed to place order.");
+        resetBtn();
+      }
+    } catch (err) {
+      showAlert("Network error. Please try again.");
+      resetBtn();
+    }
+  });
+
+  function resetBtn() {
+    isSubmitting = false;
+    submitBtn.disabled = false;
+    submitText.textContent = "Place Order";
+    submitSpinner.classList.add("hidden");
+    submitIcon.classList.remove("hidden");
+  }
+</script>
+
+{% block mobile_nav %}{% endblock %}
+{% block footer %}{% endblock %}
+{% endblock %}

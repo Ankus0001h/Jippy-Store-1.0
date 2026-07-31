@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>jippy_invoice_{{ order.order_id[-6:] }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
+        
+        :root {
+            --primary-color: #10b981; /* Emerald 500 */
+        }
+
+        body { 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            background-color: #f1f5f9; 
+            -webkit-print-color-adjust: exact;
+        }
+
+        /* A4 Page Formatting */
+        @page {
+            size: A4;
+            margin: 0;
+        }
+
+        @media print {
+            .no-print { display: none !important; }
+            body { background-color: white !important; padding: 0 !important; }
+            .invoice-container { 
+                box-shadow: none !important; 
+                border: none !important; 
+                width: 210mm; /* A4 Width */
+                height: 297mm; /* A4 Height */
+                margin: 0 !important; 
+                border-radius: 0 !important;
+            }
+        }
+
+        .invoice-container {
+            width: 210mm;
+            min-height: 297mm;
+            margin: 0 auto;
+            background: white;
+        }
+
+        .dotted-divider { border-top: 2px dashed #e2e8f0; }
+    </style>
+</head>
+<body class="py-10 px-4">
+
+    <div class="max-w-[210mm] mx-auto mb-6 flex justify-between items-center no-print">
+        <a href="{{ url_for('my_orders') }}" class="flex items-center gap-2 text-slate-500 font-bold hover:text-slate-900 transition-all bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm">
+            <i class="fas fa-arrow-left text-xs"></i> Back
+        </a>
+        <button onclick="window.print()" class="bg-slate-900 text-white px-8 py-3 rounded-2xl font-extrabold text-xs uppercase tracking-widest shadow-2xl hover:bg-emerald-600 transition-all flex items-center gap-3">
+            <i class="fas fa-cloud-arrow-down"></i> Print / Save PDF
+        </button>
+    </div>
+
+    <div class="invoice-container shadow-2xl overflow-hidden invoice-shell relative flex flex-col">
+        
+        <div class="p-12 border-b-8 border-emerald-500">
+            <div class="flex justify-between items-start">
+                <div>
+                    <h1 class="text-5xl font-[800] tracking-tighter text-slate-900 mb-2">jippy<span class="text-emerald-500">.</span>store</h1>
+                    <div class="flex items-center gap-3">
+                        <span class="bg-slate-100 text-slate-600 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border border-slate-200">Official Receipt</span>
+                        <p class="text-[11px] font-bold text-slate-400">Order #{{ order.order_id|upper }}</p>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <h2 class="text-4xl font-black uppercase text-slate-200 leading-none mb-4">INVOICE</h2>
+                    <div class="space-y-1">
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Date of Issue</p>
+                        <p class="text-sm font-extrabold text-slate-900">{{ order.created_at.strftime('%d %B, %Y') if order.created_at else '' }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="p-12 flex-grow">
+            <div class="grid grid-cols-2 gap-20 mb-16">
+                <div>
+                    <h4 class="text-[10px] font-black text-emerald-500 uppercase tracking-[0.2em] mb-4 border-b border-emerald-100 pb-2">Billed To</h4>
+                    <p class="text-xl font-extrabold text-slate-900 mb-2">{{ order.user_name|default('Valued Customer') }}</p>
+                    <div class="text-sm font-bold text-slate-500 leading-relaxed">
+                        {% if order.address %}
+                            {{ order.address.line1 }},<br>
+                            {{ order.address.city }} - {{ order.address.pincode }}<br>
+                            <span class="text-slate-400 font-medium">Mob: {{ order.user_phone }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div>
+                    <h4 class="text-[10px] font-black text-emerald-500 uppercase tracking-[0.2em] mb-4 border-b border-emerald-100 pb-2">Shipped From</h4>
+                    <p class="text-xl font-extrabold text-slate-900 mb-1 text-right">jippy.store</p>
+                    <p class="text-sm font-bold text-slate-500 text-right">Central Warehouse Hub</p>
+                    <p class="text-[11px] font-black text-emerald-600 text-right mt-2 uppercase">Lightning Fast Logistics</p>
+                </div>
+            </div>
+
+            <div class="mb-12">
+                <table class="w-full">
+                    <thead>
+                        <tr class="bg-slate-900 text-white">
+                            <th class="py-4 px-6 text-left text-[10px] font-black uppercase tracking-widest rounded-l-xl">Item Description</th>
+                            <th class="py-4 px-4 text-center text-[10px] font-black uppercase tracking-widest">Qty</th>
+                            <th class="py-4 px-4 text-center text-[10px] font-black uppercase tracking-widest">Unit Price</th>
+                            <th class="py-4 px-6 text-right text-[10px] font-black uppercase tracking-widest rounded-r-xl">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        {% for item in order['items'] %}
+                        <tr>
+                            <td class="py-6 px-6">
+                                <span class="text-sm font-extrabold text-slate-900 block">{{ item.name }}</span>
+                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">{{ item.unit }}</span>
+                            </td>
+                            <td class="py-6 px-4 text-center">
+                                <span class="text-sm font-bold text-slate-700">{{ item.qty }}</span>
+                            </td>
+                            <td class="py-6 px-4 text-center text-sm font-bold text-slate-500">
+                                ₹{{ "%.2f"|format(item.price|default(0)) }}
+                            </td>
+                            <td class="py-6 px-6 text-right text-sm font-black text-slate-900">
+                                ₹{{ "%.2f"|format((item.price|default(0)) * (item.qty|default(1))) }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="flex justify-end mt-12">
+                <div class="w-80 space-y-3">
+                    <div class="flex justify-between text-xs font-bold text-slate-500">
+                        <span>Items Subtotal</span>
+                        <span class="text-slate-900 font-black">₹{{ "%.2f"|format(order.subtotal|default(0)) }}</span>
+                    </div>
+                    
+                    <div class="flex justify-between text-xs font-bold text-slate-500">
+                        <span>Delivery Fee</span>
+                        <span class="{{ 'text-emerald-500' if order.delivery_fee == 0 else 'text-slate-900' }} font-black">
+                            {{ 'FREE' if order.delivery_fee == 0 else '₹' ~ "%.2f"|format(order.delivery_fee|default(0)) }}
+                        </span>
+                    </div>
+
+                    <div class="flex justify-between text-xs font-bold text-slate-500">
+                        <span>Handling Fee</span>
+                        <span class="text-slate-900 font-black">₹{{ "%.2f"|format(order.handling_fee|default(0)) }}</span>
+                    </div>
+
+                    {% if order.surge_charge and order.surge_charge > 0 %}
+                    <div class="flex justify-between text-xs font-bold text-rose-500 bg-rose-50 px-2 py-1 rounded-lg">
+                        <span class="flex items-center gap-1"><i class="fas fa-bolt text-[10px]"></i> Surge Charge</span>
+                        <span class="font-black">₹{{ "%.2f"|format(order.surge_charge) }}</span>
+                    </div>
+                    {% endif %}
+
+                    <div class="flex justify-between text-xs font-bold text-slate-500">
+                        <span>Platform Fee</span>
+                        <span class="text-slate-900 font-black">₹{{ "%.2f"|format(order.platform_fee|default(0)) }}</span>
+                    </div>
+                    
+                    <div class="dotted-divider pt-6 mt-4 flex justify-between items-center">
+                        <span class="text-sm font-black text-slate-900 uppercase tracking-widest">Total Payable</span>
+                        <span class="text-3xl font-[800] text-emerald-500 tracking-tighter">₹{{ "%.2f"|format(order.total|default(0)) }}</span>
+                    </div>
+
+                    <div class="pt-6">
+                        <div class="bg-slate-900 text-white rounded-2xl p-4 text-center shadow-lg">
+                            <p class="text-[10px] font-black uppercase tracking-widest">Payment Status</p>
+                            <p class="text-sm font-extrabold text-emerald-400 mt-1">Cash on Delivery</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="p-12 bg-slate-50 mt-auto grid grid-cols-2 gap-8 items-center border-t border-slate-100">
+            <div>
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Important Note</p>
+                <p class="text-[9px] text-slate-400 leading-tight">This is a computer-generated invoice. For any queries regarding this order, please contact our support team at jippy.store/support.</p>
+            </div>
+            <div class="text-right">
+                <p class="text-lg font-black text-slate-900">jippy.store</p>
+                <p class="text-[10px] font-bold text-slate-400">Thank you for being awesome!</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Set dynamic title for PDF saving
+        const orderId = "{{ order.order_id[-6:] }}";
+        document.title = `Jippy_Invoice_${orderId}`;
+    </script>
+</body>
+</html>

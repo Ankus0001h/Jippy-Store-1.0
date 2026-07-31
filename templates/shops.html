@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block content %}
+<!-- Top Header Minimal -->
+<div class="sticky top-0 z-50 bg-white/90 backdrop-blur-xl border-b border-slate-100 shadow-sm flex items-center px-4 py-3 gap-3">
+  <a href="{{ url_for('societies_page') }}" class="w-8 h-8 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center hover:bg-slate-200 transition-colors">
+    <i class="fas fa-arrow-left text-sm"></i>
+  </a>
+  <div>
+    <h1 class="font-black text-sm text-slate-900 tracking-tight leading-tight">Shops in {{ society.name }}</h1>
+    <p class="text-[10px] font-medium text-slate-400">{{ society.city }}</p>
+  </div>
+</div>
+
+<div class="min-h-[85vh] bg-slate-50 p-4 animate-fade-in pb-20">
+  <div class="max-w-6xl mx-auto w-full space-y-6">
+    
+    <div class="mb-6">
+      <h2 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Available Stores</h2>
+      <p class="text-xs sm:text-sm font-medium text-slate-500">Pick a store to start shopping</p>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+      {% for shop in shops %}
+      <a href="{{ url_for('shop_home', shop_id=shop._id) }}" class="group relative bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden hover:shadow-md transition-all active:scale-[0.98]">
+        <div class="aspect-[16/9] w-full bg-slate-100 relative overflow-hidden">
+          {% if shop.shop_image %}
+            <img src="{{ shop.shop_image }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="{{ shop.shop_name or shop.name }}">
+          {% else %}
+            <div class="w-full h-full flex items-center justify-center text-slate-300">
+              <i class="fas fa-store text-4xl"></i>
+            </div>
+          {% endif %}
+          <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent"></div>
+          
+          <div class="absolute bottom-3 left-4 right-4">
+            <h3 class="text-white font-black text-lg tracking-tight leading-tight drop-shadow-md">{{ shop.shop_name or shop.name }}</h3>
+            <p class="text-white/80 text-[10px] font-bold uppercase tracking-widest">{{ shop.vendor_type or 'General' }}</p>
+          </div>
+        </div>
+        <div class="p-4 flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <div class="flex items-center justify-center w-6 h-6 rounded-full bg-emerald-100 text-emerald-600">
+              <i class="fas fa-bolt text-[10px]"></i>
+            </div>
+            <span class="text-[11px] font-bold text-slate-700">10 MIN DELIVERY</span>
+          </div>
+          <div class="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-pink-100 group-hover:text-pink-500 transition-colors">
+            <i class="fas fa-chevron-right text-[10px]"></i>
+          </div>
+        </div>
+      </a>
+      {% else %}
+      <div class="col-span-full py-12 text-center">
+        <div class="w-16 h-16 rounded-full bg-rose-50 text-rose-300 flex items-center justify-center mx-auto mb-4">
+          <i class="fas fa-store-slash text-2xl"></i>
+        </div>
+        <h3 class="text-base font-black text-slate-800 mb-1">No shops available</h3>
+        <p class="text-xs font-medium text-slate-500">There are no Jippy stores serving this society currently.</p>
+      </div>
+      {% endfor %}
+    </div>
+
+  </div>
+</div>
+
+<style>
+  .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+</style>
+{% endblock %}

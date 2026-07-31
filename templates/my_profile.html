@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-[500px] mx-auto px-4 py-8 space-y-6 font-['Plus_Jakarta_Sans'] pb-24">
+
+  <!-- Header -->
+  <div class="flex items-center justify-between pb-2">
+     <h1 class="text-[24px] font-extrabold text-gray-900 tracking-tight">Profile</h1>
+  </div>
+
+  <!-- User Info Card -->
+  <div class="bg-white rounded-[24px] p-6 flex items-center gap-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-gray-100">
+    <div class="w-20 h-20 rounded-full bg-emerald-100 flex items-center justify-center border-4 border-emerald-50">
+      <span class="text-3xl font-black text-[#0C831F] uppercase">{{ (user.name or "G")[:1] }}</span>
+    </div>
+    <div class="flex-1">
+      <h2 class="text-[20px] font-black text-gray-900 leading-tight">{{ user.name or "Guest User" }}</h2>
+      <p class="text-[14px] font-semibold text-gray-500 mt-1">{{ user.phone or session.get("user_phone") or "No phone number" }}</p>
+      {% if user.email %}
+      <p class="text-[12px] font-medium text-gray-400 mt-0.5 truncate">{{ user.email }}</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Action List (Settings Style) -->
+  <div class="bg-white rounded-[24px] shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-gray-100 overflow-hidden">
+    
+    <!-- Orders -->
+    <a href="{{ url_for('my_orders') }}" class="flex items-center justify-between px-6 py-5 hover:bg-gray-50 transition-colors border-b border-gray-50 group">
+      <div class="flex items-center gap-4">
+        <div class="w-12 h-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-lg group-hover:scale-110 transition-transform">
+          <i class="fas fa-shopping-bag"></i>
+        </div>
+        <div>
+          <h3 class="text-[16px] font-extrabold text-gray-900">Your Orders</h3>
+          <p class="text-[13px] font-medium text-gray-500 mt-0.5">Past orders and tracking</p>
+        </div>
+      </div>
+      <i class="fas fa-chevron-right text-sm text-gray-300 group-hover:text-gray-400"></i>
+    </a>
+
+    <!-- Addresses Section -->
+    <div class="px-6 py-5 border-b border-gray-50">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-4">
+          <div class="w-12 h-12 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center text-lg">
+            <i class="fas fa-map-marker-alt"></i>
+          </div>
+          <div>
+            <h3 class="text-[16px] font-extrabold text-gray-900">Saved Addresses</h3>
+            <p class="text-[13px] font-medium text-gray-500 mt-0.5">Where we deliver to you</p>
+          </div>
+        </div>
+      </div>
+      
+      <div class="mt-3 space-y-3 pl-16">
+        {% if not saved_addresses %}
+          <div class="bg-gray-50 rounded-2xl p-4 flex flex-col items-center justify-center text-center border border-dashed border-gray-200">
+            <i class="fas fa-location-dot text-gray-300 text-xl mb-2"></i>
+            <p class="text-[12px] font-bold text-gray-500">No addresses saved</p>
+            <p class="text-[11px] text-gray-400 font-medium">Add one during checkout</p>
+          </div>
+        {% else %}
+          {% for addr in saved_addresses %}
+            <div class="bg-gray-50 hover:bg-emerald-50 rounded-2xl p-4 transition-colors group relative overflow-hidden border border-gray-100 hover:border-emerald-100">
+              <div class="flex items-start gap-3">
+                <i class="fas fa-home text-[#0C831F] mt-1"></i>
+                <div>
+                  <div class="flex items-center gap-2">
+                    <p class="text-[14px] font-bold text-gray-900">{{ addr.label or ("Location " ~ loop.index) }}</p>
+                    {% if loop.first %}
+                      <span class="px-2 py-0.5 bg-emerald-100 text-[#0C831F] text-[9px] font-black uppercase rounded-full tracking-wider">Default</span>
+                    {% endif %}
+                  </div>
+                  <p class="text-[13px] text-gray-500 font-medium leading-relaxed mt-1 line-clamp-2 pr-6">
+                    {{ addr.line1 }}{% if addr.line2 %}, {{ addr.line2 }}{% endif %}<br>
+                    {{ addr.city }} - {{ addr.pincode }}
+                  </p>
+                </div>
+              </div>
+              {% if addr.coords and addr.coords.lat and addr.coords.lng %}
+                <a href="https://www.google.com/maps/search/?api=1&query={{ addr.coords.lat }},{{ addr.coords.lng }}" target="_blank" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-white shadow-sm border border-gray-100 flex items-center justify-center text-gray-400 hover:text-[#0C831F] hover:scale-110 transition-all">
+                  <i class="fas fa-external-link-alt text-xs"></i>
+                </a>
+              {% endif %}
+            </div>
+          {% endfor %}
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- About & Support -->
+    <a href="#" class="flex items-center justify-between px-6 py-5 hover:bg-gray-50 transition-colors border-b border-gray-50 group">
+      <div class="flex items-center gap-4">
+        <div class="w-12 h-12 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center text-lg group-hover:scale-110 transition-transform">
+          <i class="fas fa-headset"></i>
+        </div>
+        <div>
+          <h3 class="text-[16px] font-extrabold text-gray-900">Customer Support</h3>
+          <p class="text-[13px] font-medium text-gray-500 mt-0.5">Help & FAQs</p>
+        </div>
+      </div>
+      <i class="fas fa-chevron-right text-sm text-gray-300 group-hover:text-gray-400"></i>
+    </a>
+
+    <!-- Logout -->
+    <a href="{{ url_for('logout') }}" class="flex items-center justify-between px-6 py-5 hover:bg-red-50 transition-colors group cursor-pointer">
+      <div class="flex items-center gap-4">
+        <div class="w-12 h-12 rounded-full bg-red-50 text-red-500 flex items-center justify-center text-lg group-hover:scale-110 group-hover:bg-red-100 transition-all">
+          <i class="fas fa-sign-out-alt"></i>
+        </div>
+        <div>
+          <h3 class="text-[16px] font-extrabold text-red-600 group-hover:text-red-700 transition-colors">Log Out</h3>
+        </div>
+      </div>
+    </a>
+    
+  </div>
+
+  <div class="text-center pt-4 pb-8">
+    <p class="text-[11px] font-bold text-gray-400 uppercase tracking-[0.2em]">Jippy Store v1.0.0</p>
+  </div>
+
+</div>
+{% endblock %}

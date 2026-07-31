@@ -1,0 +1,97 @@
+{# templates/portal_dashboard.html #}
+{% extends "base_portal.html" %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-2 sm:px-6 py-6 sm:py-10 space-y-8 animate-fade-in">
+
+  <div class="relative group bg-white p-6 sm:p-10 rounded-[2.5rem] sm:rounded-[3.5rem] border border-slate-100 shadow-2xl shadow-slate-200/60 overflow-hidden transition-all duration-500">
+    
+    <div class="absolute top-0 right-0 w-80 h-80 bg-gradient-to-br from-purple-100/40 to-indigo-50/20 rounded-full -mr-32 -mt-32 blur-3xl group-hover:scale-110 transition-transform duration-700"></div>
+    <div class="absolute bottom-0 left-0 w-40 h-40 bg-emerald-50/30 rounded-full -ml-20 -mb-20 blur-2xl"></div>
+
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-8 relative z-10">
+      
+      <div class="flex items-center gap-5 sm:gap-7">
+        <div class="relative">
+            <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-[1.75rem] bg-slate-900 flex items-center justify-center text-purple-400 shadow-2xl rotate-3 group-hover:rotate-0 transition-transform duration-500">
+                <i class="fas fa-bolt-lightning text-2xl sm:text-3xl"></i>
+            </div>
+            <div class="absolute -bottom-1 -right-1 w-6 h-6 bg-emerald-500 border-4 border-white rounded-full"></div>
+        </div>
+        
+        <div class="space-y-1">
+          <p class="text-[10px] sm:text-[11px] font-black tracking-[0.3em] text-purple-600 uppercase flex items-center gap-2">
+            <span class="inline-block w-4 h-[2px] bg-purple-200"></span>
+            Authorized {{ role }} Node
+          </p>
+          <h2 class="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight leading-none">
+            {{ user_name }}
+          </h2>
+          <p class="text-slate-400 text-xs sm:text-sm font-bold">Terminal ID: <span class="text-slate-900 font-mono">FK-{{ role[:2]|upper }}-2026</span></p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3 sm:gap-4">
+        <button type="button"
+                onclick="window.location.reload()"
+                class="flex items-center gap-3 px-6 py-3.5 rounded-2xl bg-slate-900 text-white hover:bg-emerald-600 shadow-xl shadow-slate-200 transition-all active:scale-95 group">
+          <i class="fas fa-sync-alt text-sm group-hover:rotate-180 transition-transform duration-500"></i>
+          <span class="text-[11px] font-black uppercase tracking-widest">Refresh System</span>
+        </button>
+
+        <div class="hidden lg:flex flex-col items-end">
+            <div class="flex items-center gap-2 px-4 py-2 bg-emerald-50 border border-emerald-100 rounded-full">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span class="text-[9px] font-black text-emerald-700 uppercase tracking-widest">Gateway Live</span>
+            </div>
+            <p class="text-[9px] font-bold text-slate-400 mt-1 mr-2">Secure 256-bit Encrypted</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="px-1 sm:px-0">
+    {# Role wise panel include #}
+    {% if role == 'vendor' %}
+      <div class="space-y-6">
+          {% include "portal_vendor.html" %}
+      </div>
+    {% elif role == 'delivery' %}
+      <div class="space-y-6">
+          {% include "portal_delivery.html" %}
+      </div>
+    {% endif %}
+  </div>
+
+</div>
+
+<style>
+  /* Base refinements */
+  body { background-color: #f8fafc !important; }
+  
+  /* Modern Fade/Scale Animation */
+  .animate-fade-in { 
+    animation: fadeInScale 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards; 
+  }
+  
+  @keyframes fadeInScale {
+    from { opacity: 0; transform: translateY(30px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  /* Interactive Card Shadows */
+  .group:hover {
+    box-shadow: 0 40px 60px -15px rgba(15, 23, 42, 0.08);
+  }
+
+  /* Glass Scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: #f1f5f9; }
+  ::-webkit-scrollbar-thumb { 
+    background: #cbd5e1; 
+    border-radius: 10px; 
+    border: 2px solid #f1f5f9;
+  }
+  ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+</style>
+{% endblock %}

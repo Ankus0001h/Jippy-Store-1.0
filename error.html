@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Jippy | Ultra-Fast Freshness</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <style>
+    :root { --glass-bg: rgba(255, 255, 255, 0.7); }
+    body { font-family: 'Plus Jakarta Sans', sans-serif; -webkit-tap-highlight-color: transparent; scroll-behavior: smooth; }
+    
+    .glass-nav { 
+      background: var(--glass-bg); 
+      backdrop-filter: blur(20px) saturate(180%); 
+      -webkit-backdrop-filter: blur(20px) saturate(180%); 
+    }
+    
+    .premium-shadow { box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.08); }
+    
+    .btn-premium { 
+      background: linear-gradient(135deg, #064e3b 0%, #059669 100%); 
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); 
+    }
+    .btn-premium:hover { transform: translateY(-2px); box-shadow: 0 10px 20px -5px rgba(5, 150, 105, 0.4); }
+
+    .page-fade-in { animation: fadeIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+
+    .bg-blob { 
+      position: absolute; width: 500px; height: 500px; 
+      border-radius: 50%; z-index: -1; filter: blur(80px); 
+      animation: float 25s infinite alternate ease-in-out; 
+    }
+    @keyframes float { 
+      0% { transform: translate(-5%, -5%) scale(1); opacity: 0.6; } 
+      100% { transform: translate(15%, 15%) scale(1.1); opacity: 0.3; } 
+    }
+
+    /* Modern Scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
+  </style>
+</head>
+
+<body class="relative min-h-screen flex flex-col text-slate-900 bg-[#f8fafc] selection:bg-emerald-100 selection:text-emerald-900 overflow-x-hidden">
+
+  <div class="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
+    <div class="bg-blob top-[-150px] left-[-150px]" style="background: radial-gradient(circle, rgba(16, 185, 129, 0.15) 0%, transparent 70%);"></div>
+    <div class="bg-blob bottom-[-150px] right-[-150px]" style="animation-delay: -7s; background: radial-gradient(circle, rgba(56, 189, 248, 0.12) 0%, transparent 70%);"></div>
+  </div>
+
+  <nav class="sticky top-0 z-[60] glass-nav border-b border-white/40 shadow-[0_4px_30px_rgba(0,0,0,0.03)]">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16 sm:h-20">
+        <a href="/" class="group flex items-center gap-3 shrink-0 transition-all active:scale-95">
+          <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-[1.25rem] overflow-hidden bg-slate-900 shadow-2xl group-hover:rotate-[10deg] transition-all duration-500">
+            <img src="/static/logo.jpeg" alt="Company logo" class="w-full h-full object-cover">
+          </div>
+          <div class="flex flex-col">
+            <span class="font-extrabold text-xl tracking-tight text-slate-900 leading-none">Jippy</span>
+            <span class="text-[10px] font-black text-emerald-600 uppercase tracking-[0.25em] mt-1">Express</span>
+          </div>
+        </a>
+
+        <div class="flex items-center gap-3 sm:gap-6">
+          <a href="/cart" class="group relative flex items-center gap-3 bg-white/60 hover:bg-white border border-slate-200/60 rounded-2xl px-5 py-2.5 transition-all duration-300 hover:shadow-xl hover:border-emerald-200">
+            <div class="relative">
+              <i class="fas fa-shopping-cart text-slate-700 group-hover:text-emerald-600 transition-colors text-lg"></i>
+              <span id="cart-count" class="absolute -top-4 -right-4 bg-slate-900 text-emerald-400 text-[10px] font-black px-2 py-0.5 rounded-full border-2 border-white scale-0 transition-transform duration-500">0</span>
+            </div>
+            <span class="hidden md:block text-xs font-black text-slate-800 uppercase tracking-widest">Basket</span>
+          </a>
+
+          
+            <a href="/login" class="btn-premium text-white text-[11px] font-black px-8 py-3.5 rounded-2xl shadow-xl flex items-center gap-3 tracking-[0.1em] uppercase">
+              <span>Login</span>
+              <i class="fas fa-arrow-right-long text-[10px] opacity-70"></i>
+            </a>
+          
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <main class="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 sm:py-10 mb-28 lg:mb-0 page-fade-in">
+    
+<div class="min-h-[60vh] flex items-center justify-center px-4 py-12">
+    <div class="max-w-md w-full text-center space-y-6 animate-fade-in">
+        
+        <div class="relative inline-block">
+            <div class="text-[100px] sm:text-[130px] font-black text-slate-100 leading-none select-none">
+                500
+            </div>
+            <div class="absolute inset-0 flex items-center justify-center">
+                <div class="w-16 h-16 bg-white rounded-2xl shadow-xl flex items-center justify-center text-rose-500 text-2xl border border-slate-50">
+                    <i class="fas fa-exclamation-circle animate-pulse"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="space-y-2">
+            <h1 class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                System Glitch
+            </h1>
+            <p class="text-slate-500 text-sm font-medium leading-relaxed max-w-[280px] mx-auto">
+                Something went wrong on our end. We&#39;re fixing it!
+            </p>
+        </div>
+
+        <div class="pt-6 flex flex-col gap-3">
+            <a href="/" 
+               class="w-full py-4 bg-slate-900 text-white font-black rounded-2xl shadow-lg hover:bg-emerald-600 transition-all active:scale-95 uppercase text-[10px] tracking-[0.2em]">
+                Back to Home
+            </a>
+            <a href="javascript:location.reload()" 
+               class="w-full py-4 bg-white border-2 border-slate-100 text-slate-400 font-black rounded-2xl hover:border-emerald-500 hover:text-emerald-600 transition-all text-[10px] tracking-[0.2em]">
+                Try Refreshing
+            </a>
+        </div>
+    </div>
+</div>
+
+<style>
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    .animate-fade-in { animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+</style>
+
+  </main>
+
+  <div class="lg:hidden fixed bottom-6 left-0 right-0 z-50 flex justify-center pointer-events-none">
+    <div class="pointer-events-auto w-[92%] max-w-sm mx-auto bg-slate-900/95 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] px-6 py-3 flex justify-between items-center shadow-[0_20px_50px_rgba(0,0,0,0.3)]">
+      <a href="/" class="mobile-nav-item flex flex-col items-center gap-1">
+        <i class="fas fa-home-alt text-xl text-slate-400"></i>
+        <span class="text-[8px] font-black uppercase tracking-widest text-slate-500">Home</span>
+      </a>
+      <a href="/cart" class="mobile-nav-item relative flex flex-col items-center gap-1">
+        <i class="fas fa-shopping-bag text-xl text-slate-400"></i>
+        <span class="text-[8px] font-black uppercase tracking-widest text-slate-500">Cart</span>
+        <span class="mobile-badge absolute -top-1.5 -right-2 bg-emerald-500 text-slate-900 text-[9px] font-black px-1.5 py-0.5 rounded-full border-2 border-slate-900 scale-0 transition-transform duration-300">0</span>
+      </a>
+      <a href="/my-orders" class="mobile-nav-item flex flex-col items-center gap-1">
+        <i class="fas fa-history text-xl text-slate-400"></i>
+        <span class="text-[8px] font-black uppercase tracking-widest text-slate-500">Orders</span>
+      </a>
+      <a href="/my-profile" class="mobile-nav-item flex flex-col items-center gap-1">
+        <div class="w-7 h-7 rounded-xl bg-slate-800 text-slate-400 flex items-center justify-center text-[11px] font-black border border-white/5">
+          
+            <i class="fas fa-user text-xs"></i>
+          
+        </div>
+        <span class="text-[8px] font-black uppercase tracking-widest text-slate-500">Profile</span>
+      </a>
+    </div>
+  </div>
+
+  <footer class="w-full bg-transparent py-8 mb-24 lg:mb-4">
+    <div class="max-w-7xl mx-auto px-6 flex flex-col items-center gap-4">
+      <div class="flex items-center gap-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
+        <a href="/admin/login" class="hover:text-emerald-600 transition-colors">Admin Node</a>
+        <span class="w-1.5 h-1.5 bg-slate-200 rounded-full"></span>
+        <a href="/privacy" class="hover:text-slate-900 transition-colors">Privacy</a>
+        <span class="w-1.5 h-1.5 bg-slate-200 rounded-full"></span>
+        <a href="/portal/login" class="hover:text-blue-600 transition-colors">Logistics</a>
+      </div>
+      <p class="text-[10px] font-bold text-slate-300 tracking-tighter uppercase">Jippy Systems © 2026. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script>
+    function getCart() {
+      try { return JSON.parse(localStorage.getItem("cart") || "[]"); }
+      catch (e) { return []; }
+    }
+    function updateCartBadge() {
+      const cart = getCart();
+      const totalQty = cart.reduce((sum, item) => sum + Number(item.qty || 1), 0);
+      const desktopBadge = document.getElementById("cart-count");
+      const mobileBadge = document.querySelector(".mobile-badge");
+      const animateBadge = (el) => {
+        if (el) {
+          el.innerText = totalQty;
+          if (totalQty > 0) { el.classList.remove('scale-0'); el.classList.add('scale-100'); }
+          else { el.classList.remove('scale-100'); el.classList.add('scale-0'); }
+        }
+      };
+      animateBadge(desktopBadge);
+      animateBadge(mobileBadge);
+    }
+    function toggleUserMenu() {
+      const el = document.getElementById("user-dropdown");
+      if (el) { el.classList.toggle("hidden"); el.classList.add("page-fade-in"); }
+    }
+    window.addEventListener("click", (e) => {
+      const menu = document.getElementById("user-dropdown");
+      const wrapper = document.querySelector(".user-menu");
+      if (menu && wrapper && !wrapper.contains(e.target)) { menu.classList.add("hidden"); }
+    });
+    document.addEventListener("DOMContentLoaded", updateCartBadge);
+    window.addEventListener('storage', updateCartBadge);
+    window.addEventListener('cartUpdated', updateCartBadge);
+  </script>
+</body>
+</html>

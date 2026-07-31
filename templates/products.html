@@ -1,0 +1,370 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="w-full space-y-4 sm:space-y-8">
+
+  <!-- Mobile Search Bar (Only shown if page_type is not categories) -->
+  {% if page_type != "categories" %}
+  <div class="w-full px-2 sm:px-0 mt-2 sm:mt-4">
+    <div class="relative flex items-center bg-white rounded-2xl sm:rounded-[1.5rem] border border-slate-200 shadow-sm focus-within:shadow-md focus-within:border-emerald-400 transition-all duration-300">
+      <i class="fas fa-search ml-4 text-emerald-600 sm:text-slate-400 text-sm"></i>
+      <input type="text" id="product-search" 
+             placeholder="Search 'Milk', 'Bread' or 'Eggs'..." 
+             class="w-full pl-3 pr-10 py-3.5 sm:py-4 bg-transparent text-slate-800 text-sm sm:text-base font-bold outline-none placeholder:text-slate-400 placeholder:font-medium" autocomplete="off">
+      <button id="clear-search" class="absolute right-4 text-slate-400 hover:text-rose-500 hidden transition-colors">
+        <i class="fas fa-times-circle"></i>
+      </button>
+    </div>
+    <div id="product-suggestions" class="absolute left-2 right-2 sm:left-0 sm:right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-slate-100 max-h-80 overflow-y-auto hidden z-[100]"></div>
+  </div>
+  {% endif %}
+
+  <!-- Category Page Header (Only shown on category pages) -->
+  {% if page_type == "categories" %}
+  <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-4 px-2 sm:px-0">
+    <div class="space-y-1">
+      <h1 class="text-2xl sm:text-4xl font-extrabold text-slate-900 tracking-tight leading-none">
+        Shop by Category
+      </h1>
+      <p class="text-slate-500 font-medium flex items-center gap-2 text-xs sm:text-sm">
+        <span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+        {{ categories|length }} Categories available
+      </p>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Promo Banners (Zepto Style) -->
+  <div class="flex overflow-x-auto gap-4 sm:gap-6 no-scrollbar snap-x pb-4 px-2 sm:px-0">
+    
+    <!-- Banner 1: Movie Night -->
+    <div class="flex-none snap-center w-[85vw] sm:w-[400px] rounded-[1.5rem] overflow-hidden relative bg-gradient-to-br from-[#1e1b4b] to-[#312e81] p-6 shadow-lg">
+      <div class="relative z-10 w-2/3">
+        <div class="bg-indigo-500/30 backdrop-blur-md w-fit px-2.5 py-1 rounded-md text-[9px] font-black text-indigo-100 uppercase tracking-widest mb-3">Chill Time</div>
+        <h3 class="text-white font-extrabold text-2xl sm:text-3xl leading-tight mb-2 tracking-tight">Movie Night</h3>
+        <p class="text-indigo-200 text-xs font-medium mb-5">Snacks, drinks & more</p>
+        <button class="bg-indigo-500 text-white text-[11px] font-black px-6 py-2.5 rounded-xl uppercase tracking-wider shadow-md hover:bg-indigo-400 active:scale-95 transition-all">Explore</button>
+      </div>
+      <div class="absolute -top-10 -right-10 w-40 h-40 bg-indigo-500/20 rounded-full blur-2xl pointer-events-none"></div>
+      <i class="fas fa-popcorn absolute -bottom-4 -right-4 text-indigo-400/20 text-[110px] transform -rotate-12 pointer-events-none"></i>
+    </div>
+
+    <!-- Banner 2: Farm to Home -->
+    <div class="flex-none snap-center w-[85vw] sm:w-[400px] rounded-[1.5rem] overflow-hidden relative bg-gradient-to-br from-[#064e3b] to-[#047857] p-6 shadow-lg">
+      <div class="relative z-10 w-2/3">
+        <div class="bg-emerald-500/30 backdrop-blur-md w-fit px-2.5 py-1 rounded-md text-[9px] font-black text-emerald-100 uppercase tracking-widest mb-3">100% Quality</div>
+        <h3 class="text-white font-extrabold text-2xl sm:text-3xl leading-tight mb-2 tracking-tight">Farm Fresh</h3>
+        <p class="text-emerald-200 text-xs font-medium mb-5">Handpicked vegetables</p>
+        <button class="bg-emerald-500 text-white text-[11px] font-black px-6 py-2.5 rounded-xl uppercase tracking-wider shadow-md hover:bg-emerald-400 active:scale-95 transition-all">Shop Now</button>
+      </div>
+      <div class="absolute -bottom-10 -left-10 w-40 h-40 bg-emerald-500/20 rounded-full blur-2xl pointer-events-none"></div>
+      <i class="fas fa-carrot absolute -bottom-4 -right-2 text-emerald-400/20 text-[110px] transform rotate-12 pointer-events-none"></i>
+    </div>
+
+    <!-- Banner 3: Morning Essentials -->
+    <div class="flex-none snap-center w-[85vw] sm:w-[400px] rounded-[1.5rem] overflow-hidden relative bg-gradient-to-br from-[#7c2d12] to-[#b45309] p-6 shadow-lg">
+      <div class="relative z-10 w-2/3">
+        <div class="bg-orange-500/30 backdrop-blur-md w-fit px-2.5 py-1 rounded-md text-[9px] font-black text-orange-100 uppercase tracking-widest mb-3">Breakfast</div>
+        <h3 class="text-white font-extrabold text-2xl sm:text-3xl leading-tight mb-2 tracking-tight">Good Morning</h3>
+        <p class="text-orange-200 text-xs font-medium mb-5">Milk, bread & eggs</p>
+        <button class="bg-orange-500 text-white text-[11px] font-black px-6 py-2.5 rounded-xl uppercase tracking-wider shadow-md hover:bg-orange-400 active:scale-95 transition-all">Stock Up</button>
+      </div>
+      <i class="fas fa-mug-hot absolute -bottom-2 -right-4 text-orange-400/20 text-[100px] transform pointer-events-none"></i>
+    </div>
+
+  </div>
+
+  {% if page_type == "categories" %}
+    <div class="mt-4 px-2 sm:px-0">
+      <h2 class="text-lg sm:text-2xl font-extrabold text-slate-900 mb-4 tracking-tight">Shop by Category</h2>
+      <div id="category-grid" class="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 gap-x-3 gap-y-6 sm:gap-6">
+        {% for c in categories %}
+        <a href="{{ url_for('category_page', name=c) }}" 
+           class="category-card group flex flex-col items-center gap-2.5" 
+           data-name="{{ c|lower }}" onclick="localStorage.removeItem('lastSearch')">
+          <div class="w-full aspect-square rounded-3xl bg-[#f8fafc] overflow-hidden border border-slate-100 group-hover:border-emerald-200 transition-all duration-300 group-hover:shadow-lg">
+            {% set img_name = c|lower|replace(' ', '_') %}
+            <img src="{{ url_for('static', filename='images/categories/' + img_name + '.jpg') }}" 
+                 class="w-full h-full object-cover mix-blend-multiply group-hover:scale-110 transition-transform duration-500" 
+                 onerror="this.parentElement.innerHTML='<div class=\'w-full h-full flex items-center justify-center\'><i class=\'fas fa-leaf text-2xl sm:text-3xl text-emerald-300\'></i></div>'">
+          </div>
+          <span class="text-[11px] sm:text-sm font-extrabold text-slate-800 text-center leading-tight tracking-tight px-1 break-words group-hover:text-emerald-700 transition-colors">{{ c }}</span>
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+
+  {% else %}
+    <!-- Main View (Zepto Split Layout) -->
+    <div class="flex gap-2 sm:gap-6 items-start">
+      
+      <!-- Left Sidebar: Categories -->
+      <div class="w-[72px] sm:w-[240px] shrink-0 sticky top-0 h-[calc(100vh-80px)] overflow-y-auto no-scrollbar flex flex-col pb-32 bg-[#f8fafc] border-r border-slate-100/50 pt-2 shadow-[inset_-4px_0_10px_-10px_rgba(0,0,0,0.05)]">
+        <a href="{{ url_for('index') }}" 
+           class="flex flex-col sm:flex-row items-center gap-1.5 sm:gap-4 p-1.5 sm:px-5 sm:py-3.5 transition-all relative group {% if not selected_category %} bg-white shadow-sm {% else %} hover:bg-white/60 {% endif %}" 
+           onclick="localStorage.removeItem('lastSearch')">
+          
+          {% if not selected_category %}
+          <!-- Active Indicator -->
+          <div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 sm:h-12 bg-emerald-500 rounded-r-md"></div>
+          {% endif %}
+          
+          <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-[14px] {% if not selected_category %}bg-emerald-50 text-emerald-600{% else %}bg-[#f1f5f9] text-slate-400{% endif %} flex items-center justify-center shrink-0 border border-transparent {% if not selected_category %}border-emerald-100{% endif %}">
+            <i class="fas fa-layer-group text-[14px] sm:text-base"></i>
+          </div>
+          <span class="text-[9px] sm:text-sm {% if not selected_category %}font-extrabold text-emerald-950{% else %}font-medium text-slate-500{% endif %} text-center sm:text-left leading-tight break-words w-full px-0.5">All</span>
+        </a>
+        
+        {% for c in categories %}
+        <a href="{{ url_for('category_page', name=c) }}" 
+           class="flex flex-col sm:flex-row items-center gap-1.5 sm:gap-4 p-1.5 sm:px-5 sm:py-3.5 transition-all relative group {% if selected_category and selected_category|lower == c|lower %} bg-white shadow-sm {% else %} hover:bg-white/60 {% endif %}" 
+           onclick="localStorage.removeItem('lastSearch')">
+          
+          {% if selected_category and selected_category|lower == c|lower %}
+          <!-- Active Indicator -->
+          <div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 sm:h-12 bg-emerald-500 rounded-r-md"></div>
+          {% endif %}
+          
+          {% set img_name = c|lower|replace(' ', '_') %}
+          <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-[14px] bg-[#f1f5f9] overflow-hidden flex items-center justify-center shrink-0 border {% if selected_category and selected_category|lower == c|lower %}border-emerald-100 ring-2 ring-emerald-50 ring-offset-1{% else %}border-slate-200/60{% endif %} group-hover:border-emerald-200 transition-all">
+            <img src="{{ url_for('static', filename='images/categories/' + img_name + '.jpg') }}" 
+                 class="w-[85%] h-[85%] object-cover mix-blend-multiply rounded-lg"
+                 onerror="this.parentElement.innerHTML='<i class=\'fas fa-leaf text-slate-400 text-sm\'></i>'">
+          </div>
+          <span class="text-[9px] sm:text-sm {% if selected_category and selected_category|lower == c|lower %}font-extrabold text-emerald-950{% else %}font-medium text-slate-500 group-hover:text-slate-800{% endif %} text-center sm:text-left leading-tight break-words w-full px-0.5">{{ c }}</span>
+        </a>
+        {% endfor %}
+      </div>
+
+      <!-- Right Content: Products Grid -->
+      <div class="flex-1 min-w-0">
+        {% if items %}
+          <div id="products-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4">
+          {% for p in items %}
+          {% set is_oos = p.get('out_of_stock', false) %}
+          {% set has_discount = p.discount_price is defined and p.discount_price < p.price %}
+          
+          <div class="product-card bg-white rounded-2xl p-1.5 sm:p-3 transition-all duration-300 hover:shadow-xl flex flex-col h-full relative border border-slate-100/60 shadow-sm" data-name="{{ p.name|lower|e }}">
+            <div class="relative w-full aspect-square rounded-xl bg-[#f8f9fa] overflow-hidden mb-1.5 group">
+              <img src="{{ p.image }}" class="w-full h-full object-cover p-1.5 mix-blend-multiply transition-transform duration-500 group-hover:scale-110 {% if is_oos %} opacity-50 grayscale {% endif %}">
+              
+              <!-- 10 Mins Delivery Tag -->
+              <div class="absolute top-0 left-0 bg-white/90 backdrop-blur-md rounded-br-xl px-1.5 py-0.5 shadow-sm">
+                <span class="text-[8px] sm:text-[9px] font-black text-emerald-600 flex items-center gap-0.5 sm:gap-1"><i class="fas fa-bolt"></i> 10 MINS</span>
+              </div>
+
+              {% if is_oos %}
+                <div class="absolute inset-0 bg-white/60 backdrop-blur-[2px] flex items-center justify-center">
+                  <span class="bg-slate-900 text-white text-[9px] sm:text-[10px] font-black px-2 sm:px-3 py-1 sm:py-1.5 rounded-full uppercase text-center shadow-lg">Sold Out</span>
+                </div>
+              {% elif has_discount %}
+                <div class="absolute top-0 right-0 bg-gradient-to-tr from-rose-500 to-pink-500 text-white px-1.5 py-0.5 rounded-bl-xl shadow-sm">
+                  <span class="text-[8px] sm:text-[9px] font-black">{{ (((p.price - p.discount_price) / p.price) * 100)|round(0)|int }}% OFF</span>
+                </div>
+              {% endif %}
+            </div>
+            
+            <div class="flex flex-col flex-1 px-0.5">
+              <h3 class="text-[11px] sm:text-[13px] font-bold text-slate-800 line-clamp-2 leading-tight mb-0.5">{{ p.name }}</h3>
+              <p class="text-[9px] sm:text-[11px] font-semibold text-slate-500 mb-1.5">{{ p.unit }}</p>
+              
+              <div class="mt-auto flex flex-col gap-2 sm:gap-3">
+                <div class="flex flex-col">
+                  {% if has_discount %}
+                  <span class="text-[9px] sm:text-[10px] font-bold text-slate-400 line-through">₹{{ p.price }}</span>
+                  {% endif %}
+                  <span class="text-[13px] sm:text-[16px] font-black text-slate-900 leading-none">₹{{ p.discount_price if has_discount else p.price }}</span>
+                </div>
+                
+                <div class="w-full">
+                  <div class="cart-btn-wrapper w-full" data-slug="{{ p.slug }}" data-name="{{ p.name }}" data-price="{{ p.discount_price if has_discount else p.price }}" data-image="{{ p.image }}" data-unit="{{ p.unit }}" data-oos="{{ 'true' if is_oos else 'false' }}"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div> <!-- Close right content -->
+    </div> <!-- Close split layout -->
+  {% endif %}
+</div>
+
+
+<script>
+  const searchInput = document.getElementById("product-search");
+  const suggestBox = document.getElementById("product-suggestions");
+  const clearBtn = document.getElementById("clear-search");
+
+  // Handle Back Button Cache Reset
+  window.addEventListener("pageshow", (event) => {
+      if (event.persisted || (window.performance && window.performance.navigation.type === 2)) {
+          localStorage.removeItem('lastSearch');
+          if (searchInput) {
+              searchInput.value = "";
+              toggleClearButton("");
+              filterOnScreenItems("");
+          }
+      }
+  });
+
+  document.addEventListener("DOMContentLoaded", () => {
+    // 1. Shuffle Categories
+    const categoryGrid = document.getElementById("category-grid");
+    if (categoryGrid) {
+      const cards = Array.from(categoryGrid.children);
+      for (let i = cards.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        categoryGrid.appendChild(cards[j]);
+      }
+    }
+
+    updateCartButtons();
+    
+
+
+    // Restore Search
+    const savedSearch = localStorage.getItem('lastSearch');
+    if (savedSearch) {
+      searchInput.value = savedSearch;
+      toggleClearButton(savedSearch);
+      filterOnScreenItems(savedSearch.toLowerCase());
+    }
+
+    searchInput?.addEventListener("input", (e) => {
+      const q = e.target.value.toLowerCase().trim();
+      toggleClearButton(e.target.value);
+      localStorage.setItem('lastSearch', e.target.value); 
+      filterOnScreenItems(q);
+      if (q.length === 0) { 
+        suggestBox.classList.add("hidden"); 
+        localStorage.removeItem('lastSearch');
+        return; 
+      }
+      fetchSuggestions(q);
+    });
+
+    // Clear Search Logic
+    clearBtn?.addEventListener("click", () => {
+      searchInput.value = "";
+      localStorage.removeItem('lastSearch');
+      toggleClearButton("");
+      filterOnScreenItems("");
+      suggestBox.classList.add("hidden");
+      searchInput.focus();
+    });
+
+    document.addEventListener("click", (e) => {
+      if (!searchInput?.contains(e.target) && !suggestBox?.contains(e.target) && !clearBtn?.contains(e.target)) {
+        suggestBox?.classList.add("hidden");
+      }
+    });
+  });
+
+  function toggleClearButton(val) {
+    if (val.length > 0) clearBtn.classList.remove("hidden");
+    else clearBtn.classList.add("hidden");
+  }
+
+  async function fetchSuggestions(q) {
+    try {
+      const resp = await fetch(`/api/suggestions?q=${encodeURIComponent(q)}`);
+      const suggestions = await resp.json();
+      if (suggestions.length > 0) {
+        suggestBox.classList.remove("hidden");
+        suggestBox.innerHTML = suggestions.map(item => `
+          <div onclick="handleSuggestionClick('${item.name.replace(/'/g, "\\'")}', '${item.type}', '${item.url}')" 
+               class="px-5 py-4 hover:bg-emerald-50 cursor-pointer border-b border-slate-50 last:border-0 flex items-center justify-between group transition-colors">
+            <div class="flex items-center gap-3">
+              <i class="fas fa-search text-slate-300 group-hover:text-emerald-500"></i>
+              <span class="text-sm font-semibold text-slate-700 capitalize">${item.name}</span>
+            </div>
+            <span class="text-[9px] font-black text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md uppercase">${item.type}</span>
+          </div>`).join('');
+      } else { suggestBox.classList.add("hidden"); }
+    } catch (err) { console.error(err); }
+  }
+
+  function handleSuggestionClick(name, type, url) {
+    suggestBox.classList.add("hidden");
+    if (type === 'category') {
+      localStorage.removeItem('lastSearch');
+      window.location.href = url;
+    } else {
+      localStorage.setItem('lastSearch', name);
+      searchInput.value = name;
+      toggleClearButton(name);
+      const cards = document.querySelectorAll('.product-card');
+      const isOnCurrentPage = Array.from(cards).some(card => card.getAttribute('data-name') === name.toLowerCase());
+      if (isOnCurrentPage) filterOnScreenItems(name.toLowerCase());
+      else window.location.href = url;
+    }
+  }
+
+  function filterOnScreenItems(query) {
+    const cards = document.querySelectorAll('.category-card, .product-card');
+    cards.forEach(card => {
+      const name = card.getAttribute('data-name') || '';
+      card.style.display = (name.includes(query) || query === "") ? "" : "none";
+    });
+  }
+
+  function updateCartButtons() {
+    const cart = JSON.parse(localStorage.getItem("cart") || "[]");
+    document.querySelectorAll(".cart-btn-wrapper").forEach(wrapper => {
+      const { slug, oos } = wrapper.dataset;
+      if (oos === "true") {
+        wrapper.innerHTML = `<button disabled class="w-full py-2 rounded-xl text-[10px] font-bold bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed uppercase">OOS</button>`;
+        return;
+      }
+      const item = cart.find(i => i.slug === slug);
+      if (!item) {
+        wrapper.innerHTML = `<button class="w-full py-2.5 rounded-xl text-xs font-black border-2 border-emerald-600 text-emerald-600 hover:bg-emerald-600 hover:text-white transition-all duration-300 uppercase tracking-tight" onclick="handleCartClick(this.parentElement)">Add</button>`;
+      } else {
+        wrapper.innerHTML = `
+          <div class="flex items-center justify-between bg-emerald-600 p-1 rounded-xl shadow-lg shadow-emerald-100 w-full">
+            <button onclick="changeQty('${slug}', -1, event)" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/20 text-white transition-colors active:scale-95"><i class="fas fa-minus text-[10px]"></i></button>
+            <span class="text-white font-black text-sm tabular-nums">${item.qty}</span>
+            <button onclick="changeQty('${slug}', 1, event)" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/20 text-white transition-colors active:scale-95"><i class="fas fa-plus text-[10px]"></i></button>
+          </div>`;
+      }
+    });
+  }
+
+  function handleCartClick(wrapper) {
+    const { slug, name, price, image, unit } = wrapper.dataset;
+    let cart = JSON.parse(localStorage.getItem("cart") || "[]");
+    const index = cart.findIndex(item => item.slug === slug);
+    if (index === -1) cart.push({ slug, name, price: parseFloat(price), image, unit, qty: 1 });
+    else cart[index].qty++;
+    localStorage.setItem("cart", JSON.stringify(cart));
+    updateCartButtons();
+    window.dispatchEvent(new Event('cartUpdated'));
+  }
+
+  function changeQty(slug, delta, event) {
+    event.stopPropagation();
+    let cart = JSON.parse(localStorage.getItem("cart") || "[]");
+    const index = cart.findIndex(item => item.slug === slug);
+    if (index === -1) return;
+    cart[index].qty += delta;
+    if (cart[index].qty <= 0) cart.splice(index, 1);
+    localStorage.setItem("cart", JSON.stringify(cart));
+    updateCartButtons();
+    window.dispatchEvent(new Event('cartUpdated'));
+  }
+</script>
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
+  body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #fcfdfd; -webkit-tap-highlight-color: transparent; }
+  @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+  .animate-marquee { animation: marquee 35s linear infinite; width: max-content; }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .product-card:hover { transform: translateY(-4px); }
+  input::placeholder { color: #94a3b8; font-weight: 500; }
+  #product-suggestions::-webkit-scrollbar { width: 6px; }
+  #product-suggestions::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+  .tabular-nums { font-variant-numeric: tabular-nums; }
+</style>
+{% endblock %}
