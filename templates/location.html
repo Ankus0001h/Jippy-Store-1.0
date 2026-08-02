@@ -1,10 +1,13 @@
 {% extends "base.html" %}
-{% block content %}
-<div class="relative min-h-screen bg-emerald-50 overflow-hidden flex flex-col md:justify-center md:items-center font-['Plus_Jakarta_Sans']">
-  
+{% block full_content %}
+<div
+  class="relative min-h-screen bg-emerald-50 overflow-hidden flex flex-col md:justify-center md:items-center font-['Plus_Jakarta_Sans']">
+
   <!-- Map-like Background (Grid pattern + Pulse) -->
   <div class="absolute inset-0 z-0 pointer-events-none opacity-60">
-    <div class="absolute inset-0" style="background-image: radial-gradient(circle at 2px 2px, #059669 2px, transparent 0); background-size: 40px 40px; opacity: 0.15;"></div>
+    <div class="absolute inset-0"
+      style="background-image: radial-gradient(circle at 2px 2px, #059669 2px, transparent 0); background-size: 40px 40px; opacity: 0.15;">
+    </div>
     <!-- Gradient overlays to fade the grid -->
     <div class="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-emerald-100/90"></div>
   </div>
@@ -14,11 +17,13 @@
     <!-- Pulse animations -->
     <div class="absolute w-48 h-48 bg-emerald-400/20 rounded-full animate-ping" style="animation-duration: 3s;"></div>
     <div class="absolute w-32 h-32 bg-emerald-500/20 rounded-full animate-pulse"></div>
-    
+
     <!-- Marker body -->
-    <div class="relative w-20 h-20 bg-white rounded-full shadow-[0_15px_40px_rgba(16,185,129,0.3)] flex items-center justify-center z-20 border-4 border-white mb-2">
-      <div class="w-full h-full bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-full flex items-center justify-center text-white">
-         <i class="fas fa-location-dot text-3xl drop-shadow-md"></i>
+    <div
+      class="relative w-20 h-20 bg-white rounded-full shadow-[0_15px_40px_rgba(16,185,129,0.3)] flex items-center justify-center z-20 border-4 border-white mb-2">
+      <div
+        class="w-full h-full bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-full flex items-center justify-center text-white">
+        <i class="fas fa-location-dot text-3xl drop-shadow-md"></i>
       </div>
     </div>
     <!-- Shadow under marker -->
@@ -26,36 +31,42 @@
   </div>
 
   <!-- Bottom Sheet (Mobile) / Centered Card (Desktop) -->
-  <div class="absolute bottom-0 left-0 w-full md:relative md:bottom-auto md:max-w-[440px] bg-white rounded-t-[2.5rem] md:rounded-[2.5rem] shadow-[0_-20px_80px_-15px_rgba(16,185,129,0.2)] md:shadow-[0_20px_80px_-15px_rgba(16,185,129,0.2)] z-30 overflow-hidden transform transition-transform duration-500 pb-8 md:pb-0">
-    
+  <div
+    class="absolute bottom-0 left-0 w-full md:relative md:bottom-auto md:max-w-[440px] bg-white rounded-t-[2.5rem] md:rounded-[2.5rem] shadow-[0_-20px_80px_-15px_rgba(16,185,129,0.2)] md:shadow-[0_20px_80px_-15px_rgba(16,185,129,0.2)] z-30 overflow-hidden transform transition-transform duration-500 pb-8 md:pb-0">
+
     <!-- Mobile drag handle -->
     <div class="md:hidden flex justify-center pt-4 pb-2">
       <div class="w-12 h-1.5 bg-slate-200 rounded-full"></div>
     </div>
 
     <div class="px-8 pt-6 md:pt-10 pb-8 md:pb-10 relative">
-      
+
       <!-- Text Header -->
       <div class="text-center mb-8">
         <h2 class="text-[26px] font-black text-slate-900 tracking-tight leading-tight">Where are you?</h2>
-        <p class="mt-2 text-[14px] text-slate-500 font-medium px-4">Set your delivery location to see exactly what's available in your area.</p>
+        <p class="mt-2 text-[14px] text-slate-500 font-medium px-4">Set your delivery location to see exactly what's
+          available in your area.</p>
       </div>
 
       <!-- Loading State -->
       <div id="loading-state" class="hidden flex-col items-center justify-center py-6 space-y-4">
         <div class="relative w-12 h-12">
           <div class="absolute inset-0 border-4 border-emerald-100 rounded-full"></div>
-          <div class="absolute inset-0 border-4 border-emerald-500 rounded-full border-t-transparent animate-spin"></div>
+          <div class="absolute inset-0 border-4 border-emerald-500 rounded-full border-t-transparent animate-spin">
+          </div>
         </div>
         <p id="loading-text" class="text-xs font-bold text-slate-500 tracking-wide uppercase">Finding you...</p>
       </div>
 
       <!-- Actions -->
       <div id="actions-container" class="space-y-6">
-        
+
         <!-- Primary Action: Auto fetch -->
-        <button id="fetch-location-btn" class="w-full h-16 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 text-white rounded-2xl flex items-center justify-center gap-3 shadow-[0_10px_30px_rgba(16,185,129,0.3)] transition-all active:scale-[0.98] group relative overflow-hidden">
-          <div class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-in-out rounded-2xl pointer-events-none"></div>
+        <button id="fetch-location-btn"
+          class="w-full h-16 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 text-white rounded-2xl flex items-center justify-center gap-3 shadow-[0_10px_30px_rgba(16,185,129,0.3)] transition-all active:scale-[0.98] group relative overflow-hidden">
+          <div
+            class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-in-out rounded-2xl pointer-events-none">
+          </div>
           <i id="fetch-icon" class="fas fa-location-crosshairs text-xl"></i>
           <span id="fetch-text" class="font-black text-[16px] tracking-wide">Use Current Location</span>
         </button>
@@ -71,13 +82,10 @@
           <div class="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
             <i class="fas fa-search text-slate-400 group-focus-within:text-emerald-500 transition-colors"></i>
           </div>
-          <input 
-            type="text" 
-            id="search-location-input" 
-            placeholder="Enter city or pincode" 
-            class="w-full pl-12 pr-24 h-16 bg-slate-50 border border-slate-100 hover:border-slate-200 rounded-2xl text-[15px] font-bold text-slate-900 placeholder:text-slate-400 placeholder:font-medium focus:outline-none focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all"
-          >
-          <button type="submit" class="absolute inset-y-2 right-2 bg-emerald-50 text-emerald-600 px-5 rounded-xl text-[13px] font-black tracking-wide hover:bg-emerald-100 transition-colors h-12">
+          <input type="text" id="search-location-input" placeholder="Enter city or pincode"
+            class="w-full pl-12 pr-24 h-16 bg-slate-50 border border-slate-100 hover:border-slate-200 rounded-2xl text-[15px] font-bold text-slate-900 placeholder:text-slate-400 placeholder:font-medium focus:outline-none focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all">
+          <button type="submit"
+            class="absolute inset-y-2 right-2 bg-emerald-50 text-emerald-600 px-5 rounded-xl text-[13px] font-black tracking-wide hover:bg-emerald-100 transition-colors h-12">
             Find
           </button>
         </form>
@@ -110,24 +118,24 @@
       async (pos) => {
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
-        
+
         loadingText.textContent = "Identifying address...";
-        
+
         let address = "Selected Location";
         try {
           const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
-          if(geoRes.ok) {
+          if (geoRes.ok) {
             const geoData = await geoRes.json();
-            if(geoData.display_name) {
+            if (geoData.display_name) {
               address = geoData.display_name;
             }
           }
-        } catch(e) {
+        } catch (e) {
           console.warn("Reverse geocoding failed", e);
         }
-        
+
         loadingText.textContent = "Setting location...";
-        
+
         try {
           await fetch('/set-location', {
             method: 'POST',
