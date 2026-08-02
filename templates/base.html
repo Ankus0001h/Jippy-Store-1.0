@@ -155,9 +155,11 @@
   </nav>
   {% endblock %}
 
+  {% block full_content %}
   <main class="flex-1 max-w-7xl mx-auto w-full px-1 sm:px-6 lg:px-8 py-4 sm:py-10 mb-0 page-fade-in">
     {% block content %}{% endblock %}
   </main>
+  {% endblock %}
 
   <!-- Mobile Bottom Navigation (Floating Zepto Style) -->
   {% block mobile_nav %}
