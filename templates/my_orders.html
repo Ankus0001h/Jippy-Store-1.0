@@ -34,8 +34,6 @@
 
                 {% set step_index =
                     0 if status == 'RECEIVED' else
-                    1 if status == 'PACKED' else
-                    2 if status == 'OUT_FOR_DELIVERY' else
                     3 if status == 'DELIVERED' else 0
                 %}
 
