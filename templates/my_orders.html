@@ -23,8 +23,6 @@
                 {% set raw = order.status or 'pending' %}
                 {% set status =
                     'RECEIVED' if raw in ['pending', 'received'] else
-                    'PACKED' if raw in ['processing', 'packed', 'ready', 'accepted'] else
-                    'OUT_FOR_DELIVERY' if raw in ['picked', 'out_for_delivery', 'out for delivery'] else
                     'DELIVERED' if raw in ['delivered', 'DELIVERED'] else
                     'CANCELLED' if raw in ['cancelled', 'canceled', 'CANCELLED'] else
                     raw|upper
@@ -34,7 +32,7 @@
 
                 {% set step_index =
                     0 if status == 'RECEIVED' else
-                    3 if status == 'DELIVERED' else 0
+                    1 if status == 'DELIVERED' else 0
                 %}
 
                 {% set created = order.created_at %}
