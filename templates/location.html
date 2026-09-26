@@ -82,6 +82,7 @@
           <i class="fas fa-location-crosshairs text-emerald-600 text-xs"></i>
         </div>
         <p id="loading-text" class="text-xs font-bold text-slate-600 tracking-wide">Automatically detecting location...</p>
+        <button type="button" onclick="cancelDetection()" class="mt-2 text-xs font-bold text-slate-400 hover:text-slate-600 underline underline-offset-2 transition-colors">Enter manually instead</button>
       </div>
 
       <!-- Actions Container -->
@@ -212,16 +213,35 @@
     searchInput.focus();
   }
 
+  // Track if geolocation is currently running so we can cancel
+  let geoWatchId = null;
+  let isDetecting = false;
+
   // Reset UI to manual state on failure/cancel
   function resetUI() {
+    isDetecting = false;
     container.classList.remove('hidden');
     loading.classList.add('hidden');
     loading.classList.remove('flex');
   }
 
-  // Auto-run geolocation when page loads
+  // Cancel auto-detection (called from loading cancel button)
+  function cancelDetection() {
+    isDetecting = false;
+    // Mark that user cancelled, don't auto-fetch again
+    sessionStorage.setItem('location_auto_tried', 'true');
+    resetUI();
+  }
+
+  // Auto-run geolocation ONLY on first visit
   window.addEventListener('DOMContentLoaded', () => {
-    detectLocation(true);
+    const alreadyTried = sessionStorage.getItem('location_auto_tried');
+    if (!alreadyTried) {
+      // First visit — try auto-detect once
+      sessionStorage.setItem('location_auto_tried', 'true');
+      detectLocation(true);
+    }
+    // If already tried (back button / revisit), show manual controls directly
   });
 </script>
 {% endblock %}
