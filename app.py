@@ -393,6 +393,43 @@ def shop_home(shop_id):
         return render_template("products.html", page_type="categories", categories=[], shop=None)
     
 # ================================
+# MOBILE APP JSON APIs
+# ================================
+
+@app.route("/api/societies")
+def api_societies():
+    query = request.args.get("search", "").strip()
+    results = []
+    if query:
+        regex_q = {"$regex": query, "$options": "i"}
+        socs = list(societies.find({"$or": [{"city": regex_q}, {"pincode": regex_q}, {"name": regex_q}]}).limit(20))
+        for soc in socs:
+            results.append({"id": str(soc["_id"]), "name": soc.get("name"), "city": soc.get("city"), "pincode": soc.get("pincode")})
+    return jsonify({"status": "success", "societies": results})
+
+@app.route("/api/society/<society_id>/shops")
+def api_society_shops(society_id):
+    shops_data = list(users.find({"role": "vendor", "serviceable_societies": str(society_id)}))
+    results = []
+    for s in shops_data:
+        results.append({
+            "id": str(s["_id"]),
+            "shop_name": s.get("shop_name", "Shop"),
+            "owner_name": s.get("name", ""),
+            "contact": s.get("phone", "")
+        })
+    return jsonify({"status": "success", "shops": results})
+
+@app.route("/api/shop/<shop_id>/categories")
+def api_shop_categories(shop_id):
+    shop = users.find_one({"_id": ObjectId(shop_id), "role": "vendor"})
+    if not shop:
+        return jsonify({"status": "error", "message": "Shop not found"}), 404
+    categories = get_cached_categories()
+    cats_data = [{"id": str(c["_id"]), "name": c.get("name"), "image": c.get("image", "")} for c in categories]
+    return jsonify({"status": "success", "shop_name": shop.get("shop_name"), "categories": cats_data})
+    
+# ================================
 # ADMIN: AUTH & DASHBOARD
 # ================================
 
