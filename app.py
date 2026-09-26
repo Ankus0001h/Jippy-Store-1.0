@@ -403,8 +403,11 @@ def api_societies():
     if query:
         regex_q = {"$regex": query, "$options": "i"}
         socs = list(societies.find({"$or": [{"city": regex_q}, {"pincode": regex_q}, {"name": regex_q}]}).limit(20))
-        for soc in socs:
-            results.append({"id": str(soc["_id"]), "name": soc.get("name"), "city": soc.get("city"), "pincode": soc.get("pincode")})
+    else:
+        socs = list(societies.find().limit(20))
+        
+    for soc in socs:
+        results.append({"id": str(soc["_id"]), "name": soc.get("name"), "city": soc.get("city"), "pincode": soc.get("pincode")})
     return jsonify({"status": "success", "societies": results})
 
 @app.route("/api/society/<society_id>/shops")
@@ -426,8 +429,38 @@ def api_shop_categories(shop_id):
     if not shop:
         return jsonify({"status": "error", "message": "Shop not found"}), 404
     categories = get_cached_categories()
-    cats_data = [{"id": str(c["_id"]), "name": c.get("name"), "image": c.get("image", "")} for c in categories]
+    cats_data = [{"id": str(idx), "name": c, "image": ""} for idx, c in enumerate(categories)]
     return jsonify({"status": "success", "shop_name": shop.get("shop_name"), "categories": cats_data})
+
+@app.route("/api/shop/<shop_id>/category/<path:category_name>")
+def api_shop_category_products(shop_id, category_name):
+    shop = users.find_one({"_id": ObjectId(shop_id), "role": "vendor"})
+    if not shop:
+        return jsonify({"status": "error", "message": "Shop not found"}), 404
+        
+    try:
+        original_category = clean_cat_name(category_name)
+        items = get_cached_category_items(original_category)
+        items = list(items)
+        random.shuffle(items)
+        
+        products_data = []
+        for p in items:
+            products_data.append({
+                "id": str(p["_id"]),
+                "name": p.get("name", ""),
+                "price": p.get("price", 0),
+                "discount_price": p.get("discount_price") or p.get("price", 0),
+                "unit": p.get("unit", ""),
+                "image": p.get("image", ""),
+                "slug": p.get("slug", ""),
+                "out_of_stock": p.get("out_of_stock", False)
+            })
+            
+        return jsonify({"status": "success", "products": products_data})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
     
 # ================================
 # ADMIN: AUTH & DASHBOARD
