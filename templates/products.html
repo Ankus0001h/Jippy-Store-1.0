@@ -99,14 +99,14 @@
     <div class="flex gap-2 sm:gap-6 items-start">
       
       <!-- Left Sidebar: Categories -->
-      <div class="w-[90px] sm:w-[240px] shrink-0 sticky top-[60px] sm:top-[68px] h-[calc(100dvh-70px)] sm:h-[calc(100dvh-78px)] overflow-y-auto no-scrollbar flex flex-col pb-32 bg-[#f8fafc] border-r border-slate-100/50 pt-2 shadow-[inset_-4px_0_10px_-10px_rgba(0,0,0,0.05)] rounded-tr-2xl">
+      <div class="w-[90px] sm:w-[240px] shrink-0 sticky top-[60px] sm:top-[68px] h-[calc(100dvh-70px)] sm:h-[calc(100dvh-78px)] overflow-y-auto no-scrollbar flex flex-col pb-32 bg-[#f8fafc] border-r border-slate-100/50 pt-2 pl-1 sm:pl-0 shadow-[inset_-4px_0_10px_-10px_rgba(0,0,0,0.05)] rounded-tr-2xl">
         <a href="{{ url_for('index') }}" 
-           class="flex flex-col sm:flex-row items-center gap-1.5 sm:gap-4 p-1.5 sm:px-5 sm:py-3.5 transition-all relative group {% if not selected_category %} bg-white shadow-sm {% else %} hover:bg-white/60 {% endif %}" 
+           class="flex flex-col sm:flex-row items-center gap-1.5 sm:gap-4 px-2 py-1.5 sm:px-5 sm:py-3.5 transition-all relative group {% if not selected_category %} bg-white shadow-sm {% else %} hover:bg-white/60 {% endif %}" 
            onclick="localStorage.removeItem('lastSearch')">
           
           {% if not selected_category %}
           <!-- Active Indicator -->
-          <div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 sm:h-12 bg-emerald-500 rounded-r-md"></div>
+          <div class="absolute left-1 sm:left-0 top-1/2 -translate-y-1/2 w-1 h-8 sm:h-12 bg-emerald-500 rounded-r-md"></div>
           {% endif %}
           
           <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-[14px] {% if not selected_category %}bg-emerald-50 text-emerald-600{% else %}bg-[#f1f5f9] text-slate-400{% endif %} flex items-center justify-center shrink-0 border border-transparent {% if not selected_category %}border-emerald-100{% endif %}">
@@ -117,12 +117,12 @@
         
         {% for c in categories %}
         <a href="{{ url_for('category_page', name=c) }}" 
-           class="flex flex-col sm:flex-row items-center gap-1.5 sm:gap-4 p-1.5 sm:px-5 sm:py-3.5 transition-all relative group {% if selected_category and selected_category|lower == c|lower %} bg-white shadow-sm {% else %} hover:bg-white/60 {% endif %}" 
+           class="flex flex-col sm:flex-row items-center gap-1.5 sm:gap-4 px-2 py-1.5 sm:px-5 sm:py-3.5 transition-all relative group {% if selected_category and selected_category|lower == c|lower %} bg-white shadow-sm {% else %} hover:bg-white/60 {% endif %}" 
            onclick="localStorage.removeItem('lastSearch')">
           
           {% if selected_category and selected_category|lower == c|lower %}
           <!-- Active Indicator -->
-          <div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 sm:h-12 bg-emerald-500 rounded-r-md"></div>
+          <div class="absolute left-1 sm:left-0 top-1/2 -translate-y-1/2 w-1 h-8 sm:h-12 bg-emerald-500 rounded-r-md"></div>
           {% endif %}
           
           {% set img_name = c|lower|replace(' ', '_') %}
