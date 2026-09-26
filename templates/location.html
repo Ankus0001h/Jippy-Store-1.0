@@ -1,93 +1,118 @@
 {% extends "base.html" %}
 {% block full_content %}
-<div
-  class="relative min-h-screen bg-emerald-50 overflow-hidden flex flex-col md:justify-center md:items-center font-['Plus_Jakarta_Sans']">
+<div class="relative min-h-screen bg-slate-50 flex flex-col justify-center items-center font-['Plus_Jakarta_Sans'] overflow-hidden antialiased pb-20 md:pb-0">
 
-  <!-- Map-like Background (Grid pattern + Pulse) -->
-  <div class="absolute inset-0 z-0 pointer-events-none opacity-60">
-    <div class="absolute inset-0"
-      style="background-image: radial-gradient(circle at 2px 2px, #059669 2px, transparent 0); background-size: 40px 40px; opacity: 0.15;">
+  <!-- Map Background Simulation -->
+  <div class="absolute inset-0 z-0 pointer-events-none">
+    <!-- Subtle Grid Pattern -->
+    <div class="absolute inset-0 opacity-40"
+      style="background-image: radial-gradient(circle at 2px 2px, #10b981 1.5px, transparent 0); background-size: 32px 32px;">
     </div>
-    <!-- Gradient overlays to fade the grid -->
-    <div class="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-emerald-100/90"></div>
+    
+    <!-- Top & Bottom Gradient Blends -->
+    <div class="absolute inset-0 bg-gradient-to-b from-emerald-100/60 via-slate-50/20 to-slate-100"></div>
   </div>
 
-  <!-- Big Floating Marker for Visual Impact -->
-  <div class="absolute top-[20%] md:top-[15%] left-1/2 -translate-x-1/2 z-10 flex flex-col items-center">
-    <!-- Pulse animations -->
-    <div class="absolute w-48 h-48 bg-emerald-400/20 rounded-full animate-ping" style="animation-duration: 3s;"></div>
-    <div class="absolute w-32 h-32 bg-emerald-500/20 rounded-full animate-pulse"></div>
+  <!-- Center Floating Map Marker -->
+  <div class="relative z-10 flex flex-col items-center justify-center -mt-24 mb-6 md:-mt-12 md:mb-8">
+    
+    <!-- Delivery Time Badge Header -->
+    <div class="mb-5 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-900 text-white shadow-xl shadow-slate-900/10 border border-slate-800">
+      <div class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></div>
+      <i class="fas fa-bolt text-amber-400 text-xs"></i>
+      <span class="text-xs font-extrabold tracking-wide uppercase">Delivering in <span class="text-emerald-400">10 Mins</span></span>
+    </div>
 
-    <!-- Marker body -->
-    <div
-      class="relative w-20 h-20 bg-white rounded-full shadow-[0_15px_40px_rgba(16,185,129,0.3)] flex items-center justify-center z-20 border-4 border-white mb-2">
-      <div
-        class="w-full h-full bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-full flex items-center justify-center text-white">
-        <i class="fas fa-location-dot text-3xl drop-shadow-md"></i>
+    <!-- Pulsing Radar Base -->
+    <div class="relative flex items-center justify-center">
+      <div class="absolute w-36 h-36 bg-emerald-500/20 rounded-full animate-ping pointer-events-none" style="animation-duration: 3s;"></div>
+      <div class="absolute w-24 h-24 bg-emerald-500/25 rounded-full blur-sm"></div>
+
+      <!-- Zepto-Style Location Pinhead -->
+      <div class="relative w-16 h-16 bg-emerald-500 rounded-2xl shadow-[0_15px_30px_rgba(16,185,129,0.4)] flex items-center justify-center border-4 border-white transform transition-transform duration-300 hover:scale-105 cursor-pointer">
+        <i class="fas fa-location-dot text-2xl text-white"></i>
       </div>
     </div>
-    <!-- Shadow under marker -->
-    <div class="w-12 h-3 bg-emerald-900/15 rounded-[100%] blur-[3px]"></div>
+    <div class="w-10 h-2 bg-slate-900/10 rounded-[100%] blur-[2px] mt-2"></div>
   </div>
 
-  <!-- Bottom Sheet (Mobile) / Centered Card (Desktop) -->
-  <div
-    class="absolute bottom-0 left-0 w-full md:relative md:bottom-auto md:max-w-[440px] bg-white rounded-t-[2.5rem] md:rounded-[2.5rem] shadow-[0_-20px_80px_-15px_rgba(16,185,129,0.2)] md:shadow-[0_20px_80px_-15px_rgba(16,185,129,0.2)] z-30 overflow-hidden transform transition-transform duration-500 pb-8 md:pb-0">
-
-    <!-- Mobile drag handle -->
-    <div class="md:hidden flex justify-center pt-4 pb-2">
-      <div class="w-12 h-1.5 bg-slate-200 rounded-full"></div>
+  <!-- Central/Bottom Dialog Card -->
+  <div class="fixed bottom-6 left-4 right-4 md:relative md:bottom-auto md:left-auto md:right-auto w-[calc(100%-2rem)] md:w-full md:max-w-[460px] bg-white rounded-[2.25rem] shadow-[0_15px_50px_rgba(0,0,0,0.12)] border border-slate-100 z-30 overflow-hidden transform md:-translate-y-6">
+    
+    <!-- Mobile Sheet Handle Notch -->
+    <div class="md:hidden flex justify-center pt-3.5 pb-1">
+      <div class="w-10 h-1 bg-slate-200 rounded-full"></div>
     </div>
 
-    <div class="px-8 pt-6 md:pt-10 pb-8 md:pb-10 relative">
+    <div class="px-6 sm:px-8 pt-3 md:pt-7 pb-7 relative">
 
-      <!-- Text Header -->
-      <div class="text-center mb-8">
-        <h2 class="text-[26px] font-black text-slate-900 tracking-tight leading-tight">Where are you?</h2>
-        <p class="mt-2 text-[14px] text-slate-500 font-medium px-4">Set your delivery location to see exactly what's
-          available in your area.</p>
+      <!-- Header -->
+      <div class="text-left mb-5">
+        <div class="flex items-center gap-2">
+          <h2 class="text-2xl font-black text-slate-900 tracking-tight">Select Location</h2>
+          <span class="text-xs bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-md">Fastest</span>
+        </div>
+        <p class="mt-1 text-xs text-slate-500 font-medium">To see available products and delivery speeds near you</p>
+      </div>
+
+      <!-- Quick Address Chips -->
+      <div class="flex items-center gap-2 mb-5 overflow-x-auto pb-1 scrollbar-none">
+        <button type="button" onclick="selectQuickLocation('Home')" class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 text-slate-700 border border-slate-200/60 text-xs font-bold transition-all whitespace-nowrap">
+          <i class="fas fa-house text-slate-500"></i> Home
+        </button>
+        <button type="button" onclick="selectQuickLocation('Work')" class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 text-slate-700 border border-slate-200/60 text-xs font-bold transition-all whitespace-nowrap">
+          <i class="fas fa-briefcase text-slate-500"></i> Work
+        </button>
+        <button type="button" onclick="selectQuickLocation('Other')" class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 text-slate-700 border border-slate-200/60 text-xs font-bold transition-all whitespace-nowrap">
+          <i class="fas fa-bookmark text-slate-500"></i> Saved
+        </button>
       </div>
 
       <!-- Loading State -->
-      <div id="loading-state" class="hidden flex-col items-center justify-center py-6 space-y-4">
-        <div class="relative w-12 h-12">
+      <div id="loading-state" class="hidden flex-col items-center justify-center py-6 space-y-3">
+        <div class="relative w-12 h-12 flex items-center justify-center">
           <div class="absolute inset-0 border-4 border-emerald-100 rounded-full"></div>
-          <div class="absolute inset-0 border-4 border-emerald-500 rounded-full border-t-transparent animate-spin">
-          </div>
+          <div class="absolute inset-0 border-4 border-emerald-500 rounded-full border-t-transparent animate-spin"></div>
+          <i class="fas fa-location-crosshairs text-emerald-600 text-xs"></i>
         </div>
-        <p id="loading-text" class="text-xs font-bold text-slate-500 tracking-wide uppercase">Finding you...</p>
+        <p id="loading-text" class="text-xs font-bold text-slate-600 tracking-wide">Automatically detecting location...</p>
       </div>
 
-      <!-- Actions -->
-      <div id="actions-container" class="space-y-6">
+      <!-- Actions Container -->
+      <div id="actions-container" class="space-y-4">
 
-        <!-- Primary Action: Auto fetch -->
-        <button id="fetch-location-btn"
-          class="w-full h-16 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 text-white rounded-2xl flex items-center justify-center gap-3 shadow-[0_10px_30px_rgba(16,185,129,0.3)] transition-all active:scale-[0.98] group relative overflow-hidden">
-          <div
-            class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-in-out rounded-2xl pointer-events-none">
-          </div>
-          <i id="fetch-icon" class="fas fa-location-crosshairs text-xl"></i>
-          <span id="fetch-text" class="font-black text-[16px] tracking-wide">Use Current Location</span>
+        <!-- Primary Action Button -->
+        <button id="fetch-location-btn" type="button"
+          class="w-full h-15 py-4 bg-emerald-500 hover:bg-emerald-600 active:scale-[0.98] text-white font-extrabold rounded-2xl flex items-center justify-center gap-2.5 shadow-lg shadow-emerald-500/25 transition-all text-sm sm:text-base">
+          <i id="fetch-icon" class="fas fa-crosshairs text-lg"></i>
+          <span id="fetch-text">Use Current Location</span>
         </button>
 
-        <div class="flex items-center gap-4 py-2">
+        <!-- Divider -->
+        <div class="flex items-center gap-3 py-1">
           <div class="h-[1px] bg-slate-100 flex-1"></div>
-          <span class="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em]">OR SEARCH MANUALLY</span>
+          <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">or search manually</span>
           <div class="h-[1px] bg-slate-100 flex-1"></div>
         </div>
 
-        <!-- Search Form -->
-        <form id="search-location-form" class="relative group">
-          <div class="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
-            <i class="fas fa-search text-slate-400 group-focus-within:text-emerald-500 transition-colors"></i>
+        <!-- Fixed Search Form -->
+        <form id="search-location-form" class="relative">
+          <div class="relative flex items-center w-full">
+            <!-- Icon vertically centered with top-1/2 -->
+            <div class="absolute left-4 top-1/2 -translate-y-1/2 flex items-center pointer-events-none text-slate-400">
+              <i class="fas fa-magnifying-glass text-base"></i>
+            </div>
+
+            <!-- Input field with proper left padding (pl-12) -->
+            <input type="text" id="search-location-input" placeholder="Search area, street, or pincode..."
+              class="w-full pl-12 pr-28 h-16 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-900 placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all">
+            
+            <!-- Search button vertically centered -->
+            <button type="submit"
+              class="absolute right-2 top-1/2 -translate-y-1/2 bg-slate-900 hover:bg-slate-800 text-white px-5 h-12 rounded-xl text-xs font-extrabold transition-all active:scale-95 shadow-md">
+              Search
+            </button>
           </div>
-          <input type="text" id="search-location-input" placeholder="Enter city or pincode"
-            class="w-full pl-12 pr-24 h-16 bg-slate-50 border border-slate-100 hover:border-slate-200 rounded-2xl text-[15px] font-bold text-slate-900 placeholder:text-slate-400 placeholder:font-medium focus:outline-none focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all">
-          <button type="submit"
-            class="absolute inset-y-2 right-2 bg-emerald-50 text-emerald-600 px-5 rounded-xl text-[13px] font-black tracking-wide hover:bg-emerald-100 transition-colors h-12">
-            Find
-          </button>
         </form>
 
       </div>
@@ -97,29 +122,30 @@
 
 <script>
   const btn = document.getElementById('fetch-location-btn');
-  const icon = document.getElementById('fetch-icon');
-  const text = document.getElementById('fetch-text');
   const container = document.getElementById('actions-container');
   const loading = document.getElementById('loading-state');
   const loadingText = document.getElementById('loading-text');
+  const searchForm = document.getElementById('search-location-form');
+  const searchInput = document.getElementById('search-location-input');
 
-  btn.addEventListener('click', () => {
+  // Core Location Detection Function
+  function detectLocation(isAuto = false) {
     if (!navigator.geolocation) {
-      alert("Geolocation is not supported by your browser");
+      if (!isAuto) alert("Geolocation is not supported by your browser");
       return;
     }
 
     container.classList.add('hidden');
     loading.classList.remove('hidden');
     loading.classList.add('flex');
-    loadingText.textContent = "Locating you...";
+    loadingText.textContent = isAuto ? "Auto-detecting your location..." : "Locating device...";
 
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
 
-        loadingText.textContent = "Identifying address...";
+        loadingText.textContent = "Fetching address...";
 
         let address = "Selected Location";
         try {
@@ -149,32 +175,48 @@
         }
       },
       (err) => {
-        let errorMsg = "Could not get location. Please enable location services.";
-        if (err.code === 1) errorMsg = "Location access denied. Please allow location access in your browser settings.";
-        else if (err.code === 2) errorMsg = "Location unavailable. Please check your GPS signal.";
-        else if (err.code === 3) errorMsg = "Location request timed out. Please try again.";
-        alert(errorMsg);
+        // Handle error silently if auto-detect fails, or alert if manually clicked
+        if (!isAuto) {
+          let errorMsg = "Could not get location. Please enable location services.";
+          if (err.code === 1) errorMsg = "Location access denied. Please allow access in browser settings or search manually.";
+          else if (err.code === 2) errorMsg = "Location unavailable. Please check GPS connection.";
+          else if (err.code === 3) errorMsg = "Location request timed out. Please try again.";
+          alert(errorMsg);
+        }
         resetUI();
       },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
-  });
+  }
 
-  const searchForm = document.getElementById('search-location-form');
-  const searchInput = document.getElementById('search-location-input');
+  // Manual Trigger via Button Click
+  btn.addEventListener('click', () => detectLocation(false));
 
-  searchForm.addEventListener('submit', async (e) => {
+  // Search Form Submission
+  searchForm.addEventListener('submit', (e) => {
     e.preventDefault();
     const query = searchInput.value.trim();
     if (!query) return;
     window.location.href = `/societies?search=${encodeURIComponent(query)}`;
   });
 
+  // Quick Chip Selector
+  function selectQuickLocation(label) {
+    searchInput.value = label;
+    searchInput.focus();
+  }
+
+  // Reset UI to manual state on failure/cancel
   function resetUI() {
     container.classList.remove('hidden');
     loading.classList.add('hidden');
     loading.classList.remove('flex');
   }
+
+  // Auto-run geolocation when page loads
+  window.addEventListener('DOMContentLoaded', () => {
+    detectLocation(true);
+  });
 </script>
 {% endblock %}
 
