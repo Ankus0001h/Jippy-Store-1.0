@@ -96,10 +96,10 @@
 
   {% else %}
     <!-- Main View (Zepto Split Layout) -->
-    <div class="flex gap-2 sm:gap-6 items-start">
+    <div class="flex gap-0 sm:gap-6 items-start -mx-1 sm:mx-0">
       
       <!-- Left Sidebar: Categories -->
-      <div class="w-[90px] sm:w-[240px] shrink-0 sticky top-[60px] sm:top-[68px] h-[calc(100dvh-70px)] sm:h-[calc(100dvh-78px)] overflow-y-auto no-scrollbar flex flex-col pb-32 bg-[#f8fafc] border-r border-slate-100/50 pt-2 pl-1 sm:pl-0 shadow-[inset_-4px_0_10px_-10px_rgba(0,0,0,0.05)] rounded-tr-2xl">
+      <div class="w-[88px] sm:w-[240px] shrink-0 sticky top-[60px] sm:top-[68px] h-[calc(100dvh-70px)] sm:h-[calc(100dvh-78px)] overflow-y-auto overflow-x-hidden no-scrollbar flex flex-col pb-32 bg-[#f8fafc] border-r border-slate-100/50 pt-2 px-1 sm:px-0 shadow-[inset_-4px_0_10px_-10px_rgba(0,0,0,0.05)]">
         <a href="{{ url_for('index') }}" 
            class="flex flex-col sm:flex-row items-center gap-1.5 sm:gap-4 px-2 py-1.5 sm:px-5 sm:py-3.5 transition-all relative group {% if not selected_category %} bg-white shadow-sm {% else %} hover:bg-white/60 {% endif %}" 
            onclick="localStorage.removeItem('lastSearch')">
