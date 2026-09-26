@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block full_content %}
-<div class="relative min-h-screen bg-slate-50 flex flex-col justify-center items-center font-['Plus_Jakarta_Sans'] overflow-hidden antialiased pb-20 md:pb-0">
+<div class="relative min-h-screen bg-slate-50 flex flex-col items-center font-['Plus_Jakarta_Sans'] overflow-hidden antialiased" style="padding-top: max(env(safe-area-inset-top, 0px), 24px); padding-bottom: max(env(safe-area-inset-bottom, 0px), 24px);">
 
   <!-- Map Background Simulation -->
   <div class="absolute inset-0 z-0 pointer-events-none">
@@ -14,7 +14,10 @@
   </div>
 
   <!-- Center Floating Map Marker -->
-  <div class="relative z-10 flex flex-col items-center justify-center -mt-24 mb-6 md:-mt-12 md:mb-8">
+  <!-- Spacer to push content down naturally -->
+  <div class="flex-1 min-h-[60px] md:min-h-[80px]"></div>
+
+  <div class="relative z-10 flex flex-col items-center justify-center mb-6 md:mb-8">
     
     <!-- Delivery Time Badge Header -->
     <div class="mb-5 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-900 text-white shadow-xl shadow-slate-900/10 border border-slate-800">
@@ -37,7 +40,10 @@
   </div>
 
   <!-- Central/Bottom Dialog Card -->
-  <div class="fixed bottom-6 left-4 right-4 md:relative md:bottom-auto md:left-auto md:right-auto w-[calc(100%-2rem)] md:w-full md:max-w-[460px] bg-white rounded-[2.25rem] shadow-[0_15px_50px_rgba(0,0,0,0.12)] border border-slate-100 z-30 overflow-hidden transform md:-translate-y-6">
+  <!-- Bottom Spacer -->
+  <div class="flex-1 min-h-[20px] md:min-h-[30px]"></div>
+
+  <div class="relative w-[calc(100%-2rem)] md:w-full md:max-w-[460px] bg-white rounded-[2.25rem] shadow-[0_15px_50px_rgba(0,0,0,0.12)] border border-slate-100 z-30 overflow-hidden mb-6">
     
     <!-- Mobile Sheet Handle Notch -->
     <div class="md:hidden flex justify-center pt-3.5 pb-1">
