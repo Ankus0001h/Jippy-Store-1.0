@@ -3,7 +3,7 @@
 
 <!-- Header with Address -->
 <div class="sticky top-0 z-40 bg-white border-b border-slate-100 shadow-[0_4px_20px_-10px_rgba(0,0,0,0.05)] pb-4 pt-6 px-4">
-  <a href="{{ url_for('index') }}" class="inline-flex items-center gap-2 mb-4 text-emerald-600 hover:text-emerald-700 font-bold text-sm transition-colors">
+  <a href="{{ url_for('index', force=1) }}" class="inline-flex items-center gap-2 mb-4 text-emerald-600 hover:text-emerald-700 font-bold text-sm transition-colors">
     <i class="fas fa-arrow-left"></i> Change Location
   </a>
   
@@ -61,7 +61,7 @@
         </div>
         <h4 class="text-lg font-bold text-slate-800 mb-2">No societies found</h4>
         <p class="text-sm font-medium text-slate-500 mb-6">We couldn't find any Jippy serviceable societies near this location.</p>
-        <a href="{{ url_for('index') }}" class="bg-slate-900 text-white px-6 py-3 rounded-xl text-sm font-bold shadow-md hover:bg-slate-800 transition-colors">Try Another Location</a>
+        <a href="{{ url_for('index', force=1) }}" class="bg-slate-900 text-white px-6 py-3 rounded-xl text-sm font-bold shadow-md hover:bg-slate-800 transition-colors">Try Another Location</a>
       </div>
     {% endif %}
   </div>
