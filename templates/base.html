@@ -60,7 +60,7 @@
       <div class="flex items-center justify-between h-14 sm:h-16">
         
         <!-- Left: Location Block -->
-        <a href="{{ url_for('index') }}" class="flex items-center gap-2.5 active:scale-95 transition-transform">
+        <a href="{{ url_for('index', force=1) }}" class="flex items-center gap-2.5 active:scale-95 transition-transform">
           <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-[10px] overflow-hidden bg-slate-100 shrink-0 shadow-sm border border-slate-200/50">
             {% if shop and shop.shop_image %}
               <img src="{{ shop.shop_image }}" alt="{{ shop.shop_name }}" class="w-full h-full object-cover">
@@ -166,7 +166,7 @@
   <div class="fixed bottom-8 sm:bottom-10 left-0 right-0 z-50 flex justify-center lg:hidden pointer-events-none pb-[env(safe-area-inset-bottom)]">
     <div class="pointer-events-auto w-[92%] max-w-sm mx-auto bg-white/95 backdrop-blur-xl border border-slate-100 rounded-[2rem] shadow-[0_10px_40px_-10px_rgba(0,0,0,0.2)]">
       <div class="flex items-center justify-around py-2.5 px-2">
-      <a href="{{ url_for('index') }}" class="flex flex-col items-center gap-1 transition-colors {{ 'text-emerald-600' if request.endpoint == 'index' else 'text-slate-400 hover:text-emerald-600' }}">
+      <a href="{{ url_for('index') }}" class="flex flex-col items-center gap-1 transition-colors {{ 'text-emerald-600' if request.endpoint in ['index', 'societies_page', 'shop_home'] else 'text-slate-400 hover:text-emerald-600' }}">
         <i class="fas fa-store text-xl"></i>
         <span class="text-[9px] font-black tracking-wide">HOME</span>
       </a>
