@@ -359,7 +359,7 @@ def societies_page():
                 
         # Sort by distance
         results.sort(key=lambda x: x["distance"])
-        top_societies = results[:10]
+        top_societies = results[:1]
     
     return render_template("societies.html", societies=top_societies, user_address=user_address)
 
