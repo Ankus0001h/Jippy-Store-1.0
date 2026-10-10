@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block full_content %}
-<div class="relative min-h-screen bg-slate-50 flex flex-col items-center font-['Plus_Jakarta_Sans'] overflow-hidden antialiased" style="padding-top: max(env(safe-area-inset-top, 0px), 24px); padding-bottom: max(env(safe-area-inset-bottom, 0px), 24px);">
+<div class="relative min-h-[100dvh] w-full bg-slate-50 flex flex-col items-center font-['Plus_Jakarta_Sans'] overflow-y-auto overflow-x-hidden antialiased" style="padding-top: max(env(safe-area-inset-top, 0px), 24px); padding-bottom: max(env(safe-area-inset-bottom, 0px), 24px);">
 
   <!-- Map Background Simulation -->
   <div class="absolute inset-0 z-0 pointer-events-none">
@@ -61,18 +61,7 @@
         <p class="mt-1 text-xs text-slate-500 font-medium">To see available products and delivery speeds near you</p>
       </div>
 
-      <!-- Quick Address Chips -->
-      <div class="flex items-center gap-2 mb-5 overflow-x-auto pb-1 scrollbar-none">
-        <button type="button" onclick="selectQuickLocation('Home')" class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 text-slate-700 border border-slate-200/60 text-xs font-bold transition-all whitespace-nowrap">
-          <i class="fas fa-house text-slate-500"></i> Home
-        </button>
-        <button type="button" onclick="selectQuickLocation('Work')" class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 text-slate-700 border border-slate-200/60 text-xs font-bold transition-all whitespace-nowrap">
-          <i class="fas fa-briefcase text-slate-500"></i> Work
-        </button>
-        <button type="button" onclick="selectQuickLocation('Other')" class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 text-slate-700 border border-slate-200/60 text-xs font-bold transition-all whitespace-nowrap">
-          <i class="fas fa-bookmark text-slate-500"></i> Saved
-        </button>
-      </div>
+
 
       <!-- Loading State -->
       <div id="loading-state" class="hidden flex-col items-center justify-center py-6 space-y-3">
@@ -156,7 +145,7 @@
 
         let address = "Selected Location";
         try {
-          const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+          const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=en`);
           if (geoRes.ok) {
             const geoData = await geoRes.json();
             if (geoData.display_name) {
@@ -207,6 +196,13 @@
     window.location.href = `/societies?search=${encodeURIComponent(query)}`;
   });
 
+  // Auto-scroll on focus to handle mobile keyboards hiding the input
+  searchInput.addEventListener('focus', () => {
+    setTimeout(() => {
+      searchForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 400); // delay allows virtual keyboard to fully open before scrolling
+  });
+
   // Quick Chip Selector
   function selectQuickLocation(label) {
     searchInput.value = label;
@@ -242,6 +238,12 @@
       detectLocation(true);
     }
     // If already tried (back button / revisit), show manual controls directly
+  });
+  // Handle back button caching (bfcache)
+  window.addEventListener('pageshow', function(event) {
+    if (event.persisted) {
+      window.location.reload();
+    }
   });
 </script>
 {% endblock %}
