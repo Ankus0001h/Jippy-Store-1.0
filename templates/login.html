@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="min-h-screen flex items-center justify-center bg-[#F5F7FA] px-4">
+<div class="min-h-[100dvh] flex flex-col sm:items-center sm:justify-center bg-white sm:bg-slate-50 sm:px-4">
   
-  <div class="max-w-[400px] w-full bg-white rounded-[24px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 overflow-hidden relative">
+  <div class="w-full flex-1 sm:flex-none sm:max-w-[400px] bg-white sm:rounded-[24px] sm:shadow-xl sm:border sm:border-slate-100 relative flex flex-col">
     
     <!-- Alert -->
     <div id="alert-msg" style="display: none;" class="absolute top-4 left-4 right-4 z-50 p-3 rounded-xl bg-red-50 border border-red-100 flex gap-2 items-start animate-fade-in shadow-sm">
@@ -11,16 +11,16 @@
     </div>
 
     {# STEP 1: Phone Form #}
-    <form id="login-form">
-      <div class="pt-12 pb-6 px-8 flex flex-col items-center text-center">
+    <form id="login-form" class="flex flex-col flex-1 pb-safe">
+      <div class="pt-16 sm:pt-12 pb-8 px-8 flex flex-col items-center text-center">
         <div class="w-16 h-16 rounded-[14px] bg-white shadow-[0_4px_12px_rgb(0,0,0,0.08)] mb-6 p-1.5 flex items-center justify-center overflow-hidden">
           <img src="/static/logo.jpeg" alt="Jippy" class="w-full h-full object-contain rounded-[10px]">
         </div>
         <h1 class="text-[22px] leading-tight font-extrabold text-gray-900 tracking-tight">Groceries delivered in<br>10 minutes</h1>
       </div>
 
-      <div class="px-8 pb-10">
-        <div class="mb-4">
+      <div class="px-8 pb-10 flex flex-col flex-1">
+        <div class="mb-4 mt-4">
           <div class="flex items-center bg-white rounded-xl border border-gray-200 focus-within:border-emerald-500 focus-within:ring-1 focus-within:ring-emerald-500 transition-all overflow-hidden h-14">
             <div class="flex items-center justify-center pl-4 pr-3 text-gray-700 font-semibold text-base border-r border-gray-200 h-full bg-gray-50/50">
               🇮🇳 +91
@@ -45,8 +45,9 @@
           Continue
         </button>
 
-        <p class="text-center text-[11px] text-gray-500 font-medium mt-6">
-          By continuing, you agree to our <br>
+        <div class="mt-auto pt-8">
+          <p class="text-center text-[11px] text-gray-500 font-medium">
+            By continuing, you agree to our <br>
           <a href="#" class="text-[#0C831F] font-semibold">Terms of service</a> & <a href="#" class="text-[#0C831F] font-semibold">Privacy policy</a>
         </p>
 
@@ -54,11 +55,18 @@
           Don't have an account? 
           <a href="{{ url_for('register') }}" class="text-[#0C831F] font-bold ml-1">Sign up</a>
         </p>
+
+        <div class="flex items-center justify-center gap-4 mt-6 pt-4 border-t border-gray-100">
+          <a href="{{ url_for('admin_login') }}" class="text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-emerald-600 transition-colors">Admin Node</a>
+          <span class="w-1 h-1 bg-gray-200 rounded-full"></span>
+          <a href="{{ url_for('portal_login') }}" class="text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-blue-600 transition-colors">Logistics</a>
+        </div>
+        </div>
       </div>
     </form>
 
     {# STEP 2: OTP dialog #}
-    <form id="login-otp-form" class="pb-10" style="display:none">
+    <form id="login-otp-form" class="flex flex-col flex-1 pb-safe" style="display:none">
       
       <!-- Back button & Header -->
       <div class="px-6 pt-6 pb-2 flex items-center gap-3">
@@ -72,7 +80,7 @@
         <p class="mt-1.5 text-[13px] text-gray-500 font-medium">We have sent a verification code to <br><span id="display-phone" class="font-bold text-gray-800"></span></p>
       </div>
 
-      <div class="px-8 mt-8">
+      <div class="px-8 mt-8 flex flex-col flex-1">
         <div class="flex items-center justify-between gap-2">
           {% for i in range(1,7) %}
             <input
@@ -93,7 +101,7 @@
         <button
           type="submit"
           id="login-verify-btn"
-          class="w-full h-14 rounded-xl text-base font-bold bg-[#0C831F] hover:bg-[#0A6D19] text-white transition-colors flex items-center justify-center shadow-sm mt-8"
+          class="w-full h-14 rounded-xl text-base font-bold bg-[#0C831F] hover:bg-[#0A6D19] text-white transition-colors flex items-center justify-center shadow-sm mt-auto mb-8 sm:mt-8"
         >
           Verify
         </button>
