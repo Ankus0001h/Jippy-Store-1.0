@@ -13,9 +13,8 @@
     input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
   </style>
 </head>
-<body class="min-h-screen flex items-center justify-center px-4 py-12">
-  <div class="w-full max-w-md animate-fade-in">
-    <div class="bg-white border border-slate-200 rounded-[2.5rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] p-8 sm:p-10">
+<body class="min-h-[100dvh] bg-white sm:bg-[#f8fafc] flex flex-col sm:items-center sm:justify-center sm:px-4">
+  <div class="w-full flex-1 sm:flex-none sm:max-w-md bg-white sm:border sm:border-slate-200 sm:rounded-[2.5rem] sm:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] p-8 sm:p-10 flex flex-col pb-safe">
       
       <div class="text-center mb-8">
         <div class="w-16 h-16 rounded-2xl bg-emerald-600 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-emerald-200 border-4 border-white">
@@ -32,7 +31,7 @@
         </div>
       {% endif %}
 
-      <form method="post" class="space-y-5" id="portal-login-form">
+      <form method="post" class="space-y-5 flex flex-col flex-1" id="portal-login-form">
         <div class="space-y-1.5">
           <label class="block text-[11px] font-black uppercase tracking-wider text-slate-600 ml-1">Official Email</label>
           <div class="relative group">
@@ -95,13 +94,13 @@
         <button
           type="submit"
           id="portal-login-submit"
-          class="w-full bg-slate-900 text-white py-4 rounded-2xl text-sm font-black uppercase tracking-widest hover:bg-emerald-700 transition-all active:scale-[0.98] shadow-lg shadow-slate-200 mt-2"
+          class="w-full bg-slate-900 text-white py-4 rounded-2xl text-sm font-black uppercase tracking-widest hover:bg-emerald-700 transition-all active:scale-[0.98] shadow-lg shadow-slate-200 mt-auto sm:mt-6 mb-2 sm:mb-0"
         >
           <span id="portal-login-submit-text">Enter Portal</span>
         </button>
       </form>
       
-      <div class="mt-8 text-center border-t border-slate-100 pt-6">
+      <div class="mt-8 text-center border-t border-slate-100 pt-6 sm:mt-8">
         <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center justify-center gap-2">
             <i class="fas fa-shield-halved text-emerald-600"></i> Encrypted Session
         </p>
