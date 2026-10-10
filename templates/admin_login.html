@@ -17,10 +17,9 @@
     .space-y-custom > :not([hidden]) ~ :not([hidden]) { margin-top: 1.25rem; }
   </style>
 </head>
-<body class="min-h-screen bg-[#f1f5f9] flex items-center justify-center px-4">
+<body class="min-h-[100dvh] bg-white sm:bg-[#f1f5f9] flex flex-col sm:items-center sm:justify-center sm:px-4">
 
-  <div class="w-full max-w-md">
-    <div class="bg-white border-2 border-slate-200 rounded-[2rem] shadow-xl p-8 sm:p-10">
+  <div class="w-full flex-1 sm:flex-none sm:max-w-md bg-white sm:border-2 sm:border-slate-200 sm:rounded-[2rem] sm:shadow-xl p-8 sm:p-10 flex flex-col pb-safe">
       
       <div class="text-center mb-6">
         <div class="w-16 h-16 rounded-2xl bg-emerald-600 flex items-center justify-center mx-auto mb-4 shadow-lg border-4 border-white">
@@ -37,7 +36,7 @@
         </div>
       {% endif %}
 
-      <form method="post" id="admin-login-form" class="space-y-custom">
+      <form method="post" id="admin-login-form" class="space-y-custom flex flex-col flex-1">
         <div class="space-y-1.5">
           <label class="block text-[11px] font-black uppercase tracking-wider text-slate-600 ml-1">Admin Email</label>
           <div class="relative group">
@@ -108,14 +107,14 @@
         <button
           type="submit"
           id="admin-login-submit"
-          class="w-full bg-slate-900 text-white py-4 rounded-xl text-sm font-black uppercase tracking-widest hover:bg-emerald-700 transition-all active:scale-[0.98] flex items-center justify-center gap-3 shadow-lg"
+          class="w-full bg-slate-900 text-white py-4 rounded-xl text-sm font-black uppercase tracking-widest hover:bg-emerald-700 transition-all active:scale-[0.98] flex items-center justify-center gap-3 shadow-lg mt-auto sm:mt-6"
         >
           <span id="admin-login-submit-text">Login to Dashboard</span>
           <i class="fas fa-chevron-right text-xs"></i>
         </button>
       </form>
 
-      <div class="mt-8 text-center border-t border-slate-100 pt-6">
+      <div class="mt-8 text-center border-t border-slate-100 pt-6 sm:mt-8">
         <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center justify-center gap-2">
             <i class="fas fa-lock text-emerald-600"></i> Encrypted Session
         </p>
