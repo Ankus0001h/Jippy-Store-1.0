@@ -35,14 +35,13 @@ from flask_caching import Cache
 
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "devkey")
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=90)
 
 # Cache configuration for performance
 app.config['CACHE_TYPE'] = 'SimpleCache'
 app.config['CACHE_DEFAULT_TIMEOUT'] = 300
 cache = Cache(app)
 
-# NEW: long‑lived sessions (e.g. 90 days)
-app.permanent_session_lifetime = timedelta(days=90)
 
 # ---------- Security & admin creds ----------
 bcrypt = Bcrypt(app)
