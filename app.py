@@ -151,7 +151,7 @@ def add_cache_headers(response):
         # Cache static files (CSS, JS, images) for 30 days
         response.cache_control.max_age = 2592000
         response.cache_control.public = True
-    elif request.path == '/' or request.path.startswith('/category/'):
+    elif request.path.startswith('/category/'):
         # Cache main public pages for a short time (e.g., 5 mins) if they don't have user specific data
         # BUT just to be safe with user carts, we'll let the frontend revalidate them.
         # WebView can cache them with must-revalidate.
@@ -294,6 +294,9 @@ def category_page(name):
 
 @app.route("/")
 def index():
+    force = request.args.get("force")
+    if not force and session.get("user_lat") and session.get("user_lng"):
+        return redirect(url_for("societies_page"))
     # Show the location fetcher page
     return render_template("location.html")
 
