@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block full_content %}
-<div class="relative min-h-[100dvh] w-full bg-slate-50 flex flex-col items-center font-['Plus_Jakarta_Sans'] overflow-y-auto overflow-x-hidden antialiased" style="padding-top: max(env(safe-area-inset-top, 0px), 24px); padding-bottom: max(env(safe-area-inset-bottom, 0px), 24px);">
+<div id="main-location-container" class="relative min-h-[100dvh] w-full bg-slate-50 flex flex-col items-center font-['Plus_Jakarta_Sans'] overflow-y-auto overflow-x-hidden antialiased" style="padding-top: max(env(safe-area-inset-top, 0px), 24px); padding-bottom: max(env(safe-area-inset-bottom, 0px), 24px);">
 
   <!-- Map Background Simulation -->
   <div class="absolute inset-0 z-0 pointer-events-none">
@@ -202,6 +202,19 @@
       searchForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }, 400); // delay allows virtual keyboard to fully open before scrolling
   });
+
+  // WebView Keyboard Fix: Force container height to match visual viewport
+  if (window.visualViewport) {
+    const mainContainer = document.getElementById('main-location-container');
+    function updateHeight() {
+      if (mainContainer) {
+        mainContainer.style.height = window.visualViewport.height + 'px';
+        mainContainer.style.minHeight = window.visualViewport.height + 'px';
+      }
+    }
+    window.visualViewport.addEventListener('resize', updateHeight);
+    updateHeight();
+  }
 
   // Quick Chip Selector
   function selectQuickLocation(label) {
