@@ -1,118 +1,88 @@
 {% extends "base.html" %}
 {% block full_content %}
-<div id="main-location-container" class="relative min-h-[100dvh] w-full bg-slate-50 flex flex-col items-center font-['Plus_Jakarta_Sans'] overflow-y-auto overflow-x-hidden antialiased" style="padding-top: max(env(safe-area-inset-top, 0px), 24px); padding-bottom: max(env(safe-area-inset-bottom, 0px), 24px);">
+<div id="main-location-container" class="relative min-h-[100dvh] w-full bg-slate-50 flex flex-col font-['Plus_Jakarta_Sans'] overflow-y-auto overflow-x-hidden antialiased" style="padding-top: max(env(safe-area-inset-top, 0px), 16px); padding-bottom: max(env(safe-area-inset-bottom, 0px), 16px);">
 
   <!-- Map Background Simulation -->
   <div class="absolute inset-0 z-0 pointer-events-none">
-    <!-- Subtle Grid Pattern -->
-    <div class="absolute inset-0 opacity-40"
-      style="background-image: radial-gradient(circle at 2px 2px, #10b981 1.5px, transparent 0); background-size: 32px 32px;">
-    </div>
-    
-    <!-- Top & Bottom Gradient Blends -->
+    <div class="absolute inset-0 opacity-40" style="background-image: radial-gradient(circle at 2px 2px, #10b981 1.5px, transparent 0); background-size: 32px 32px;"></div>
     <div class="absolute inset-0 bg-gradient-to-b from-emerald-100/60 via-slate-50/20 to-slate-100"></div>
   </div>
 
-  <!-- Center Floating Map Marker -->
-  <!-- Spacer to push content down naturally -->
-  <div class="flex-1 min-h-[60px] md:min-h-[80px]"></div>
+  <!-- Top Content (Safe from Keyboard) -->
+  <div class="relative z-20 w-full px-4 sm:px-6 pt-4 flex-none">
+    <div class="w-full max-w-[460px] mx-auto bg-white rounded-[2.25rem] shadow-[0_20px_60px_rgba(0,0,0,0.12)] border border-slate-100 overflow-hidden">
+      
+      <div class="px-6 sm:px-8 pt-6 md:pt-7 pb-7 relative">
+        <!-- Header -->
+        <div class="text-left mb-6">
+          <div class="flex items-center gap-2">
+            <h2 class="text-2xl font-black text-slate-900 tracking-tight">Select Location</h2>
+            <span class="text-xs bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-md">Fastest</span>
+          </div>
+          <p class="mt-1.5 text-xs text-slate-500 font-medium">To see available products and delivery speeds near you</p>
+        </div>
 
-  <div class="relative z-10 flex flex-col items-center justify-center mb-6 md:mb-8">
-    
-    <!-- Delivery Time Badge Header -->
+        <!-- Loading State -->
+        <div id="loading-state" class="hidden flex-col items-center justify-center py-6 space-y-3">
+          <div class="relative w-12 h-12 flex items-center justify-center">
+            <div class="absolute inset-0 border-4 border-emerald-100 rounded-full"></div>
+            <div class="absolute inset-0 border-4 border-emerald-500 rounded-full border-t-transparent animate-spin"></div>
+            <i class="fas fa-location-crosshairs text-emerald-600 text-xs"></i>
+          </div>
+          <p id="loading-text" class="text-xs font-bold text-slate-600 tracking-wide">Automatically detecting location...</p>
+          <button type="button" onclick="cancelDetection()" class="mt-2 text-xs font-bold text-slate-400 hover:text-slate-600 underline underline-offset-2 transition-colors">Enter manually instead</button>
+        </div>
+
+        <!-- Actions Container -->
+        <div id="actions-container" class="space-y-5">
+          <!-- Primary Action Button -->
+          <button id="fetch-location-btn" type="button"
+            class="w-full h-15 py-4 bg-emerald-500 hover:bg-emerald-600 active:scale-[0.98] text-white font-extrabold rounded-2xl flex items-center justify-center gap-2.5 shadow-lg shadow-emerald-500/25 transition-all text-sm sm:text-base">
+            <i id="fetch-icon" class="fas fa-crosshairs text-lg"></i>
+            <span id="fetch-text">Use Current Location</span>
+          </button>
+
+          <!-- Divider -->
+          <div class="flex items-center gap-3 py-1">
+            <div class="h-[1px] bg-slate-100 flex-1"></div>
+            <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">or search manually</span>
+            <div class="h-[1px] bg-slate-100 flex-1"></div>
+          </div>
+
+          <!-- Fixed Search Form -->
+          <form id="search-location-form" class="relative">
+            <div class="relative flex items-center w-full">
+              <div class="absolute left-4 top-1/2 -translate-y-1/2 flex items-center pointer-events-none text-slate-400">
+                <i class="fas fa-magnifying-glass text-base"></i>
+              </div>
+              <input type="text" id="search-location-input" placeholder="Search area, street, or pincode..."
+                class="w-full pl-12 pr-24 h-16 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-900 placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all">
+              <button type="submit"
+                class="absolute right-2 top-1/2 -translate-y-1/2 bg-slate-900 hover:bg-slate-800 text-white px-4 h-12 rounded-xl text-xs font-extrabold transition-all active:scale-95 shadow-md">
+                Search
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Map Pin Decorative Graphic (Sits below card, covered by keyboard naturally) -->
+  <div class="relative z-10 flex-1 flex flex-col items-center justify-center mt-8 pb-16">
     <div class="mb-5 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-900 text-white shadow-xl shadow-slate-900/10 border border-slate-800">
       <div class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></div>
       <i class="fas fa-bolt text-amber-400 text-xs"></i>
       <span class="text-xs font-extrabold tracking-wide uppercase">Delivering in <span class="text-emerald-400">10 Mins</span></span>
     </div>
-
-    <!-- Pulsing Radar Base -->
     <div class="relative flex items-center justify-center">
       <div class="absolute w-36 h-36 bg-emerald-500/20 rounded-full animate-ping pointer-events-none" style="animation-duration: 3s;"></div>
       <div class="absolute w-24 h-24 bg-emerald-500/25 rounded-full blur-sm"></div>
-
-      <!-- Zepto-Style Location Pinhead -->
       <div class="relative w-16 h-16 bg-emerald-500 rounded-2xl shadow-[0_15px_30px_rgba(16,185,129,0.4)] flex items-center justify-center border-4 border-white transform transition-transform duration-300 hover:scale-105 cursor-pointer">
         <i class="fas fa-location-dot text-2xl text-white"></i>
       </div>
     </div>
     <div class="w-10 h-2 bg-slate-900/10 rounded-[100%] blur-[2px] mt-2"></div>
-  </div>
-
-  <!-- Central/Bottom Dialog Card -->
-  <!-- Bottom Spacer -->
-  <div class="flex-1 min-h-[280px] md:min-h-[320px]"></div>
-
-  <div class="absolute bottom-4 sm:bottom-6 w-[calc(100%-2rem)] md:w-full md:max-w-[460px] bg-white rounded-[2.25rem] shadow-[0_20px_60px_rgba(0,0,0,0.15)] border border-slate-100 z-30 overflow-hidden">
-    
-    <!-- Mobile Sheet Handle Notch -->
-    <div class="md:hidden flex justify-center pt-3.5 pb-1">
-      <div class="w-10 h-1 bg-slate-200 rounded-full"></div>
-    </div>
-
-    <div class="px-6 sm:px-8 pt-3 md:pt-7 pb-7 relative">
-
-      <!-- Header -->
-      <div class="text-left mb-5">
-        <div class="flex items-center gap-2">
-          <h2 class="text-2xl font-black text-slate-900 tracking-tight">Select Location</h2>
-          <span class="text-xs bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-md">Fastest</span>
-        </div>
-        <p class="mt-1 text-xs text-slate-500 font-medium">To see available products and delivery speeds near you</p>
-      </div>
-
-
-
-      <!-- Loading State -->
-      <div id="loading-state" class="hidden flex-col items-center justify-center py-6 space-y-3">
-        <div class="relative w-12 h-12 flex items-center justify-center">
-          <div class="absolute inset-0 border-4 border-emerald-100 rounded-full"></div>
-          <div class="absolute inset-0 border-4 border-emerald-500 rounded-full border-t-transparent animate-spin"></div>
-          <i class="fas fa-location-crosshairs text-emerald-600 text-xs"></i>
-        </div>
-        <p id="loading-text" class="text-xs font-bold text-slate-600 tracking-wide">Automatically detecting location...</p>
-        <button type="button" onclick="cancelDetection()" class="mt-2 text-xs font-bold text-slate-400 hover:text-slate-600 underline underline-offset-2 transition-colors">Enter manually instead</button>
-      </div>
-
-      <!-- Actions Container -->
-      <div id="actions-container" class="space-y-4">
-
-        <!-- Primary Action Button -->
-        <button id="fetch-location-btn" type="button"
-          class="w-full h-15 py-4 bg-emerald-500 hover:bg-emerald-600 active:scale-[0.98] text-white font-extrabold rounded-2xl flex items-center justify-center gap-2.5 shadow-lg shadow-emerald-500/25 transition-all text-sm sm:text-base">
-          <i id="fetch-icon" class="fas fa-crosshairs text-lg"></i>
-          <span id="fetch-text">Use Current Location</span>
-        </button>
-
-        <!-- Divider -->
-        <div class="flex items-center gap-3 py-1">
-          <div class="h-[1px] bg-slate-100 flex-1"></div>
-          <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">or search manually</span>
-          <div class="h-[1px] bg-slate-100 flex-1"></div>
-        </div>
-
-        <!-- Fixed Search Form -->
-        <form id="search-location-form" class="relative">
-          <div class="relative flex items-center w-full">
-            <!-- Icon vertically centered with top-1/2 -->
-            <div class="absolute left-4 top-1/2 -translate-y-1/2 flex items-center pointer-events-none text-slate-400">
-              <i class="fas fa-magnifying-glass text-base"></i>
-            </div>
-
-            <!-- Input field with proper left padding (pl-12) -->
-            <input type="text" id="search-location-input" placeholder="Search area, street, or pincode..."
-              class="w-full pl-12 pr-28 h-16 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-900 placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all">
-            
-            <!-- Search button vertically centered -->
-            <button type="submit"
-              class="absolute right-2 top-1/2 -translate-y-1/2 bg-slate-900 hover:bg-slate-800 text-white px-5 h-12 rounded-xl text-xs font-extrabold transition-all active:scale-95 shadow-md">
-              Search
-            </button>
-          </div>
-        </form>
-
-      </div>
-    </div>
   </div>
 </div>
 
