@@ -72,19 +72,19 @@
             </button>
           </div>
 
-          <div class="captcha-box-design rounded-2xl bg-slate-50 p-5 flex flex-col items-center justify-center gap-4">
-            <div id="captcha-box" class="text-3xl font-black text-slate-900 tracking-[0.5em] select-none py-1">
+          <div class="captcha-box-design rounded-2xl bg-slate-50 p-3 flex items-center justify-between gap-4">
+            <div id="captcha-box" class="text-xl sm:text-2xl font-black text-slate-900 tracking-[0.2em] select-none flex-1 text-center">
               {{ captcha_code }}
             </div>
             
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-1.5 sm:gap-2">
               {% for i in range(1,5) %}
               <input
                 type="text"
                 inputmode="numeric"
                 maxlength="1"
                 name="captcha{{ i }}"
-                class="w-11 h-12 text-center text-xl font-black rounded-xl border-2 border-slate-400 bg-white text-slate-900 focus:outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-500/10 transition-all"
+                class="w-10 h-10 text-center text-lg font-black rounded-xl border-2 border-slate-400 bg-white text-slate-900 focus:outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-500/10 transition-all"
               >
               {% endfor %}
             </div>
