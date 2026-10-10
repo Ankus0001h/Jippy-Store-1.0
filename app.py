@@ -1182,7 +1182,7 @@ def login():
 import requests
 
 def send_green_api_message(phone, message):
-    url = "http://54.206.54.159:3001/send-message"
+    url = "http://3.26.1.109:3001/send-message"
     
     # Ensure phone has country code and no '+'. Indian numbers default to 91.
     phone = phone.lstrip("+")
