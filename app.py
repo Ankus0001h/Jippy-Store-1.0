@@ -1182,9 +1182,7 @@ def login():
 import requests
 
 def send_green_api_message(phone, message):
-    id_instance = "710722692452"
-    api_token = "c3a48ad406db49e9bb4b5215868c36cad110862d546f4b38a1"
-    url = f"https://api.green-api.com/waInstance{id_instance}/sendMessage/{api_token}"
+    url = "http://54.206.54.159:3001/send-message"
     
     # Ensure phone has country code and no '+'. Indian numbers default to 91.
     phone = phone.lstrip("+")
@@ -1192,7 +1190,7 @@ def send_green_api_message(phone, message):
         phone = "91" + phone
         
     payload = {
-        "chatId": f"{phone}@c.us",
+        "phone": phone,
         "message": message
     }
     headers = {'Content-Type': 'application/json'}
