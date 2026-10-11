@@ -405,7 +405,7 @@
     <button type="button" onclick="saveRequestDrawer()"
       class="flex-1 py-2.5 sm:py-3 bg-[#fb641b] hover:bg-[#e85a15] active:scale-[0.98] text-white font-bold text-[14px] rounded-sm shadow-sm transition-all flex items-center justify-center gap-2 uppercase tracking-wider">
       <i id="drawer-save-btn-icon" class="fas {% if is_logged_in %}fa-check{% else %}fa-lock{% endif %}"></i>
-      <span id="drawer-save-btn-text">{% if is_logged_in %}Save Request{% else %}Login to Save Request{% endif %}</span>
+      <span id="drawer-save-btn-text">{% if is_logged_in %}Save Request{% else %}Login{% endif %}</span>
     </button>
   </div>
 </div>
@@ -460,14 +460,13 @@
   #request-drawer-backdrop {
     position: fixed;
     inset: 0;
-    background-color: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
+    background-color: rgba(0, 0, 0, 0.65);
     z-index: 998;
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
-    transition: opacity 0.3s ease, visibility 0.3s ease;
+    transition: opacity 0.25s ease, visibility 0.25s ease;
+    -webkit-tap-highlight-color: transparent;
   }
 
   #request-drawer-backdrop.drawer-open {
@@ -492,20 +491,31 @@
     z-index: 1000;
     display: flex;
     flex-direction: column;
-    box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.25);
     border-top-left-radius: 16px;
     border-top-right-radius: 16px;
-    transform: translateY(105%);
-    -webkit-transform: translateY(105%);
+    transform: translate3d(0, 105%, 0);
+    -webkit-transform: translate3d(0, 105%, 0);
     visibility: hidden;
     transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.35s ease;
     font-family: 'Plus Jakarta Sans', sans-serif;
     overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    perspective: 1000px;
+    -webkit-perspective: 1000px;
+    filter: none !important;
+    -webkit-filter: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
   }
 
   #request-drawer.drawer-open {
-    transform: translateY(0) !important;
-    -webkit-transform: translateY(0) !important;
+    transform: translate3d(0, 0, 0) !important;
+    -webkit-transform: translate3d(0, 0, 0) !important;
     visibility: visible !important;
   }
 
@@ -521,14 +531,14 @@
       height: 100dvh;
       max-height: 100dvh;
       border-radius: 0;
-      box-shadow: -10px 0 30px rgba(0, 0, 0, 0.2);
-      transform: translateX(105%);
-      -webkit-transform: translateX(105%);
+      box-shadow: -10px 0 30px rgba(0, 0, 0, 0.25);
+      transform: translate3d(105%, 0, 0);
+      -webkit-transform: translate3d(105%, 0, 0);
     }
 
     #request-drawer.drawer-open {
-      transform: translateX(0) !important;
-      -webkit-transform: translateX(0) !important;
+      transform: translate3d(0, 0, 0) !important;
+      -webkit-transform: translate3d(0, 0, 0) !important;
     }
   }
 </style>
@@ -796,10 +806,13 @@
     drawer.classList.add("drawer-open");
     document.body.style.overflow = "hidden";
 
-    setTimeout(() => {
-      const input = document.getElementById("drawer-item-name");
-      if (input) input.focus();
-    }, 250);
+    // On desktop, auto-focus after slide transition; on mobile avoid keyboard popup glitch mid-animation
+    if (window.innerWidth > 640) {
+      setTimeout(() => {
+        const input = document.getElementById("drawer-item-name");
+        if (input) input.focus();
+      }, 350);
+    }
   }
 
   function closeRequestDrawer() {
