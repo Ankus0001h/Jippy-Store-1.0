@@ -513,6 +513,8 @@ def shop_home(shop_id):
             
         session["current_shop_id"] = str(shop_id)
         session["current_shop_name"] = shop.get("shop_name", "Local Shop")
+        if shop.get("shop_image"):
+            session["current_shop_image"] = shop.get("shop_image")
         
         categories = get_cached_categories()
         return render_template("products.html", page_type="categories", categories=categories, shop=shop)
@@ -2486,11 +2488,21 @@ def my_profile():
         ]
     })
 
+    # fetch current active shop so header remains consistent
+    shop = None
+    shop_id = session.get("current_shop_id")
+    if shop_id:
+        try:
+            shop = users.find_one({"_id": ObjectId(shop_id), "role": "vendor"})
+        except Exception:
+            shop = None
+
     return render_template(
         "my_profile.html",
         user=user_doc,
         saved_addresses=saved_addresses,
         orders_count=orders_count,
+        shop=shop,
     )
 
 @app.route("/portal/delivery/<order_id>/qr")
