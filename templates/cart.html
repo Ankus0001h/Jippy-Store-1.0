@@ -271,66 +271,61 @@
 </div>
 
 <!-- ============================================== -->
-<!-- 📱 SIDE DRAWER / MODAL: SPECIAL REQUEST FORM   -->
+<!-- 📱 FULL-SCREEN VIEW: SPECIAL REQUEST & NOTES    -->
+<!-- Zero overlapping, 100% native feel in WebViews  -->
 <!-- ============================================== -->
-<div id="request-drawer-backdrop" onclick="closeRequestDrawer()"></div>
+<div id="request-fullscreen-view"
+  class="fixed inset-0 z-[999999] bg-[#f1f3f6] flex flex-col font-['Plus_Jakarta_Sans'] hidden">
 
-<div id="request-drawer">
-  <!-- Mobile Drag Bar (Native App Style) -->
-  <div class="pt-2.5 pb-1 flex justify-center sm:hidden shrink-0 bg-white cursor-pointer"
-    onclick="closeRequestDrawer()">
-    <div class="w-12 h-1.5 bg-slate-200 hover:bg-slate-300 rounded-full transition-colors"></div>
-  </div>
-
-  <!-- Drawer Header -->
-  <div class="px-4 py-3 sm:p-5 border-b border-slate-100 flex items-center justify-between bg-white shrink-0">
+  <!-- Header: Dedicated Top Navigation Bar (Flipkart Style Blue Bar) -->
+  <header class="bg-[#2874f0] text-white px-3 sm:px-4 py-3 flex items-center justify-between shrink-0 shadow-md">
     <div class="flex items-center gap-3 min-w-0">
-      <div
-        class="w-10 h-10 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center text-base border border-amber-200/60 shadow-2xs shrink-0">
-        <i class="fas fa-clipboard-list"></i>
-      </div>
+      <button type="button" onclick="closeRequestDrawer()"
+        class="w-9 h-9 rounded-full bg-white/15 hover:bg-white/25 active:scale-90 flex items-center justify-center text-white transition-all shrink-0"
+        title="Back to Cart">
+        <i class="fas fa-arrow-left text-sm sm:text-base"></i>
+      </button>
       <div class="min-w-0">
-        <h3 class="text-[14.5px] sm:text-[16px] font-bold text-[#212121] leading-tight truncate">Special Request &
-          Missing Items</h3>
-        <p class="text-[11px] font-medium text-[#878787] truncate mt-0.5">Add unlisted items from store</p>
+        <h2 class="text-[15px] sm:text-[17px] font-bold text-white leading-tight truncate">Special Request & Notes</h2>
+        <p class="text-[10.5px] sm:text-[11px] text-blue-100 font-medium truncate mt-0.5">Missing items & vendor note</p>
       </div>
     </div>
-    <button type="button" onclick="closeRequestDrawer()"
-      class="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center active:scale-95 transition-all shrink-0 ml-2"
-      title="Close">
-      <i class="fas fa-times text-xs sm:text-sm"></i>
+    <button type="button" onclick="saveRequestDrawer()"
+      class="px-3.5 py-1.5 bg-[#fb641b] hover:bg-[#e85a15] active:scale-95 text-white text-[12px] font-bold rounded-sm shadow-sm transition-all flex items-center gap-1.5 uppercase tracking-wider shrink-0">
+      <i class="fas fa-check text-[10px]"></i>
+      <span>Save</span>
     </button>
-  </div>
+  </header>
 
-  <!-- Drawer Body (Scrollable with min-h-0 so flexbox doesn't push footer offscreen) -->
-  <div class="flex-1 min-h-0 overflow-y-auto p-4 sm:p-5 space-y-4">
+  <!-- Body: Scrollable Content with natural flex layout -->
+  <main class="flex-1 overflow-y-auto p-3 sm:p-5 max-w-[580px] w-full mx-auto space-y-3 pb-8">
     <!-- Notice Banner -->
     <div
-      class="p-3 bg-amber-50 border border-amber-200 rounded-sm flex items-start gap-2.5 text-[11px] text-amber-800 leading-relaxed font-medium">
+      class="p-3 bg-amber-50 border border-amber-200 rounded-sm flex items-start gap-2.5 text-[11.5px] text-amber-900 leading-relaxed font-medium">
       <i class="fas fa-lightbulb text-amber-600 text-xs mt-0.5 shrink-0"></i>
-      <span>Store vendor will check physical stock while packing. Any extra item cost will be settled at your
+      <span>Store vendor will check physical availability while packing. Any extra item cost will be settled at your
         doorstep.</span>
     </div>
 
     <!-- Point-wise Input Card -->
-    <div class="bg-slate-50 border border-[#e0e0e0] rounded-sm p-3.5 space-y-3">
-      <div class="flex items-center justify-between">
-        <label class="text-[11px] font-bold uppercase tracking-wider text-[#212121]">Add Item Point-wise</label>
-        <span class="text-[10px] font-bold text-[#878787]">Step by step</span>
+    <div class="bg-white border border-[#e0e0e0] rounded-sm p-3.5 sm:p-4 shadow-2xs space-y-3">
+      <div class="flex items-center justify-between border-b border-[#f0f0f0] pb-2">
+        <label class="text-[11.5px] font-bold uppercase tracking-wider text-[#212121]">Add Item Point-wise</label>
+        <span class="text-[10px] font-bold text-[#878787]">Quick Add</span>
       </div>
 
-      <div class="space-y-2">
-        <input id="drawer-item-name" type="text" placeholder="Item name (e.g. Fresh Dhaniya / Nimbu / Bread)"
-          class="w-full px-3 py-2.5 bg-white border border-[#e0e0e0] rounded-sm text-[13px] font-medium text-[#212121] placeholder:text-slate-400 outline-none focus:border-[#2874f0] focus:ring-2 focus:ring-blue-100 transition-all"
+      <div class="space-y-2.5">
+        <input id="drawer-item-name" type="text" placeholder="Item name (e.g. Fresh Dhaniya, Nimbu, Pav, Bread)"
+          class="w-full px-3 py-2.5 bg-slate-50 focus:bg-white border border-[#e0e0e0] rounded-sm text-[13.5px] font-medium text-[#212121] placeholder:text-slate-400 outline-none focus:border-[#2874f0] focus:ring-2 focus:ring-blue-100 transition-all"
           onkeydown="if(event.key === 'Enter') { event.preventDefault(); addSpecialItem(); }">
 
         <div class="flex gap-2">
           <input id="drawer-item-qty" type="text" placeholder="Quantity / Unit (e.g. 1 bunch, 250g, 1 pkt)"
-            class="flex-1 px-3 py-2.5 bg-white border border-[#e0e0e0] rounded-sm text-[13px] font-medium text-[#212121] placeholder:text-slate-400 outline-none focus:border-[#2874f0] focus:ring-2 focus:ring-blue-100 transition-all"
+            class="flex-1 px-3 py-2.5 bg-slate-50 focus:bg-white border border-[#e0e0e0] rounded-sm text-[13px] font-medium text-[#212121] placeholder:text-slate-400 outline-none focus:border-[#2874f0] focus:ring-2 focus:ring-blue-100 transition-all"
             onkeydown="if(event.key === 'Enter') { event.preventDefault(); addSpecialItem(); }">
 
           <button type="button" onclick="addSpecialItem()"
-            class="px-4 py-2.5 bg-[#2874f0] hover:bg-blue-700 active:scale-95 text-white font-bold text-[12px] rounded-sm shadow-2xs transition-all flex items-center gap-1.5 shrink-0 uppercase tracking-wider">
+            class="px-4 py-2.5 bg-[#2874f0] hover:bg-blue-700 active:scale-95 text-white font-bold text-[12.5px] rounded-sm shadow-2xs transition-all flex items-center gap-1.5 shrink-0 uppercase tracking-wider">
             <i class="fas fa-plus text-[10px]"></i>
             <span>Add</span>
           </button>
@@ -338,45 +333,45 @@
       </div>
 
       <!-- Quick Quantity Helper Chips -->
-      <div class="flex items-center gap-1.5 flex-wrap pt-0.5">
-        <span class="text-[10px] font-bold text-[#878787]">Quick qty:</span>
+      <div class="flex items-center gap-1.5 flex-wrap pt-1 border-t border-[#f0f0f0]">
+        <span class="text-[10.5px] font-bold text-[#878787]">Quick qty:</span>
         <button type="button" onclick="setDrawerQty('1 pkt')"
-          class="text-[10px] font-bold bg-white text-slate-700 border border-[#e0e0e0] px-2 py-0.5 rounded-sm hover:border-[#2874f0] active:scale-95 transition-all">1
+          class="text-[10.5px] font-bold bg-[#f8f9fa] text-slate-700 border border-[#e0e0e0] px-2.5 py-0.5 rounded-sm hover:border-[#2874f0] active:scale-95 transition-all">1
           pkt</button>
         <button type="button" onclick="setDrawerQty('1 bunch')"
-          class="text-[10px] font-bold bg-white text-slate-700 border border-[#e0e0e0] px-2 py-0.5 rounded-sm hover:border-[#2874f0] active:scale-95 transition-all">1
+          class="text-[10.5px] font-bold bg-[#f8f9fa] text-slate-700 border border-[#e0e0e0] px-2.5 py-0.5 rounded-sm hover:border-[#2874f0] active:scale-95 transition-all">1
           bunch</button>
         <button type="button" onclick="setDrawerQty('2 pcs')"
-          class="text-[10px] font-bold bg-white text-slate-700 border border-[#e0e0e0] px-2 py-0.5 rounded-sm hover:border-[#2874f0] active:scale-95 transition-all">2
+          class="text-[10.5px] font-bold bg-[#f8f9fa] text-slate-700 border border-[#e0e0e0] px-2.5 py-0.5 rounded-sm hover:border-[#2874f0] active:scale-95 transition-all">2
           pcs</button>
         <button type="button" onclick="setDrawerQty('250g')"
-          class="text-[10px] font-bold bg-white text-slate-700 border border-[#e0e0e0] px-2 py-0.5 rounded-sm hover:border-[#2874f0] active:scale-95 transition-all">250g</button>
+          class="text-[10.5px] font-bold bg-[#f8f9fa] text-slate-700 border border-[#e0e0e0] px-2.5 py-0.5 rounded-sm hover:border-[#2874f0] active:scale-95 transition-all">250g</button>
         <button type="button" onclick="setDrawerQty('500g')"
-          class="text-[10px] font-bold bg-white text-slate-700 border border-[#e0e0e0] px-2 py-0.5 rounded-sm hover:border-[#2874f0] active:scale-95 transition-all">500g</button>
+          class="text-[10.5px] font-bold bg-[#f8f9fa] text-slate-700 border border-[#e0e0e0] px-2.5 py-0.5 rounded-sm hover:border-[#2874f0] active:scale-95 transition-all">500g</button>
         <button type="button" onclick="setDrawerQty('1 kg')"
-          class="text-[10px] font-bold bg-white text-slate-700 border border-[#e0e0e0] px-2 py-0.5 rounded-sm hover:border-[#2874f0] active:scale-95 transition-all">1
+          class="text-[10.5px] font-bold bg-[#f8f9fa] text-slate-700 border border-[#e0e0e0] px-2.5 py-0.5 rounded-sm hover:border-[#2874f0] active:scale-95 transition-all">1
           kg</button>
       </div>
     </div>
 
-
-
-    <!-- Point-wise Items List in Drawer -->
-    <div class="space-y-2">
-      <div class="flex items-center justify-between">
-        <label class="text-[11px] font-bold uppercase tracking-wider text-[#212121]">Requested Items (<span
+    <!-- Point-wise Items List -->
+    <div class="bg-white border border-[#e0e0e0] rounded-sm p-3.5 sm:p-4 shadow-2xs space-y-2.5">
+      <div class="flex items-center justify-between border-b border-[#f0f0f0] pb-2">
+        <label class="text-[11.5px] font-bold uppercase tracking-wider text-[#212121]">Requested Items (<span
             id="drawer-items-count">0</span>)</label>
         <button type="button" id="drawer-clear-all-btn" onclick="clearDrawerItems()"
           class="text-[11px] font-bold text-rose-600 hover:underline hidden">Clear All</button>
       </div>
 
-      <!-- Empty state inside drawer -->
+      <!-- Empty state inside view -->
       <div id="drawer-items-empty"
-        class="p-6 border-2 border-dashed border-[#e0e0e0] rounded-sm flex flex-col items-center justify-center text-center text-slate-400">
-        <i class="fas fa-bag-shopping text-2xl mb-1 text-slate-300"></i>
-        <p class="text-[12px] font-bold text-[#212121]">No items added yet</p>
-        <p class="text-[10.5px] text-[#878787] mt-0.5">Use the form above or tap quick suggestions to add items
-          point-wise.</p>
+        class="py-8 px-4 border border-dashed border-[#e0e0e0] rounded-sm flex flex-col items-center justify-center text-center text-slate-400 bg-[#fafafa]">
+        <div
+          class="w-10 h-10 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center text-base mb-1.5">
+          <i class="fas fa-clipboard-list"></i>
+        </div>
+        <p class="text-[12.5px] font-bold text-[#212121]">No items added yet</p>
+        <p class="text-[11px] text-[#878787] mt-0.5">Enter item name and quantity above to add.</p>
       </div>
 
       <!-- Point-wise items list -->
@@ -384,29 +379,24 @@
     </div>
 
     <!-- Optional General Remark / Instructions -->
-    <div class="space-y-1.5 pt-1 pb-4">
-      <label class="text-[11px] font-bold uppercase tracking-wider text-[#212121]">Additional Instructions for Vendor
+    <div class="bg-white border border-[#e0e0e0] rounded-sm p-3.5 sm:p-4 shadow-2xs space-y-2">
+      <label class="text-[11.5px] font-bold uppercase tracking-wider text-[#212121] block">Additional Note for Vendor
         (Optional)</label>
-      <textarea id="drawer-remark-input" rows="2" maxlength="150"
+      <textarea id="drawer-remark-input" rows="3" maxlength="150"
         placeholder="e.g. Please call before replacing, ensure fresh batch, etc."
-        class="w-full p-3 bg-slate-50 border border-[#e0e0e0] rounded-sm text-[12px] font-medium text-[#212121] placeholder:text-slate-400 outline-none focus:bg-white focus:border-[#2874f0] focus:ring-2 focus:ring-blue-100 transition-all resize-none"></textarea>
+        class="w-full p-3 bg-slate-50 focus:bg-white border border-[#e0e0e0] rounded-sm text-[12.5px] font-medium text-[#212121] placeholder:text-slate-400 outline-none focus:border-[#2874f0] focus:ring-2 focus:ring-blue-100 transition-all resize-none"></textarea>
       <p class="text-[10px] text-[#878787] text-right"><span id="drawer-remark-char-count">0</span>/150</p>
     </div>
-  </div>
 
-  <!-- Drawer Sticky Footer (Always 100% visible at bottom with safe area padding) -->
-  <div
-    class="p-3.5 sm:p-4 border-t border-[#e0e0e0] bg-white flex items-center gap-3 shrink-0 shadow-[0_-4px_16px_rgba(0,0,0,0.08)] z-30 pb-[max(1rem,env(safe-area-inset-bottom))]">
-    <button type="button" onclick="closeRequestDrawer()"
-      class="w-1/3 py-2.5 sm:py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[13px] rounded-sm transition-all active:scale-[0.98] text-center uppercase tracking-wider">
-      Cancel
-    </button>
-    <button type="button" onclick="saveRequestDrawer()"
-      class="flex-1 py-2.5 sm:py-3 bg-[#fb641b] hover:bg-[#e85a15] active:scale-[0.98] text-white font-bold text-[14px] rounded-sm shadow-sm transition-all flex items-center justify-center gap-2 uppercase tracking-wider">
-      <i id="drawer-save-btn-icon" class="fas {% if is_logged_in %}fa-check{% else %}fa-lock{% endif %}"></i>
-      <span id="drawer-save-btn-text">{% if is_logged_in %}Save Request{% else %}Login{% endif %}</span>
-    </button>
-  </div>
+    <!-- Bottom Save CTA inside scroll area -->
+    <div class="pt-2">
+      <button type="button" onclick="saveRequestDrawer()"
+        class="w-full py-3 bg-[#fb641b] hover:bg-[#e85a15] active:scale-[0.98] text-white font-bold text-[14px] rounded-sm shadow-sm transition-all flex items-center justify-center gap-2 uppercase tracking-wider">
+        <i id="drawer-save-btn-icon" class="fas {% if is_logged_in %}fa-check{% else %}fa-lock{% endif %}"></i>
+        <span id="drawer-save-btn-text">{% if is_logged_in %}Save Request{% else %}Login to Save{% endif %}</span>
+      </button>
+    </div>
+  </main>
 </div>
 
 <!-- ============================================== -->
@@ -453,90 +443,9 @@
     background-color: #F0FDF4 !important;
   }
 
-  /* ======================================= */
-  /* 📱 APP-LIKE DRAWER & BOTTOM SHEET       */
-  /* (100% Android WebView & Mobile Safe)    */
-  /* ======================================= */
-  #request-drawer-backdrop {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.65);
-    z-index: 99998;
-    opacity: 0;
-    visibility: hidden;
-    pointer-events: none;
-    transition: opacity 0.25s ease, visibility 0.25s ease;
-    -webkit-tap-highlight-color: transparent;
-  }
-
-  #request-drawer-backdrop.drawer-open {
-    opacity: 1 !important;
-    visibility: visible !important;
-    pointer-events: auto !important;
-  }
-
-  /* Default (Mobile First): Native App Bottom Sheet */
-  #request-drawer {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    top: auto;
-    width: 100%;
-    max-width: 100%;
-    height: 85vh;
-    max-height: 85vh;
-    background-color: #ffffff;
-    z-index: 99999;
-    display: flex;
-    flex-direction: column;
-    box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.3);
-    border-top-left-radius: 18px;
-    border-top-right-radius: 18px;
-    transform: translateY(105%);
-    -webkit-transform: translateY(105%);
-    visibility: hidden;
-    pointer-events: none;
-    transition: transform 0.28s ease-out, visibility 0.28s ease-out;
-    font-family: 'Plus Jakarta Sans', sans-serif;
-    overflow: hidden;
+  /* Fullscreen Request View animation / scroll tweaks */
+  #request-fullscreen-view {
     -webkit-overflow-scrolling: touch;
-  }
-
-  #request-drawer.drawer-open {
-    transform: translateY(0) !important;
-    -webkit-transform: translateY(0) !important;
-    visibility: visible !important;
-    pointer-events: auto !important;
-  }
-
-  /* Desktop View: Slide-in Right Drawer */
-  @media (min-width: 641px) {
-    #request-drawer {
-      top: 0;
-      bottom: 0;
-      right: 0;
-      left: auto;
-      max-width: 480px;
-      height: 100vh;
-      max-height: 100vh;
-      border-radius: 0;
-      box-shadow: -10px 0 30px rgba(0, 0, 0, 0.25);
-      transform: translateX(105%);
-      -webkit-transform: translateX(105%);
-    }
-
-    #request-drawer.drawer-open {
-      transform: translateX(0) !important;
-      -webkit-transform: translateX(0) !important;
-      visibility: visible !important;
-      pointer-events: auto !important;
-    }
   }
 </style>
 
@@ -794,45 +703,25 @@
       if (remarkCount) remarkCount.textContent = specialRemark.length;
     }
 
-    const backdrop = document.getElementById("request-drawer-backdrop");
-    const drawer = document.getElementById("request-drawer");
+    const view = document.getElementById("request-fullscreen-view");
+    if (!view) return;
 
-    if (!backdrop || !drawer) return;
-
-    // Reset styles & force layout reflow so WebView compositor repaints
-    drawer.style.visibility = "visible";
-    backdrop.style.visibility = "visible";
-    void drawer.offsetHeight; // Force browser layout reflow for Android WebView repaint!
-
-    backdrop.classList.add("drawer-open");
-    drawer.classList.add("drawer-open");
+    view.classList.remove("hidden");
     document.body.style.overflow = "hidden";
 
-    // On desktop, auto-focus after slide transition; on mobile avoid keyboard popup glitch mid-animation
-    if (window.innerWidth > 640) {
-      setTimeout(() => {
-        const input = document.getElementById("drawer-item-name");
-        if (input) input.focus();
-      }, 300);
-    }
+    // Auto-focus on item name
+    setTimeout(() => {
+      const input = document.getElementById("drawer-item-name");
+      if (input) input.focus();
+    }, 150);
   }
 
   function closeRequestDrawer() {
-    const backdrop = document.getElementById("request-drawer-backdrop");
-    const drawer = document.getElementById("request-drawer");
+    const view = document.getElementById("request-fullscreen-view");
+    if (!view) return;
 
-    if (!backdrop || !drawer) return;
-
-    drawer.classList.remove("drawer-open");
-    backdrop.classList.remove("drawer-open");
+    view.classList.add("hidden");
     document.body.style.overflow = "";
-
-    setTimeout(() => {
-      if (!drawer.classList.contains("drawer-open")) {
-        drawer.style.visibility = "hidden";
-        backdrop.style.visibility = "hidden";
-      }
-    }, 300);
   }
 
   document.addEventListener("keydown", (e) => {
