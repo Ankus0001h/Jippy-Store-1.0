@@ -69,8 +69,9 @@
           class="flex items-center gap-2.5 active:scale-95 transition-transform text-[#212121]">
           <div
             class="w-8 h-8 sm:w-9 sm:h-9 rounded-sm overflow-hidden bg-[#f8f9fa] shrink-0 p-0.5 border border-[#e5e7eb] shadow-2xs">
-            {% if shop and shop.shop_image %}
-            <img src="{{ shop.shop_image }}" alt="{{ shop.shop_name }}" class="w-full h-full object-cover">
+            {% set header_logo = (shop.shop_image if shop and shop.shop_image else session.get('current_shop_image')) %}
+            {% if header_logo %}
+            <img src="{{ header_logo }}" alt="Store" class="w-full h-full object-cover">
             {% else %}
             <img src="/static/logo.jpeg" alt="Jippy" class="w-full h-full object-cover">
             {% endif %}
@@ -79,7 +80,7 @@
             <div class="flex items-center gap-1.5">
               <span
                 class="text-[13.5px] sm:text-[15px] font-bold text-[#212121] tracking-tight leading-none truncate max-w-[190px] sm:max-w-[300px] inline-block">
-                {{ (shop.shop_name or shop.name) if shop else session.get('user_address', "Jippy Delivery") }}
+                {{ (shop.shop_name or shop.name) if shop else (session.get('current_shop_name') or session.get('current_society_name') or session.get('user_address', "Jippy Delivery")) }}
               </span>
               <i class="fas fa-chevron-down text-[9.5px] text-[#878787] mt-0.5"></i>
             </div>
