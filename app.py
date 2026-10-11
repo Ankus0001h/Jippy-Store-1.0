@@ -257,25 +257,72 @@ def get_cached_category_items(original_category):
         item["display_price"] = item.get("discount_price") or item.get("price", 0)
     return items
 
-def sort_available_first(items):
-    """Sort items so in-stock/available products appear first and sold-out items appear last."""
-    in_stock = []
-    out_of_stock = []
-    for item in items:
-        is_oos = bool(item.get("out_of_stock", False))
-        if not is_oos and item.get("stock") is not None:
+def group_and_sort_products(items):
+    """
+    Groups products with the same name into a single product card with multiple variants
+    (Zepto / Blinkit style). Then sorts available products first, sold out last.
+    """
+    groups = {}
+    for it in items:
+        is_oos = bool(it.get("out_of_stock", False))
+        if not is_oos and it.get("stock") is not None:
             try:
-                if float(item.get("stock")) <= 0:
+                if float(it.get("stock")) <= 0:
                     is_oos = True
             except (ValueError, TypeError):
                 pass
-        item["out_of_stock"] = is_oos
-        if is_oos:
-            out_of_stock.append(item)
-        else:
-            in_stock.append(item)
+        
+        it["_id"] = str(it["_id"])
+        it["out_of_stock"] = is_oos
+        
+        price = float(it.get("price", 0) or 0)
+        disc = it.get("discount_price")
+        if disc is not None:
+            try:
+                disc = float(disc)
+                if disc >= price or disc <= 0:
+                    disc = None
+            except (ValueError, TypeError):
+                disc = None
+        it["price"] = price
+        it["discount_price"] = disc
+        it["display_price"] = disc if disc is not None else price
+        
+        name_key = it.get("name", "").strip().lower()
+        if name_key not in groups:
+            groups[name_key] = {
+                "name": it.get("name", "").strip(),
+                "category": it.get("category", ""),
+                "image": it.get("image", ""),
+                "slug": it.get("slug", ""),
+                "variants": []
+            }
+        groups[name_key]["variants"].append(it)
+    
+    result = []
+    for g in groups.values():
+        variants = g["variants"]
+        # Sort variants by in-stock first, then display price ascending
+        variants.sort(key=lambda v: (v.get("out_of_stock", False), float(v.get("display_price", 0))))
+        
+        default_variant = next((v for v in variants if not v.get("out_of_stock")), variants[0])
+        g["default_variant"] = default_variant
+        g["_id"] = default_variant["_id"]
+        g["slug"] = default_variant.get("slug")
+        g["price"] = default_variant.get("price", 0)
+        g["discount_price"] = default_variant.get("discount_price")
+        g["display_price"] = default_variant.get("display_price", 0)
+        g["unit"] = default_variant.get("unit", "")
+        g["out_of_stock"] = all(v.get("out_of_stock", False) for v in variants)
+        g["has_multiple_variants"] = len(variants) > 1
+        result.append(g)
+    
+    in_stock = [p for p in result if not p["out_of_stock"]]
+    out_of_stock = [p for p in result if p["out_of_stock"]]
     random.shuffle(in_stock)
     return in_stock + out_of_stock
+
+sort_available_first = group_and_sort_products
 
 @app.route("/category/<path:name>")
 def category_page(name):
@@ -643,7 +690,12 @@ def add_product():
                 # completely new category
                 category = other_category.strip()
 
-        slug = slugify(name + "-" + unit)
+        base_slug = slugify(name + "-" + unit)
+        slug = base_slug
+        if products.find_one({"slug": slug}):
+            slug = f"{base_slug}-{int(float(price))}"
+            if products.find_one({"slug": slug}):
+                slug = f"{base_slug}-{uuid.uuid4().hex[:4]}"
 
         if "image" not in request.files:
             products_list = list(products.find())
