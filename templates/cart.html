@@ -1,177 +1,461 @@
 {% extends "base.html" %}
 
 {% block navbar %}
-<nav class="sticky top-0 z-[60] bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between font-['Plus_Jakarta_Sans']">
-   <div class="flex items-center gap-3 max-w-[500px] mx-auto w-full">
-     <button onclick="history.back()" class="w-10 h-10 flex items-center justify-center text-gray-700 bg-gray-50 rounded-full hover:bg-gray-100 transition-colors">
-       <i class="fas fa-arrow-left"></i>
-     </button>
-     <div>
-       <h1 class="text-[18px] font-black text-gray-900 leading-tight">Checkout</h1>
-       <p class="text-[11px] font-bold text-[#0C831F] uppercase tracking-widest">Delivery in 10 mins</p>
+<!-- 🛍️ Flipkart Style Blue Header -->
+<nav class="sticky top-0 z-[60] bg-[#2874f0] text-white px-3 sm:px-4 py-2.5 flex items-center justify-between font-['Plus_Jakarta_Sans'] shadow-md">
+   <div class="flex items-center justify-between max-w-[540px] mx-auto w-full">
+     <div class="flex items-center gap-2.5">
+       <button onclick="history.back()" class="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center text-white hover:bg-white/15 active:scale-90 rounded-full transition-all" title="Back">
+         <i class="fas fa-arrow-left text-sm sm:text-base"></i>
+       </button>
+       <div>
+         <h1 class="text-[15px] sm:text-[16px] font-bold text-white leading-tight">My Cart</h1>
+         <p id="nav-cart-items-sub" class="text-[10.5px] sm:text-[11px] font-medium text-blue-100 truncate max-w-[200px]">
+           {{ session.get('current_shop_name', 'Quick Store') }}
+         </p>
+       </div>
+     </div>
+     <div class="flex items-center gap-1.5 px-2.5 py-1 bg-white/15 border border-white/20 rounded-md text-[10px] sm:text-[10.5px] font-bold text-white shadow-2xs">
+       <i class="fas fa-bolt text-yellow-300"></i>
+       <span>10 MINS</span>
      </div>
    </div>
 </nav>
 {% endblock %}
 
-{% block content %}
+{% block full_content %}
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
-<div class="bg-[#F5F7FA] min-h-screen font-['Plus_Jakarta_Sans'] pb-[140px] pt-4">
-  <div class="max-w-[500px] mx-auto px-4 space-y-4">
+<!-- 📱 Main Page Content Container (Flipkart Style: #f1f3f6 body, compact spacing, pb-24 for flush bottom bar) -->
+<div class="bg-[#f1f3f6] min-h-[100dvh] font-['Plus_Jakarta_Sans'] pb-24 pt-2">
+  <div class="max-w-[540px] mx-auto px-2 sm:px-3.5 space-y-2">
 
-    <!-- Empty State -->
-    <div id="cart-empty" class="hidden bg-white rounded-[24px] p-10 flex flex-col items-center justify-center text-center shadow-sm border border-gray-100 mt-10">
-      <div class="w-24 h-24 bg-gray-50 rounded-full flex items-center justify-center mb-6">
-        <i class="fas fa-shopping-basket text-gray-300 text-4xl"></i>
+    <!-- 🛒 Empty Cart State -->
+    <div id="cart-empty" class="hidden bg-white rounded-none sm:rounded-sm p-8 sm:p-10 flex flex-col items-center justify-center text-center shadow-2xs border border-[#e0e0e0] mt-3">
+      <div class="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mb-4 text-[#2874f0]">
+        <i class="fas fa-cart-shopping text-3xl"></i>
       </div>
-      <h3 class="text-[20px] font-black text-gray-900 mb-2">Your cart is empty</h3>
-      <p class="text-[14px] text-gray-500 font-medium mb-8">Add items to start your fast delivery experience.</p>
-      <a href="{{ url_for('index') }}" class="w-full py-4 bg-[#0C831F] hover:bg-[#0A6D19] text-white font-bold rounded-2xl transition-colors shadow-sm text-center">
-        Start Shopping
+      <h3 class="text-[18px] font-bold text-[#212121] mb-1">Your cart is empty!</h3>
+      <p class="text-[12px] text-[#878787] mb-5 max-w-xs leading-relaxed">
+        Explore fresh daily essentials and groceries from your society store.
+      </p>
+      {% set back_shop_url = url_for('shop_home', shop_id=session.get('current_shop_id')) if session.get('current_shop_id') else url_for('index') %}
+      <a href="{{ back_shop_url }}" class="w-full py-3 bg-[#2874f0] hover:bg-blue-700 active:scale-[0.98] text-white font-bold rounded-sm transition-all shadow-sm text-center text-xs uppercase tracking-wider">
+        Shop Now
       </a>
     </div>
 
-    <!-- Main Cart Container -->
-    <div id="cart-container" class="space-y-4 hidden">
+    <!-- 📦 Main Cart Container (Flipkart Style) -->
+    <div id="cart-container" class="space-y-2 hidden">
       
-      <!-- Delivery Time Hint Card -->
-      <div class="bg-white rounded-[20px] p-4 flex items-start gap-4 shadow-sm border border-gray-100">
-        <div class="w-12 h-12 rounded-full bg-emerald-50 text-[#0C831F] flex items-center justify-center text-xl shrink-0">
-          <i class="fas fa-clock"></i>
-        </div>
-        <div>
-          <h3 class="text-[15px] font-extrabold text-gray-900">Delivery in 10 minutes</h3>
-          <p class="text-[13px] text-gray-500 font-medium leading-snug mt-0.5 line-clamp-1">
-             {{ session.get('user_address', "Location verified at checkout") }}
+      <!-- 📍 Deliver To Address Card (Flipkart Style) -->
+      <div class="bg-white rounded-none sm:rounded-sm p-3 sm:p-3.5 border border-[#e0e0e0] shadow-2xs flex items-center justify-between">
+        <div class="min-w-0 pr-2">
+          <div class="flex items-center gap-1.5 text-[11.5px] text-[#878787] font-semibold mb-0.5">
+            <span>Deliver to:</span>
+            <span class="font-bold text-[#212121] truncate">{{ session.get('user_name', 'Customer') }}</span>
+          </div>
+          <p class="text-[12.5px] font-medium text-[#212121] truncate">
+            {{ session.get('current_society_name', session.get('user_address', 'Your Doorstep')) }}
           </p>
         </div>
+        <a href="{{ url_for('address_page') if is_logged_in else url_for('login') }}" class="text-[12px] font-bold text-[#2874f0] border border-[#e0e0e0] px-3.5 py-1.5 rounded-sm shrink-0 hover:bg-blue-50/50 active:scale-95 transition-all uppercase tracking-wider">
+          Change
+        </a>
       </div>
 
-      <!-- Free Delivery Progress Card -->
-      <div id="delivery-card" class="bg-white border border-gray-100 rounded-[20px] p-5 shadow-sm relative overflow-hidden transition-colors">
-        <div class="relative z-10">
-          <div class="flex justify-between items-center mb-3">
-            <div class="flex items-center gap-3">
-              <div class="w-8 h-8 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center text-sm">
-                <i class="fas fa-gift"></i>
-              </div>
-              <p id="delivery-hint-main" class="text-[14px] font-extrabold text-gray-900">Calculating...</p>
-            </div>
-            <span class="text-[12px] font-bold text-gray-400">Goal: ₹{{ free_delivery_threshold }}</span>
+      <!-- ⚡ Free Delivery Goal & 10 Min ETA (Flipkart Style) -->
+      <div id="delivery-card" class="bg-white border border-[#e0e0e0] rounded-none sm:rounded-sm p-3 sm:p-3.5 shadow-2xs space-y-2 transition-all">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="w-6 h-6 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center text-xs font-bold">
+              <i class="fas fa-bolt"></i>
+            </span>
+            <span class="text-[12.5px] font-bold text-[#212121]">Delivery in 10 mins</span>
           </div>
-          <div class="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
-            <div id="delivery-progress-bar" class="h-full bg-[#0C831F] rounded-full transition-all duration-700 ease-out" style="width: 0%"></div>
+          <span class="text-[11px] font-bold text-[#878787]">Goal: ₹{{ free_delivery_threshold }}</span>
+        </div>
+        <div>
+          <div class="flex justify-between items-center mb-1 text-[11px]">
+            <span id="delivery-hint-main" class="font-bold text-[#212121] flex items-center gap-1">
+              <i class="fas fa-gift text-amber-500"></i> Calculating...
+            </span>
+          </div>
+          <div class="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+            <div id="delivery-progress-bar" class="h-full bg-emerald-500 rounded-full transition-all duration-500" style="width: 0%"></div>
           </div>
         </div>
       </div>
 
-      <!-- Cart Items Header -->
-      <div class="flex items-center justify-between pt-2 px-1">
-         <h3 class="text-[15px] font-extrabold text-gray-900">Items Added</h3>
-         <span id="items-count-badge" class="text-[12px] font-bold text-gray-500">0 Items</span>
+      <!-- Items Section Header -->
+      <div class="flex items-center justify-between px-1 pt-0.5">
+         <div class="flex items-center gap-2">
+           <h3 class="text-[12px] font-bold uppercase tracking-wider text-[#878787]">Cart Items</h3>
+           <span id="items-count-badge" class="text-[11px] font-bold text-[#878787] bg-white border border-[#e0e0e0] px-2 py-0.5 rounded-sm">0 Items</span>
+         </div>
+         <a href="{{ back_shop_url }}" class="text-[11.5px] font-bold text-[#2874f0] hover:underline flex items-center gap-1 active:scale-95 transition-transform uppercase">
+           + Add More
+         </a>
       </div>
 
-      <!-- Cart Items List -->
-      <div id="cart-items" class="space-y-3"></div>
+      <!-- Cart Items List Container -->
+      <div id="cart-items" class="space-y-2"></div>
 
-      <!-- Bill Details -->
-      <div class="bg-white border border-gray-100 rounded-[24px] p-6 shadow-sm mt-6">
-        <h3 class="text-[15px] font-extrabold text-gray-900 mb-5">Bill Details</h3>
+      <!-- 📝 SPECIAL REQUEST / MISSING ITEMS CARD (Flipkart Style) -->
+      <div id="special-request-section" class="transition-all duration-300">
+        <!-- 1. EMPTY STATE (When no items added yet) -->
+        <div id="special-request-empty-card" class="bg-white border border-[#e0e0e0] rounded-none sm:rounded-sm p-3 sm:p-3.5 shadow-2xs flex items-center justify-between gap-3">
+          <div class="flex items-center gap-2.5 min-w-0">
+            <div class="w-8 h-8 rounded-sm bg-amber-50 text-amber-600 flex items-center justify-center text-xs shrink-0 font-bold border border-amber-200">
+              <i class="fas fa-clipboard-list"></i>
+            </div>
+            <div class="min-w-0">
+              <p class="text-[12.5px] font-bold text-[#212121] leading-tight">Missing items not listed in store?</p>
+              <p class="text-[11px] font-medium text-[#878787] truncate mt-0.5">Add Dhaniya, Mirchi, Bread, etc. point-wise</p>
+            </div>
+          </div>
+          <button type="button" onclick="openRequestDrawer()" class="px-3.5 py-1.5 bg-[#2874f0] hover:bg-blue-700 active:scale-95 text-white text-[11px] font-bold rounded-sm shadow-2xs transition-all flex items-center gap-1 shrink-0 uppercase tracking-wider">
+            <i class="fas fa-plus text-[9px]"></i>
+            <span>Add</span>
+          </button>
+        </div>
+
+        <!-- 2. SUMMARY STATE (When points are added - Sleek Chips View) -->
+        <div id="special-request-summary-card" class="hidden bg-white border border-[#e0e0e0] rounded-none sm:rounded-sm p-3 sm:p-3.5 shadow-2xs space-y-2.5 relative overflow-hidden">
+          <div class="flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <span class="w-5 h-5 rounded-sm bg-amber-500 text-white flex items-center justify-center text-[9px] font-black shrink-0">
+                <i class="fas fa-check"></i>
+              </span>
+              <h4 class="text-[12.5px] font-bold text-[#212121] leading-tight">Special Request Items</h4>
+              <span id="summary-items-count-badge" class="text-[10px] font-bold bg-amber-50 text-amber-800 px-2 py-0.5 rounded border border-amber-200">0 Items</span>
+            </div>
+            <div class="flex items-center gap-1.5 shrink-0">
+              <button type="button" onclick="openRequestDrawer()" class="px-2.5 py-1 bg-white hover:bg-slate-50 text-[#212121] border border-[#e0e0e0] rounded-sm text-[11px] font-bold shadow-2xs transition-all active:scale-95 flex items-center gap-1">
+                <i class="fas fa-pen text-[9px] text-[#2874f0]"></i> Edit
+              </button>
+              <button type="button" onclick="clearSpecialRequest()" class="w-6 h-6 flex items-center justify-center bg-white hover:bg-rose-50 text-slate-400 hover:text-rose-600 border border-[#e0e0e0] rounded-sm text-[10px] transition-all active:scale-95" title="Remove Request">
+                <i class="fas fa-trash text-[9px]"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Point-wise summary chips list -->
+          <div id="summary-items-container" class="flex flex-wrap gap-1.5 pt-0.5"></div>
+
+          <!-- Remark box if provided -->
+          <div id="summary-remark-box" class="hidden bg-slate-50 border border-[#e0e0e0] rounded-sm p-2 text-[11px] font-medium text-slate-700 flex items-start gap-2">
+            <i class="fas fa-comment-dots text-amber-600 text-xs mt-0.5 shrink-0"></i>
+            <div class="flex-1 min-w-0">
+              <span class="text-[9.5px] font-bold text-[#878787] uppercase tracking-wider block">Customer Note</span>
+              <span id="summary-remark-content" class="text-[#212121] italic break-words"></span>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between text-[10.5px] font-medium text-[#878787] pt-1 border-t border-[#f0f0f0]">
+            <span class="flex items-center gap-1 text-amber-700">
+              <i class="fas fa-coins text-amber-600"></i> Extra item cost settled at doorstep
+            </span>
+            <button type="button" onclick="openRequestDrawer()" class="text-[#2874f0] hover:underline font-bold">
+              + Add / Edit items
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 🧾 Flipkart Style PRICE DETAILS Card -->
+      <div id="bill-details-card" class="bg-white border border-[#e0e0e0] rounded-none sm:rounded-sm p-3.5 sm:p-4 shadow-2xs space-y-3">
+        <h3 class="text-[12px] font-bold text-[#878787] uppercase tracking-wider border-b border-[#f0f0f0] pb-2">
+          PRICE DETAILS
+        </h3>
+
+        <!-- Savings banner when free delivery is achieved -->
+        <div id="savings-banner" class="hidden bg-[#f0fdf4] border border-emerald-200 rounded-sm p-2.5 flex items-center justify-between text-[#388e3c] font-bold text-[12px]">
+          <span class="flex items-center gap-1.5">
+            <i class="fas fa-badge-percent text-emerald-600"></i>
+            <span>Delivery savings applied!</span>
+          </span>
+          <span class="bg-[#388e3c] text-white text-[10px] font-bold px-2 py-0.5 rounded-sm">SAVED ₹{{ delivery_fee }}</span>
+        </div>
         
-        <div class="space-y-3.5 text-[13px]">
-          <div class="flex justify-between items-center">
-            <span class="text-gray-500 font-medium flex items-center gap-2"><i class="fas fa-file-invoice text-gray-300"></i> Item Total</span>
-            <span id="cart-items-total" class="font-bold text-gray-900 line-through decoration-gray-400">₹0</span>
+        <div class="space-y-2.5 text-[13px]">
+          <div class="flex justify-between items-center text-[#212121]">
+            <span>Price (<span id="cart-items-summary-count">items</span>)</span>
+            <span id="cart-items-total" class="font-medium text-[#212121]">₹0</span>
           </div>
-          <div class="flex justify-between items-center">
-            <span class="text-gray-500 font-medium flex items-center gap-2"><i class="fas fa-box text-gray-300"></i> Handling Fee</span>
-            <span class="font-bold text-gray-900">₹{{ handling_fee }}</span>
+
+          <div class="flex justify-between items-center text-[#212121]">
+            <span>Handling Fee</span>
+            <span class="font-medium text-[#212121]">₹{{ handling_fee }}</span>
           </div>
-          <div id="surge-row" class="flex justify-between items-center {% if surge_charge == 0 %}hidden{% endif %}">
-            <span class="text-rose-500 font-medium flex items-center gap-2"><i class="fas fa-bolt text-rose-400"></i> Surge Charge</span>
-            <span class="font-bold text-rose-600">₹{{ surge_charge }}</span>
+
+          <div id="surge-row" class="flex justify-between items-center text-rose-600 {% if surge_charge == 0 %}hidden{% endif %}">
+            <span>Surge Charge</span>
+            <span class="font-bold">₹{{ surge_charge }}</span>
           </div>
-          <div class="flex justify-between items-center">
-            <span class="text-gray-500 font-medium flex items-center gap-2"><i class="fas fa-server text-gray-300"></i> Platform Fee</span>
-            <span class="font-bold text-gray-900">₹{{ platform_fee }}</span>
+
+          <div class="flex justify-between items-center text-[#212121]">
+            <span>Platform Fee</span>
+            <span class="font-medium text-[#212121]">₹{{ platform_fee }}</span>
           </div>
-          <div class="flex justify-between items-center">
-            <span class="text-gray-500 font-medium flex items-center gap-2"><i class="fas fa-motorcycle text-gray-300"></i> Delivery Fee</span>
+
+          <div class="flex justify-between items-center text-[#212121]">
+            <span>Delivery Charges</span>
             <div class="flex items-center gap-1.5">
-              <span id="delivery-fee-strike" class="text-[11px] font-bold text-gray-400 line-through hidden"></span>
-              <span id="delivery-fee" class="font-bold text-gray-900">₹0</span>
+              <span id="delivery-fee-strike" class="text-[11px] text-[#878787] line-through hidden"></span>
+              <span id="delivery-fee" class="font-medium text-[#212121]">₹0</span>
             </div>
           </div>
         </div>
 
-        <div class="h-px bg-dashed border-b border-dashed border-gray-200 my-5"></div>
+        <div class="h-px border-b border-dashed border-[#e0e0e0] my-2"></div>
 
-        <div class="flex justify-between items-center">
-          <span class="text-[16px] font-extrabold text-gray-900">Grand Total</span>
-          <span id="cart-total" class="text-[18px] font-black text-gray-900">₹0</span>
+        <div class="flex justify-between items-center text-[15px] font-bold text-[#212121]">
+          <span>Total Amount</span>
+          <span id="cart-total" class="text-[17px]">₹0</span>
         </div>
+
+        <div id="savings-summary-line" class="hidden border-t border-[#f0f0f0] pt-2 text-[12px] font-bold text-[#388e3c]">
+          You will save ₹{{ delivery_fee }} on this order
+        </div>
+      </div>
+
+      <!-- Trust Badge & Cancellation Card -->
+      <div class="p-2.5 bg-white border border-[#e0e0e0] rounded-none sm:rounded-sm flex items-center justify-center gap-2 text-[#878787] text-[11px] font-medium">
+        <i class="fas fa-shield-halved text-emerald-600"></i>
+        <span>100% Safe Delivery Guarantee</span>
+      </div>
+
+      <div class="p-2 text-center">
+        <p class="text-[10.5px] font-medium text-[#878787]">
+          <i class="fas fa-clock-rotate-left mr-1"></i> Orders are packed immediately by vendor for fast delivery.
+        </p>
       </div>
       
     </div>
   </div>
 </div>
 
-<!-- Fixed Bottom Checkout Bar -->
-<div id="checkout-bar" class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-4 pb-10 sm:pb-6 z-[70] shadow-[0_-10px_20px_rgba(0,0,0,0.03)] hidden transform transition-transform font-['Plus_Jakarta_Sans']">
-  <div class="max-w-[500px] mx-auto flex items-center justify-between gap-4">
-    <div class="flex flex-col pl-2">
-      <span class="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Pay using App</span>
-      <span id="checkout-total-footer" class="text-[20px] font-black text-gray-900">₹0</span>
+<!-- ============================================== -->
+<!-- 📱 SIDE DRAWER / MODAL: SPECIAL REQUEST FORM   -->
+<!-- ============================================== -->
+<div id="request-drawer-backdrop" onclick="closeRequestDrawer()"></div>
+
+<div id="request-drawer">
+  <!-- Mobile Drag Bar (Native App Style) -->
+  <div class="pt-2.5 pb-1 flex justify-center sm:hidden shrink-0 bg-white cursor-pointer" onclick="closeRequestDrawer()">
+    <div class="w-12 h-1.5 bg-slate-200 hover:bg-slate-300 rounded-full transition-colors"></div>
+  </div>
+
+  <!-- Drawer Header -->
+  <div class="px-4 py-3 sm:p-5 border-b border-slate-100 flex items-center justify-between bg-white shrink-0">
+    <div class="flex items-center gap-3 min-w-0">
+      <div class="w-10 h-10 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center text-base border border-amber-200/60 shadow-2xs shrink-0">
+        <i class="fas fa-clipboard-list"></i>
+      </div>
+      <div class="min-w-0">
+        <h3 class="text-[14.5px] sm:text-[16px] font-bold text-[#212121] leading-tight truncate">Special Request & Missing Items</h3>
+        <p class="text-[11px] font-medium text-[#878787] truncate mt-0.5">Add unlisted items from store</p>
+      </div>
     </div>
-    <button id="checkout-btn" onclick="handleCheckoutClick()" class="flex-1 h-14 bg-[#0C831F] hover:bg-[#0A6D19] text-white rounded-[16px] font-bold text-[16px] flex items-center justify-center gap-2 transition-transform active:scale-[0.98] shadow-sm">
-      <span>{% if is_logged_in %}Place Order{% else %}Login to Continue{% endif %}</span>
-      <i class="fas fa-chevron-right text-sm"></i>
+    <button type="button" onclick="closeRequestDrawer()" class="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center active:scale-95 transition-all shrink-0 ml-2" title="Close">
+      <i class="fas fa-times text-xs sm:text-sm"></i>
+    </button>
+  </div>
+
+  <!-- Drawer Body (Scrollable with min-h-0 so flexbox doesn't push footer offscreen) -->
+  <div class="flex-1 min-h-0 overflow-y-auto p-4 sm:p-5 space-y-4">
+    <!-- Notice Banner -->
+    <div class="p-3 bg-amber-50 border border-amber-200 rounded-sm flex items-start gap-2.5 text-[11px] text-amber-800 leading-relaxed font-medium">
+      <i class="fas fa-lightbulb text-amber-600 text-xs mt-0.5 shrink-0"></i>
+      <span>Store vendor will check physical stock while packing. Any extra item cost will be settled at your doorstep.</span>
+    </div>
+
+    <!-- Point-wise Input Card -->
+    <div class="bg-slate-50 border border-[#e0e0e0] rounded-sm p-3.5 space-y-3">
+      <div class="flex items-center justify-between">
+        <label class="text-[11px] font-bold uppercase tracking-wider text-[#212121]">Add Item Point-wise</label>
+        <span class="text-[10px] font-bold text-[#878787]">Step by step</span>
+      </div>
+
+      <div class="space-y-2">
+        <input id="drawer-item-name" type="text" placeholder="Item name (e.g. Fresh Dhaniya / Nimbu / Bread)" 
+               class="w-full px-3 py-2.5 bg-white border border-[#e0e0e0] rounded-sm text-[13px] font-medium text-[#212121] placeholder:text-slate-400 outline-none focus:border-[#2874f0] focus:ring-2 focus:ring-blue-100 transition-all"
+               onkeydown="if(event.key === 'Enter') { event.preventDefault(); addSpecialItem(); }">
+        
+        <div class="flex gap-2">
+          <input id="drawer-item-qty" type="text" placeholder="Quantity / Unit (e.g. 1 bunch, 250g, 1 pkt)" 
+                 class="flex-1 px-3 py-2.5 bg-white border border-[#e0e0e0] rounded-sm text-[13px] font-medium text-[#212121] placeholder:text-slate-400 outline-none focus:border-[#2874f0] focus:ring-2 focus:ring-blue-100 transition-all"
+                 onkeydown="if(event.key === 'Enter') { event.preventDefault(); addSpecialItem(); }">
+          
+          <button type="button" onclick="addSpecialItem()" class="px-4 py-2.5 bg-[#2874f0] hover:bg-blue-700 active:scale-95 text-white font-bold text-[12px] rounded-sm shadow-2xs transition-all flex items-center gap-1.5 shrink-0 uppercase tracking-wider">
+            <i class="fas fa-plus text-[10px]"></i>
+            <span>Add</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick Quantity Helper Chips -->
+      <div class="flex items-center gap-1.5 flex-wrap pt-0.5">
+        <span class="text-[10px] font-bold text-[#878787]">Quick qty:</span>
+        <button type="button" onclick="setDrawerQty('1 pkt')" class="text-[10px] font-bold bg-white text-slate-700 border border-[#e0e0e0] px-2 py-0.5 rounded-sm hover:border-[#2874f0] active:scale-95 transition-all">1 pkt</button>
+        <button type="button" onclick="setDrawerQty('1 bunch')" class="text-[10px] font-bold bg-white text-slate-700 border border-[#e0e0e0] px-2 py-0.5 rounded-sm hover:border-[#2874f0] active:scale-95 transition-all">1 bunch</button>
+        <button type="button" onclick="setDrawerQty('2 pcs')" class="text-[10px] font-bold bg-white text-slate-700 border border-[#e0e0e0] px-2 py-0.5 rounded-sm hover:border-[#2874f0] active:scale-95 transition-all">2 pcs</button>
+        <button type="button" onclick="setDrawerQty('250g')" class="text-[10px] font-bold bg-white text-slate-700 border border-[#e0e0e0] px-2 py-0.5 rounded-sm hover:border-[#2874f0] active:scale-95 transition-all">250g</button>
+        <button type="button" onclick="setDrawerQty('500g')" class="text-[10px] font-bold bg-white text-slate-700 border border-[#e0e0e0] px-2 py-0.5 rounded-sm hover:border-[#2874f0] active:scale-95 transition-all">500g</button>
+        <button type="button" onclick="setDrawerQty('1 kg')" class="text-[10px] font-bold bg-white text-slate-700 border border-[#e0e0e0] px-2 py-0.5 rounded-sm hover:border-[#2874f0] active:scale-95 transition-all">1 kg</button>
+      </div>
+    </div>
+
+
+
+    <!-- Point-wise Items List in Drawer -->
+    <div class="space-y-2">
+      <div class="flex items-center justify-between">
+        <label class="text-[11px] font-bold uppercase tracking-wider text-[#212121]">Requested Items (<span id="drawer-items-count">0</span>)</label>
+        <button type="button" id="drawer-clear-all-btn" onclick="clearDrawerItems()" class="text-[11px] font-bold text-rose-600 hover:underline hidden">Clear All</button>
+      </div>
+
+      <!-- Empty state inside drawer -->
+      <div id="drawer-items-empty" class="p-6 border-2 border-dashed border-[#e0e0e0] rounded-sm flex flex-col items-center justify-center text-center text-slate-400">
+        <i class="fas fa-bag-shopping text-2xl mb-1 text-slate-300"></i>
+        <p class="text-[12px] font-bold text-[#212121]">No items added yet</p>
+        <p class="text-[10.5px] text-[#878787] mt-0.5">Use the form above or tap quick suggestions to add items point-wise.</p>
+      </div>
+
+      <!-- Point-wise items list -->
+      <div id="drawer-items-list" class="space-y-2"></div>
+    </div>
+
+    <!-- Optional General Remark / Instructions -->
+    <div class="space-y-1.5 pt-1 pb-4">
+      <label class="text-[11px] font-bold uppercase tracking-wider text-[#212121]">Additional Instructions for Vendor (Optional)</label>
+      <textarea id="drawer-remark-input" rows="2" maxlength="150"
+                placeholder="e.g. Please call before replacing, ensure fresh batch, etc."
+                class="w-full p-3 bg-slate-50 border border-[#e0e0e0] rounded-sm text-[12px] font-medium text-[#212121] placeholder:text-slate-400 outline-none focus:bg-white focus:border-[#2874f0] focus:ring-2 focus:ring-blue-100 transition-all resize-none"></textarea>
+      <p class="text-[10px] text-[#878787] text-right"><span id="drawer-remark-char-count">0</span>/150</p>
+    </div>
+  </div>
+
+  <!-- Drawer Sticky Footer (Always 100% visible at bottom with safe area padding) -->
+  <div class="p-3.5 sm:p-4 border-t border-[#e0e0e0] bg-white flex items-center gap-3 shrink-0 shadow-[0_-4px_16px_rgba(0,0,0,0.08)] z-30 pb-[max(1rem,env(safe-area-inset-bottom))]">
+    <button type="button" onclick="closeRequestDrawer()" class="w-1/3 py-2.5 sm:py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[13px] rounded-sm transition-all active:scale-[0.98] text-center uppercase tracking-wider">
+      Cancel
+    </button>
+    <button type="button" onclick="saveRequestDrawer()" class="flex-1 py-2.5 sm:py-3 bg-[#fb641b] hover:bg-[#e85a15] active:scale-[0.98] text-white font-bold text-[14px] rounded-sm shadow-sm transition-all flex items-center justify-center gap-2 uppercase tracking-wider">
+      <i class="fas fa-check"></i>
+      <span id="drawer-save-btn-text">Save Request</span>
     </button>
   </div>
 </div>
 
-<!-- Service Area Modal -->
-<div id="service-area-modal" class="fixed inset-0 z-[9999] bg-gray-900/40 backdrop-blur-sm hidden flex items-center justify-center p-6 font-['Plus_Jakarta_Sans']">
-  <div class="bg-white rounded-[24px] max-w-[340px] w-full overflow-hidden shadow-2xl scale-up-animation p-8 text-center">
-      <div id="modal-loading" class="space-y-5">
-          <div class="w-16 h-16 bg-emerald-50 rounded-full mx-auto flex items-center justify-center relative">
-              <div class="absolute inset-0 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
-              <i class="fas fa-location-dot text-[#0C831F] text-2xl"></i>
-          </div>
-          <h4 class="text-[18px] font-black text-gray-900">Verifying Location...</h4>
-      </div>
-      <div id="modal-success" class="hidden space-y-6">
-          <div class="w-20 h-20 bg-[#0C831F] text-white rounded-full mx-auto flex items-center justify-center shadow-lg">
-              <i class="fas fa-check text-4xl animate-bounce"></i>
-          </div>
-          <div>
-            <h4 class="text-[20px] font-black text-gray-900">Delivery Available!</h4>
-            <p id="modal-coords" class="text-[12px] font-bold text-[#0C831F] mt-1 bg-emerald-50 inline-block px-3 py-1 rounded-full uppercase"></p>
-          </div>
-          <button onclick="proceedToCheckout()" class="w-full py-4 bg-[#0C831F] text-white font-bold text-[15px] rounded-[14px] shadow-sm active:scale-[0.98] transition-transform">Continue to Payment</button>
-      </div>
-      <div id="modal-error" class="hidden space-y-6">
-          <div class="w-20 h-20 bg-rose-50 text-rose-500 rounded-full mx-auto flex items-center justify-center">
-              <i class="fas fa-times text-4xl"></i>
-          </div>
-          <div>
-            <h4 class="text-[20px] font-black text-gray-900">Out of Service</h4>
-            <p id="modal-error-message" class="text-[13px] font-medium text-gray-500 px-4 mt-2"></p>
-          </div>
-          <div class="flex gap-3">
-              <button onclick="retryLocationCheck()" class="flex-1 py-3.5 bg-gray-100 hover:bg-gray-200 text-gray-900 font-bold rounded-[14px] text-[14px] transition-colors">Retry</button>
-              <button onclick="closeServiceModal()" class="flex-1 py-3.5 border border-gray-200 text-gray-500 hover:bg-gray-50 font-bold rounded-[14px] text-[14px] transition-colors">Close</button>
-          </div>
-      </div>
+<!-- ============================================== -->
+<!-- 🛍️ FLIPKART STYLE FLUSH BOTTOM CHECKOUT BAR   -->
+<!-- No extra space below on mobile, flush bottom-0  -->
+<!-- ============================================== -->
+<div id="checkout-bar" class="fixed bottom-0 left-0 right-0 bg-white border-t border-[#e0e0e0] z-[70] shadow-[0_-2px_10px_rgba(0,0,0,0.08)] hidden">
+  <div class="max-w-[540px] mx-auto px-3.5 sm:px-4 py-2 sm:py-2.5 flex items-center justify-between">
+    <div class="flex flex-col">
+      <span class="text-[17px] sm:text-[19px] font-bold text-[#212121] leading-tight" id="checkout-total-footer">₹0</span>
+      <a href="#bill-details-card" class="text-[11px] font-bold text-[#2874f0] hover:underline">View price details</a>
+    </div>
+    <button id="checkout-btn" onclick="handleCheckoutClick()" class="bg-[#fb641b] hover:bg-[#e85a15] active:scale-[0.98] text-white font-bold text-[14px] px-8 py-2.5 sm:py-3 rounded-sm shadow-sm transition-all uppercase tracking-wider flex items-center gap-1.5">
+      <span>{% if is_logged_in %}Place Order{% else %}Login to Order{% endif %}</span>
+      <i class="fas fa-chevron-right text-xs"></i>
+    </button>
   </div>
+  <!-- Safe area spacer for modern phones gesture indicator bar -->
+  <div class="h-[env(safe-area-inset-bottom,0px)] bg-white"></div>
+</div>
+
+<!-- Undo Notification Toast -->
+<div id="undo-toast" class="fixed bottom-16 sm:bottom-20 left-1/2 -translate-x-1/2 z-[80] bg-[#212121] text-white px-4 py-2 rounded-full shadow-2xl flex items-center gap-3 text-xs font-bold transition-all duration-300 opacity-0 pointer-events-none translate-y-3">
+  <span id="undo-toast-text">Item removed</span>
+  <button type="button" onclick="undoRemoveItem()" class="text-amber-400 hover:text-amber-300 uppercase tracking-wider text-[11px] font-bold underline">Undo</button>
 </div>
 
 <style>
-  .cart-item-card { transition: all 0.2s ease; }
+  .cart-item-card { transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
+  .cart-item-card:hover { transform: translateY(-1px); }
   .free-delivery-active { border-color: #10b981 !important; background-color: #F0FDF4 !important; }
-  .scale-up-animation { animation: scaleUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
-  @keyframes scaleUp { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+  /* ======================================= */
+  /* 📱 APP-LIKE DRAWER & BOTTOM SHEET       */
+  /* ======================================= */
+  #request-drawer-backdrop {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 998;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+  }
+
+  #request-drawer-backdrop.drawer-open {
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+  }
+
+  /* Default (Mobile First): Native App Bottom Sheet */
+  #request-drawer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    top: auto;
+    width: 100%;
+    max-width: 100%;
+    height: 90vh;
+    height: 90dvh;
+    max-height: 90dvh;
+    background-color: #ffffff;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.2);
+    border-top-left-radius: 16px;
+    border-top-right-radius: 16px;
+    transform: translateY(105%);
+    -webkit-transform: translateY(105%);
+    visibility: hidden;
+    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.35s ease;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    overflow: hidden;
+  }
+
+  #request-drawer.drawer-open {
+    transform: translateY(0) !important;
+    -webkit-transform: translateY(0) !important;
+    visibility: visible !important;
+  }
+
+  /* Desktop View: Slide-in Right Drawer */
+  @media (min-width: 641px) {
+    #request-drawer {
+      top: 0;
+      bottom: 0;
+      right: 0;
+      left: auto;
+      max-width: 480px;
+      height: 100vh;
+      height: 100dvh;
+      max-height: 100dvh;
+      border-radius: 0;
+      box-shadow: -10px 0 30px rgba(0, 0, 0, 0.2);
+      transform: translateX(105%);
+      -webkit-transform: translateX(105%);
+    }
+
+    #request-drawer.drawer-open {
+      transform: translateX(0) !important;
+      -webkit-transform: translateX(0) !important;
+    }
+  }
 </style>
 
 <script>
@@ -182,19 +466,60 @@
   const FREE_DELIVERY_THRESHOLD = Number("{{ free_delivery_threshold }}");
   const DELIVERY_FEE = Number("{{ delivery_fee }}");
   
-  let SERVICE_CENTER = { lat: null, lng: null, radius_km: 0 };
   let hasFiredConfetti = false;
 
-  function getCart() { try { return JSON.parse(localStorage.getItem("cart") || "[]"); } catch (e) { return []; } }
-  function saveCart(cart) { localStorage.setItem("cart", JSON.stringify(cart)); window.dispatchEvent(new Event('cartUpdated')); }
+  function getCart() { 
+    try { return JSON.parse(localStorage.getItem("cart") || "[]"); } 
+    catch (e) { return []; } 
+  }
+  
+  function saveCart(cart) { 
+    localStorage.setItem("cart", JSON.stringify(cart)); 
+    window.dispatchEvent(new Event('cartUpdated')); 
+  }
 
   function triggerConfetti() {
     confetti({
-      particleCount: 150,
-      spread: 70,
-      origin: { y: 0.5 },
-      colors: ['#0C831F', '#ffffff', '#34d399']
+      particleCount: 120,
+      spread: 60,
+      origin: { y: 0.6 },
+      colors: ['#2874f0', '#fb641b', '#388e3c']
     });
+  }
+
+  let lastRemovedItem = null;
+  let undoToastTimer = null;
+
+  function showUndoToast(itemName) {
+    const toast = document.getElementById("undo-toast");
+    const text = document.getElementById("undo-toast-text");
+    if (!toast || !text) return;
+
+    text.textContent = `"${itemName}" removed`;
+    toast.classList.remove("opacity-0", "pointer-events-none", "translate-y-3");
+    toast.classList.add("opacity-100", "pointer-events-auto", "translate-y-0");
+
+    if (undoToastTimer) clearTimeout(undoToastTimer);
+    undoToastTimer = setTimeout(() => {
+      hideUndoToast();
+    }, 4500);
+  }
+
+  function hideUndoToast() {
+    const toast = document.getElementById("undo-toast");
+    if (!toast) return;
+    toast.classList.add("opacity-0", "pointer-events-none", "translate-y-3");
+    toast.classList.remove("opacity-100", "pointer-events-auto", "translate-y-0");
+  }
+
+  function undoRemoveItem() {
+    if (!lastRemovedItem) return;
+    let cart = getCart();
+    cart.splice(lastRemovedItem.index, 0, lastRemovedItem.item);
+    saveCart(cart);
+    lastRemovedItem = null;
+    hideUndoToast();
+    renderCartPage();
   }
 
   function renderCartPage() {
@@ -212,12 +537,18 @@
     const checkoutBar = document.getElementById("checkout-bar");
     const footerTotal = document.getElementById("checkout-total-footer");
     const itemsCountBadge = document.getElementById("items-count-badge");
+    const savingsBanner = document.getElementById("savings-banner");
+    const savingsSummaryLine = document.getElementById("savings-summary-line");
 
     if (!cart.length) {
       emptyEl.classList.remove("hidden"); 
       containerEl.classList.add("hidden");
       checkoutBar.classList.add("hidden");
       itemsCountBadge.innerText = "0 Items"; 
+      const navSub = document.getElementById("nav-cart-items-sub");
+      if (navSub) {
+        navSub.innerText = `{{ session.get('current_shop_name', 'Quick Store') }} • 0 items`;
+      }
       return;
     }
 
@@ -228,28 +559,66 @@
     
     let subtotal = 0;
     cart.forEach((item) => {
-      subtotal += Number(item.price) * Number(item.qty);
+      const itemQty = Number(item.qty);
+      const itemPrice = Number(item.price);
+      subtotal += itemPrice * itemQty;
+      const isSingle = itemQty <= 1;
+      const minusIcon = isSingle 
+        ? `<i class="fas fa-trash-can text-[10px] text-slate-500"></i>` 
+        : `<i class="fas fa-minus text-[9px]"></i>`;
+      const itemTotalFormatted = (itemPrice * itemQty).toFixed(0);
+      const priceSubtext = itemQty > 1 
+        ? `<span class="text-[11px] font-normal text-[#878787]"> (₹${itemPrice} each)</span>` 
+        : ``;
+
       const card = document.createElement("div");
-      card.className = "cart-item-card bg-white border border-gray-100 rounded-[20px] p-3 flex items-center gap-3 shadow-sm";
+      card.className = "cart-item-card bg-white border border-[#e0e0e0] rounded-none sm:rounded-sm p-3 sm:p-3.5 shadow-2xs flex flex-col gap-2.5 transition-all";
       card.innerHTML = `
-        <div class="w-16 h-16 bg-[#F5F7FA] rounded-2xl overflow-hidden flex-shrink-0 p-1 flex items-center justify-center border border-gray-50">
-          <img src="${item.image}" class="max-w-full max-h-full object-contain">
+        <div class="flex items-start gap-3">
+          <div class="w-16 h-16 sm:w-20 sm:h-20 bg-white rounded-sm p-1 shrink-0 flex items-center justify-center border border-[#f0f0f0]">
+            <img src="${item.image}" class="max-w-full max-h-full object-contain mix-blend-multiply" onerror="this.src='/static/images/placeholder.png'">
+          </div>
+          <div class="flex-1 min-w-0 pr-1">
+            <h4 class="text-[13.5px] font-medium text-[#212121] leading-tight mb-1 truncate">${item.name}</h4>
+            <span class="text-[11px] font-medium text-[#878787]">${item.unit || '1 Unit'}</span>
+            <div class="flex items-baseline gap-1 mt-1">
+              <span class="text-[16px] font-bold text-[#212121]">₹${itemTotalFormatted}</span>
+              ${priceSubtext}
+            </div>
+            <p class="text-[10.5px] text-[#388e3c] font-bold mt-0.5">⚡ Delivery in 10 mins</p>
+          </div>
         </div>
-        <div class="flex-1 min-w-0 pr-2">
-          <h4 class="text-[14px] font-bold text-gray-900 leading-tight mb-1 truncate">${item.name}</h4>
-          <p class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">${item.unit || '1 Unit'}</p>
-          <p class="text-[14px] font-black text-gray-900 mt-1">₹${Number(item.price).toFixed(0)}</p>
-        </div>
-        <div class="flex items-center bg-[#0C831F] rounded-[10px] p-1 gap-1 shadow-sm mr-1">
-          <button onclick="changeQty('${item.id || item.slug}', -1)" class="w-7 h-7 flex items-center justify-center text-white/80 hover:text-white transition-colors"><i class="fas fa-minus text-[10px]"></i></button>
-          <span class="text-[13px] font-bold text-white min-w-[20px] text-center">${item.qty}</span>
-          <button onclick="changeQty('${item.id || item.slug}', 1)" class="w-7 h-7 flex items-center justify-center text-white hover:scale-110 transition-transform"><i class="fas fa-plus text-[10px]"></i></button>
+        <div class="flex items-center justify-between border-t border-[#f0f0f0] pt-2.5">
+          <div class="flex items-center gap-2">
+            <div class="flex items-center border border-[#c2c2c2] rounded-sm overflow-hidden bg-white shadow-2xs">
+              <button onclick="changeQty('${item.id || item.slug}', -1)" title="${isSingle ? 'Remove from cart' : 'Decrease qty'}" class="w-7 h-7 flex items-center justify-center text-slate-700 hover:bg-slate-100 active:scale-90 transition-all">
+                ${minusIcon}
+              </button>
+              <span class="text-[12px] font-bold text-[#212121] w-7 text-center bg-white h-7 flex items-center justify-center border-x border-[#c2c2c2] tabular-nums">${itemQty}</span>
+              <button onclick="changeQty('${item.id || item.slug}', 1)" title="Increase qty" class="w-7 h-7 flex items-center justify-center text-slate-700 hover:bg-slate-100 active:scale-90 transition-all">
+                <i class="fas fa-plus text-[9px]"></i>
+              </button>
+            </div>
+          </div>
+          <button onclick="changeQty('${item.id || item.slug}', -${itemQty})" class="text-[12px] font-bold text-[#212121] hover:text-rose-600 uppercase tracking-wider transition-colors flex items-center gap-1.5 py-1 px-2 hover:bg-slate-50 rounded-sm">
+            <i class="fas fa-trash-can text-[11px] text-[#878787]"></i> REMOVE
+          </button>
         </div>`;
       itemsEl.appendChild(card);
     });
 
     const totalQty = cart.reduce((sum, i) => sum + Number(i.qty), 0);
     itemsCountBadge.innerText = `${totalQty} Item${totalQty !== 1 ? 's' : ''}`;
+    
+    const itemsSummaryCount = document.getElementById("cart-items-summary-count");
+    if (itemsSummaryCount) {
+      itemsSummaryCount.innerText = `${totalQty} item${totalQty !== 1 ? 's' : ''}`;
+    }
+
+    const navSub = document.getElementById("nav-cart-items-sub");
+    if (navSub) {
+      navSub.innerText = `{{ session.get('current_shop_name', 'Quick Store') }} • ${totalQty} items`;
+    }
     
     const progress = Math.min((subtotal / FREE_DELIVERY_THRESHOLD) * 100, 100);
     progressBar.style.width = `${progress}%`;
@@ -262,91 +631,354 @@
         hasFiredConfetti = true;
       }
       deliveryFeeEl.textContent = "FREE"; 
-      deliveryFeeEl.className = "font-black text-[#0C831F]";
+      deliveryFeeEl.className = "font-bold text-[#388e3c]";
       dFeeStrike.textContent = `₹${DELIVERY_FEE}`; 
       dFeeStrike.classList.remove("hidden");
-      hintMain.innerHTML = 'Free delivery unlocked!';
+      hintMain.innerHTML = '<span class="text-[#388e3c] font-bold">🎉 Free delivery unlocked!</span>';
       deliveryCard.classList.add("free-delivery-active");
+      if (savingsBanner) savingsBanner.classList.remove("hidden");
+      if (savingsSummaryLine) savingsSummaryLine.classList.remove("hidden");
     } else {
       hasFiredConfetti = false;
       const remaining = FREE_DELIVERY_THRESHOLD - subtotal;
       deliveryFeeEl.textContent = `₹${DELIVERY_FEE}`; 
-      deliveryFeeEl.className = "font-bold text-gray-900";
+      deliveryFeeEl.className = "font-medium text-[#212121]";
       dFeeStrike.classList.add("hidden");
-      hintMain.innerHTML = `Add ₹${remaining} for free delivery`;
+      hintMain.innerHTML = `<i class="fas fa-gift text-amber-500 text-xs"></i> <span>Add <b>₹${remaining}</b> more for free delivery</span>`;
       deliveryCard.classList.remove("free-delivery-active");
+      if (savingsBanner) savingsBanner.classList.add("hidden");
+      if (savingsSummaryLine) savingsSummaryLine.classList.add("hidden");
       finalPayable += DELIVERY_FEE;
     }
 
     itemsTotalEl.textContent = `₹${subtotal.toFixed(0)}`;
-    itemsTotalEl.classList.remove('line-through', 'decoration-gray-400');
     totalEl.textContent = `₹${finalPayable.toFixed(0)}`;
     footerTotal.textContent = `₹${finalPayable.toFixed(0)}`;
+
+    renderSpecialRequestSummary();
   }
 
   function changeQty(key, delta) {
     let cart = getCart(); 
     const idx = cart.findIndex(i => (i.id && i.id === key) || i.slug === key);
     if (idx === -1) return;
+
+    if (Number(cart[idx].qty) + delta <= 0) {
+      lastRemovedItem = { item: { ...cart[idx] }, index: idx };
+      const removedName = cart[idx].name;
+      cart.splice(idx, 1);
+      saveCart(cart);
+      renderCartPage();
+      showUndoToast(removedName);
+      return;
+    }
+
     cart[idx].qty = Number(cart[idx].qty) + delta;
-    if (cart[idx].qty <= 0) cart.splice(idx, 1);
     saveCart(cart); 
     renderCartPage();
   }
 
+  // ====================================================
+  // 📝 SPECIAL REQUEST (SIDE DRAWER & POINT-WISE SUMMARY)
+  // ====================================================
+  let specialItems = [];
+  let specialRemark = "";
+
+  function loadSavedSpecialRequest() {
+    try {
+      specialItems = JSON.parse(localStorage.getItem("cartSpecialItems") || "[]");
+    } catch (e) {
+      specialItems = [];
+    }
+    specialRemark = localStorage.getItem("cartSpecialRemark") || "";
+
+    // Backward compatibility for existing cartOrderNotes
+    if (specialItems.length === 0 && !specialRemark) {
+      const rawNotes = localStorage.getItem("cartOrderNotes") || "";
+      if (rawNotes) {
+        specialRemark = rawNotes;
+      }
+    }
+  }
+
+  function openRequestDrawer() {
+    loadSavedSpecialRequest();
+    renderDrawerItemsList();
+
+    const remarkInput = document.getElementById("drawer-remark-input");
+    const remarkCount = document.getElementById("drawer-remark-char-count");
+    if (remarkInput) {
+      remarkInput.value = specialRemark;
+      if (remarkCount) remarkCount.textContent = specialRemark.length;
+    }
+
+    const backdrop = document.getElementById("request-drawer-backdrop");
+    const drawer = document.getElementById("request-drawer");
+
+    if (!backdrop || !drawer) return;
+
+    backdrop.classList.add("drawer-open");
+    drawer.classList.add("drawer-open");
+    document.body.style.overflow = "hidden";
+
+    setTimeout(() => {
+      const input = document.getElementById("drawer-item-name");
+      if (input) input.focus();
+    }, 250);
+  }
+
+  function closeRequestDrawer() {
+    const backdrop = document.getElementById("request-drawer-backdrop");
+    const drawer = document.getElementById("request-drawer");
+
+    if (!backdrop || !drawer) return;
+
+    drawer.classList.remove("drawer-open");
+    backdrop.classList.remove("drawer-open");
+    document.body.style.overflow = "";
+  }
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      closeRequestDrawer();
+    }
+  });
+
+  function setDrawerQty(qty) {
+    const input = document.getElementById("drawer-item-qty");
+    if (input) {
+      input.value = qty;
+      input.focus();
+    }
+  }
+
+  function addSpecialItem() {
+    const nameInput = document.getElementById("drawer-item-name");
+    const qtyInput = document.getElementById("drawer-item-qty");
+    if (!nameInput) return;
+
+    const name = nameInput.value.trim();
+    const qty = (qtyInput && qtyInput.value.trim()) || "1 unit";
+
+    if (!name) {
+      nameInput.focus();
+      return;
+    }
+
+    const existing = specialItems.find(i => i.name.toLowerCase() === name.toLowerCase());
+    if (existing) {
+      existing.qty = qty;
+    } else {
+      specialItems.push({ name, qty });
+    }
+
+    nameInput.value = "";
+    if (qtyInput) qtyInput.value = "";
+    renderDrawerItemsList();
+    nameInput.focus();
+  }
+
+
+  function removeSpecialItem(index) {
+    specialItems.splice(index, 1);
+    renderDrawerItemsList();
+  }
+
+  function clearDrawerItems() {
+    specialItems = [];
+    renderDrawerItemsList();
+  }
+
+  function renderDrawerItemsList() {
+    const listEl = document.getElementById("drawer-items-list");
+    const emptyEl = document.getElementById("drawer-items-empty");
+    const countEl = document.getElementById("drawer-items-count");
+    const clearAllBtn = document.getElementById("drawer-clear-all-btn");
+    const saveBtnText = document.getElementById("drawer-save-btn-text");
+
+    if (countEl) countEl.textContent = specialItems.length;
+
+    if (!specialItems.length) {
+      if (emptyEl) emptyEl.classList.remove("hidden");
+      if (listEl) listEl.innerHTML = "";
+      if (clearAllBtn) clearAllBtn.classList.add("hidden");
+      if (saveBtnText) saveBtnText.textContent = "Save Request";
+      return;
+    }
+
+    if (emptyEl) emptyEl.classList.add("hidden");
+    if (clearAllBtn) clearAllBtn.classList.remove("hidden");
+    if (saveBtnText) saveBtnText.textContent = `Save Request (${specialItems.length} item${specialItems.length > 1 ? 's' : ''})`;
+
+    if (!listEl) return;
+    listEl.innerHTML = "";
+    specialItems.forEach((item, idx) => {
+      const card = document.createElement("div");
+      card.className = "flex items-center justify-between gap-3 p-3 bg-white border border-[#e0e0e0] rounded-sm shadow-2xs transition-all hover:border-[#2874f0]";
+      card.innerHTML = `
+        <div class="flex items-center gap-2.5 min-w-0">
+          <span class="w-6 h-6 rounded-full bg-blue-50 text-[#2874f0] text-[11px] font-bold flex items-center justify-center shrink-0">${idx + 1}</span>
+          <div class="min-w-0">
+            <p class="text-[13px] font-bold text-[#212121] truncate">${item.name}</p>
+            <span class="text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-sm inline-block mt-0.5">${item.qty}</span>
+          </div>
+        </div>
+        <button type="button" onclick="removeSpecialItem(${idx})" class="w-8 h-8 rounded-sm bg-slate-50 hover:bg-rose-50 text-slate-400 hover:text-rose-600 flex items-center justify-center active:scale-90 transition-all shrink-0">
+          <i class="fas fa-trash text-[11px]"></i>
+        </button>
+      `;
+      listEl.appendChild(card);
+    });
+  }
+
+  function saveRequestDrawer() {
+    const remarkInput = document.getElementById("drawer-remark-input");
+    specialRemark = remarkInput ? remarkInput.value.trim() : "";
+
+    localStorage.setItem("cartSpecialItems", JSON.stringify(specialItems));
+    localStorage.setItem("cartSpecialRemark", specialRemark);
+
+    let formattedNote = "";
+    if (specialItems.length > 0) {
+      const points = specialItems.map((item, idx) => `${idx + 1}. ${item.name} (${item.qty})`).join("\n");
+      formattedNote = `Special Request Items:\n${points}`;
+      if (specialRemark) {
+        formattedNote += `\nNote: ${specialRemark}`;
+      }
+    } else if (specialRemark) {
+      formattedNote = `Note: ${specialRemark}`;
+    }
+
+    if (formattedNote) {
+      localStorage.setItem("cartOrderNotes", formattedNote);
+    } else {
+      localStorage.removeItem("cartOrderNotes");
+    }
+
+    closeRequestDrawer();
+    renderSpecialRequestSummary();
+  }
+
+  function clearSpecialRequest() {
+    specialItems = [];
+    specialRemark = "";
+    localStorage.removeItem("cartSpecialItems");
+    localStorage.removeItem("cartSpecialRemark");
+    localStorage.removeItem("cartOrderNotes");
+    renderSpecialRequestSummary();
+  }
+
+  function renderSpecialRequestSummary() {
+    loadSavedSpecialRequest();
+    
+    const emptyCard = document.getElementById("special-request-empty-card");
+    const summaryCard = document.getElementById("special-request-summary-card");
+    const summaryBadge = document.getElementById("summary-items-count-badge");
+    const itemsContainer = document.getElementById("summary-items-container");
+    const remarkBox = document.getElementById("summary-remark-box");
+    const remarkContent = document.getElementById("summary-remark-content");
+
+    if (!emptyCard || !summaryCard) return;
+
+    const hasItems = specialItems && specialItems.length > 0;
+    const hasRemark = Boolean(specialRemark);
+
+    if (!hasItems && !hasRemark) {
+      emptyCard.classList.remove("hidden");
+      summaryCard.classList.add("hidden");
+      return;
+    }
+
+    emptyCard.classList.add("hidden");
+    summaryCard.classList.remove("hidden");
+
+    if (summaryBadge) {
+      if (hasItems) {
+        summaryBadge.textContent = `${specialItems.length} Item${specialItems.length > 1 ? 's' : ''}`;
+        summaryBadge.classList.remove("hidden");
+      } else {
+        summaryBadge.textContent = "Customer Note";
+      }
+    }
+
+    if (itemsContainer) {
+      itemsContainer.innerHTML = "";
+      if (hasItems) {
+        specialItems.forEach((item, idx) => {
+          const chip = document.createElement("div");
+          chip.className = "inline-flex items-center gap-1.5 bg-white border border-[#e0e0e0] rounded-sm px-2.5 py-1 shadow-2xs text-[11px] font-bold text-[#212121]";
+          chip.innerHTML = `
+            <span class="text-[#2874f0] font-bold text-[10px]">${idx + 1}.</span>
+            <span class="truncate max-w-[150px] sm:max-w-[200px]">${item.name}</span>
+            <span class="text-[9.5px] font-bold text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded-sm">${item.qty}</span>
+            <button type="button" onclick="quickRemoveSpecialItem(${idx})" class="w-4 h-4 flex items-center justify-center text-slate-400 hover:text-rose-500 active:scale-90 transition-all ml-0.5" title="Remove item">
+              <i class="fas fa-times text-[9px]"></i>
+            </button>
+          `;
+          itemsContainer.appendChild(chip);
+        });
+      }
+    }
+
+    if (remarkBox && remarkContent) {
+      if (hasRemark) {
+        remarkBox.classList.remove("hidden");
+        remarkContent.textContent = specialRemark;
+      } else {
+        remarkBox.classList.add("hidden");
+      }
+    }
+  }
+
+  function quickRemoveSpecialItem(index) {
+    loadSavedSpecialRequest();
+    specialItems.splice(index, 1);
+    localStorage.setItem("cartSpecialItems", JSON.stringify(specialItems));
+
+    let formattedNote = "";
+    if (specialItems.length > 0) {
+      const points = specialItems.map((item, idx) => `${idx + 1}. ${item.name} (${item.qty})`).join("\n");
+      formattedNote = `Special Request Items:\n${points}`;
+      if (specialRemark) formattedNote += `\nNote: ${specialRemark}`;
+    } else if (specialRemark) {
+      formattedNote = `Note: ${specialRemark}`;
+    }
+
+    if (formattedNote) {
+      localStorage.setItem("cartOrderNotes", formattedNote);
+    } else {
+      localStorage.removeItem("cartOrderNotes");
+    }
+    renderSpecialRequestSummary();
+  }
+
+  function initRemarkCounter() {
+    const remarkInput = document.getElementById("drawer-remark-input");
+    const remarkCount = document.getElementById("drawer-remark-char-count");
+    if (remarkInput && remarkCount) {
+      remarkInput.addEventListener("input", (e) => {
+        remarkCount.textContent = e.target.value.length;
+      });
+    }
+  }
+
   function handleCheckoutClick() {
     if (!getCart().length) return;
-    if (!IS_LOGGED_IN) { window.location.href = "{{ url_for('login') }}?redirect=cart"; return; }
-    // Skip redundant location check and proceed directly
-    proceedToCheckout();
+
+    if (!IS_LOGGED_IN) { 
+      window.location.href = "{{ url_for('login') }}?redirect=cart"; 
+      return; 
+    }
+    window.location.href = "{{ url_for('address_page') }}";
   }
 
-  async function validateServiceAreaBeforeCheckout() {
-    document.getElementById('service-area-modal').classList.remove('hidden');
-    document.getElementById('modal-loading').classList.remove('hidden');
-    document.getElementById('modal-success').classList.add('hidden');
-    document.getElementById('modal-error').classList.add('hidden');
-    try {
-      const resp = await fetch('/api/service-config'); 
-      SERVICE_CENTER = await resp.json();
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          (pos) => {
-            const dist = haversineDistanceKm(pos.coords.latitude, pos.coords.longitude, SERVICE_CENTER.lat, SERVICE_CENTER.lng);
-            document.getElementById('modal-loading').classList.add('hidden');
-            if (dist <= SERVICE_CENTER.radius_km) {
-                document.getElementById('modal-coords').textContent = "Within " + dist.toFixed(1) + "km range";
-                document.getElementById('modal-success').classList.remove('hidden');
-            } else showServiceError(`Sorry, you are out of our ${SERVICE_CENTER.radius_km}km delivery limit.`);
-          },
-          () => showServiceError("GPS access required. Please allow location access."), { enableHighAccuracy: true, timeout: 8000 }
-        );
-      } else showServiceError("Location services not supported.");
-    } catch (e) { showServiceError("Network Error. Please try again."); }
-  }
-
-  function haversineDistanceKm(lat1, lng1, lat2, lng2) {
-    const toRad = d => d * Math.PI / 180; 
-    const R = 6371;
-    const dLat = toRad(lat2 - lat1), dLng = toRad(lng2 - lng1);
-    const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng/2)**2;
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-  }
-
-  function showServiceError(msg) {
-    document.getElementById('modal-loading').classList.add('hidden');
-    document.getElementById('modal-error-message').textContent = msg;
-    document.getElementById('modal-error').classList.remove('hidden');
-  }
-
-  function closeServiceModal() { document.getElementById('service-area-modal').classList.add('hidden'); }
-  function retryLocationCheck() { validateServiceAreaBeforeCheckout(); }
-  function proceedToCheckout() { window.location.href = "{{ url_for('address_page') }}"; }
-
-  document.addEventListener("DOMContentLoaded", renderCartPage);
+  document.addEventListener("DOMContentLoaded", () => {
+    renderCartPage();
+    initRemarkCounter();
+  });
   window.addEventListener('cartUpdated', renderCartPage);
 </script>
+{% endblock %}
 
 {% block mobile_nav %}{% endblock %}
 {% block footer %}{% endblock %}
-{% endblock %}
