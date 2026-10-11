@@ -89,6 +89,14 @@
       <a href="{{ url_for('admin_fees_settings') }}" class="flex items-center gap-3 px-4 py-3.5 rounded-2xl text-sm font-bold text-slate-400 hover:text-white transition-all">
         <i class="fas fa-sliders w-5"></i> Settings
       </a>
+
+      <p class="px-4 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mt-8 mb-4">Store & User</p>
+      <a href="{{ url_for('index') }}" target="_blank" class="flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold text-slate-400 hover:bg-white/5 hover:text-white transition-all">
+        <i class="fas fa-store w-5 text-emerald-400"></i> Home Page
+      </a>
+      <a href="{{ url_for('login') }}" target="_blank" class="flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold text-slate-400 hover:bg-white/5 hover:text-white transition-all">
+        <i class="fas fa-user-circle w-5 text-blue-400"></i> Customer Login
+      </a>
       
       <div class="mt-10 px-4">
         <a href="{{ url_for('admin_logout') }}" class="flex items-center justify-center gap-2 w-full py-4 rounded-2xl bg-rose-500/10 text-rose-400 text-sm font-black hover:bg-rose-500 hover:text-white transition-all group">
@@ -105,7 +113,15 @@
       </div>
       <span class="font-black text-lg tracking-tighter uppercase">Jippy</span>
     </div>
-    <div id="clock-mobile" class="text-[10px] font-black bg-slate-100 px-3 py-1 rounded-full text-slate-500">00:00</div>
+    <div class="flex items-center gap-2">
+      <a href="{{ url_for('index') }}" class="p-2 rounded-xl bg-slate-100 text-emerald-700 text-xs font-bold hover:bg-emerald-50" title="Home Store">
+        <i class="fas fa-store"></i>
+      </a>
+      <a href="{{ url_for('login') }}" class="p-2 rounded-xl bg-slate-100 text-blue-700 text-xs font-bold hover:bg-blue-50" title="Customer Login">
+        <i class="fas fa-user"></i>
+      </a>
+      <div id="clock-mobile" class="text-[10px] font-black bg-slate-100 px-3 py-1 rounded-full text-slate-500">00:00</div>
+    </div>
   </nav>
 
   <main class="lg:ml-72 min-h-screen p-4 md:p-10 lg:p-12 transition-all">
@@ -114,13 +130,23 @@
         <h2 class="text-3xl font-black text-slate-900 tracking-tight" id="greeting">System Dashboard</h2>
         <p class="text-slate-400 text-sm font-bold mt-1">Operational Status: <span class="text-emerald-500">Healthy</span></p>
       </div>
-      <div class="flex items-center gap-4 bg-white p-2 rounded-[1.5rem] shadow-sm border border-slate-100">
-        <div class="px-4 py-2 text-right">
-          <p id="clock" class="text-lg font-black text-slate-900 leading-none">--:--:--</p>
-          <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">Live Server Time</p>
-        </div>
-        <div class="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400">
-          <i class="fas fa-bell"></i>
+      <div class="flex items-center gap-3">
+        <a href="{{ url_for('index') }}" target="_blank" class="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 text-xs font-bold transition-all border border-slate-200 shadow-sm">
+          <i class="fas fa-store text-emerald-600"></i>
+          <span>Home Store</span>
+        </a>
+        <a href="{{ url_for('login') }}" target="_blank" class="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white hover:bg-blue-50 text-slate-700 hover:text-blue-700 text-xs font-bold transition-all border border-slate-200 shadow-sm">
+          <i class="fas fa-user text-blue-600"></i>
+          <span>Customer Login</span>
+        </a>
+        <div class="flex items-center gap-4 bg-white p-2 rounded-[1.5rem] shadow-sm border border-slate-100">
+          <div class="px-4 py-2 text-right">
+            <p id="clock" class="text-lg font-black text-slate-900 leading-none">--:--:--</p>
+            <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">Live Server Time</p>
+          </div>
+          <div class="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400">
+            <i class="fas fa-bell"></i>
+          </div>
         </div>
       </div>
     </header>
@@ -161,6 +187,14 @@
   <aside id="mobile-drawer" class="fixed bottom-0 left-0 right-0 bg-white z-[120] rounded-t-[3rem] p-8 translate-y-full transition-transform duration-500 ease-out">
     <div class="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-8"></div>
     <div class="grid grid-cols-2 gap-4">
+        <a href="{{ url_for('index') }}" class="flex flex-col items-center p-6 bg-emerald-50 rounded-[2rem] border border-emerald-100">
+            <i class="fas fa-store text-2xl text-emerald-600 mb-2"></i>
+            <span class="text-xs font-black uppercase text-emerald-800">Home Store</span>
+        </a>
+        <a href="{{ url_for('login') }}" class="flex flex-col items-center p-6 bg-blue-50 rounded-[2rem] border border-blue-100">
+            <i class="fas fa-user text-2xl text-blue-600 mb-2"></i>
+            <span class="text-xs font-black uppercase text-blue-800">Customer Login</span>
+        </a>
         <a href="{{ url_for('add_user') }}" class="flex flex-col items-center p-6 bg-slate-50 rounded-[2rem] border border-slate-100">
             <i class="fas fa-user-shield text-2xl text-indigo-500 mb-2"></i>
             <span class="text-xs font-black uppercase">Staff Management</span>
