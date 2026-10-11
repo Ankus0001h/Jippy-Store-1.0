@@ -95,50 +95,88 @@
     </div>
 
   {% else %}
-    <!-- Main View (Zepto Split Layout) -->
-    <div class="flex gap-0 sm:gap-6 items-start -mx-1 sm:mx-0">
-      
-      <!-- Left Sidebar: Categories -->
-      <div class="w-[88px] sm:w-[240px] shrink-0 sticky top-[60px] sm:top-[68px] h-[calc(100dvh-70px)] sm:h-[calc(100dvh-78px)] overflow-y-auto overflow-x-hidden no-scrollbar flex flex-col pb-32 bg-[#f8fafc] border-r border-slate-100/50 pt-2 px-1 sm:px-0 shadow-[inset_-4px_0_10px_-10px_rgba(0,0,0,0.05)]">
+    <!-- Mobile Horizontal Category Slider (Blinkit & Zepto Style - Visible on Mobile only) -->
+    <div class="sm:hidden -mx-2 px-2 sticky top-[56px] z-30 bg-[#f8fafc]/95 backdrop-blur-md py-2 border-b border-slate-100 shadow-[0_4px_12px_-6px_rgba(0,0,0,0.05)]">
+      <div class="flex items-center gap-2 overflow-x-auto no-scrollbar scroll-smooth px-1" id="mobile-category-slider">
+        
+        <!-- "All" pill -->
         {% set shop_all_url = url_for('shop_home', shop_id=shop._id) if shop else (url_for('shop_home', shop_id=session.get('current_shop_id')) if session.get('current_shop_id') else url_for('index')) %}
         <a href="{{ shop_all_url }}" 
-           class="flex flex-col sm:flex-row items-center gap-1.5 sm:gap-4 px-2 py-1.5 sm:px-5 sm:py-3.5 transition-all relative group {% if not selected_category %} bg-white shadow-sm {% else %} hover:bg-white/60 {% endif %}" 
+           class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold shrink-0 transition-all active:scale-95 shadow-sm {% if not selected_category %} bg-emerald-600 text-white ring-2 ring-emerald-500/20 {% else %} bg-white text-slate-600 border border-slate-200/80 hover:bg-slate-50 {% endif %}">
+          <i class="fas fa-layer-group text-[11px] {% if not selected_category %} text-white {% else %} text-emerald-600 {% endif %}"></i>
+          <span>All</span>
+        </a>
+
+        <!-- Each category pill -->
+        {% for c in categories %}
+          {% set is_active = (selected_category and selected_category|lower == c|lower) %}
+          {% set img_name = c|lower|replace(' ', '_') %}
+          <a href="{{ url_for('category_page', name=c) }}" 
+             class="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold shrink-0 transition-all active:scale-95 shadow-sm {% if is_active %} bg-emerald-600 text-white ring-2 ring-emerald-500/20 {% else %} bg-white text-slate-700 border border-slate-200/80 hover:bg-slate-50 {% endif %}">
+            <div class="w-5 h-5 rounded-full overflow-hidden bg-slate-100 flex items-center justify-center shrink-0">
+              <img src="{{ url_for('static', filename='images/categories/' + img_name + '.jpg') }}" 
+                   class="w-full h-full object-cover mix-blend-multiply" 
+                   onerror="this.parentElement.innerHTML='<i class=\'fas fa-leaf text-[9px] text-emerald-500\'></i>'">
+            </div>
+            <span class="whitespace-nowrap">{{ c }}</span>
+          </a>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Main View (Zepto Split Layout on Desktop, Full Width on Mobile) -->
+    <div class="flex gap-0 sm:gap-6 items-start -mx-1 sm:mx-0">
+      
+      <!-- Left Sidebar: Categories (Desktop only: hidden on mobile) -->
+      <div class="hidden sm:flex w-[240px] shrink-0 sticky top-[68px] h-[calc(100dvh-78px)] overflow-y-auto overflow-x-hidden no-scrollbar flex-col pb-32 bg-[#f8fafc] border-r border-slate-100/50 pt-2 px-0 shadow-[inset_-4px_0_10px_-10px_rgba(0,0,0,0.05)]">
+        {% set shop_all_url = url_for('shop_home', shop_id=shop._id) if shop else (url_for('shop_home', shop_id=session.get('current_shop_id')) if session.get('current_shop_id') else url_for('index')) %}
+        <a href="{{ shop_all_url }}" 
+           class="flex items-center gap-4 px-5 py-3.5 transition-all relative group {% if not selected_category %} bg-white shadow-sm {% else %} hover:bg-white/60 {% endif %}" 
            onclick="localStorage.removeItem('lastSearch')">
           
           {% if not selected_category %}
           <!-- Active Indicator -->
-          <div class="absolute left-1 sm:left-0 top-1/2 -translate-y-1/2 w-1 h-8 sm:h-12 bg-emerald-500 rounded-r-md"></div>
+          <div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-12 bg-emerald-500 rounded-r-md"></div>
           {% endif %}
           
-          <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-[14px] {% if not selected_category %}bg-emerald-50 text-emerald-600{% else %}bg-[#f1f5f9] text-slate-400{% endif %} flex items-center justify-center shrink-0 border border-transparent {% if not selected_category %}border-emerald-100{% endif %}">
-            <i class="fas fa-layer-group text-[14px] sm:text-base"></i>
+          <div class="w-12 h-12 rounded-[14px] {% if not selected_category %}bg-emerald-50 text-emerald-600{% else %}bg-[#f1f5f9] text-slate-400{% endif %} flex items-center justify-center shrink-0 border border-transparent {% if not selected_category %}border-emerald-100{% endif %}">
+            <i class="fas fa-layer-group text-base"></i>
           </div>
-          <span class="text-[9px] sm:text-sm {% if not selected_category %}font-extrabold text-emerald-950{% else %}font-medium text-slate-500{% endif %} text-center sm:text-left leading-tight break-words w-full px-0.5">All</span>
+          <span class="text-sm {% if not selected_category %}font-extrabold text-emerald-950{% else %}font-medium text-slate-500{% endif %} text-left leading-tight break-words w-full px-0.5">All</span>
         </a>
         
         {% for c in categories %}
         <a href="{{ url_for('category_page', name=c) }}" 
-           class="flex flex-col sm:flex-row items-center gap-1.5 sm:gap-4 px-2 py-1.5 sm:px-5 sm:py-3.5 transition-all relative group {% if selected_category and selected_category|lower == c|lower %} bg-white shadow-sm {% else %} hover:bg-white/60 {% endif %}" 
+           class="flex items-center gap-4 px-5 py-3.5 transition-all relative group {% if selected_category and selected_category|lower == c|lower %} bg-white shadow-sm {% else %} hover:bg-white/60 {% endif %}" 
            onclick="localStorage.removeItem('lastSearch')">
           
           {% if selected_category and selected_category|lower == c|lower %}
           <!-- Active Indicator -->
-          <div class="absolute left-1 sm:left-0 top-1/2 -translate-y-1/2 w-1 h-8 sm:h-12 bg-emerald-500 rounded-r-md"></div>
+          <div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-12 bg-emerald-500 rounded-r-md"></div>
           {% endif %}
           
           {% set img_name = c|lower|replace(' ', '_') %}
-          <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-[14px] bg-[#f1f5f9] overflow-hidden flex items-center justify-center shrink-0 border {% if selected_category and selected_category|lower == c|lower %}border-emerald-100 ring-2 ring-emerald-50 ring-offset-1{% else %}border-slate-200/60{% endif %} group-hover:border-emerald-200 transition-all">
+          <div class="w-12 h-12 rounded-[14px] bg-[#f1f5f9] overflow-hidden flex items-center justify-center shrink-0 border {% if selected_category and selected_category|lower == c|lower %}border-emerald-100 ring-2 ring-emerald-50 ring-offset-1{% else %}border-slate-200/60{% endif %} group-hover:border-emerald-200 transition-all">
             <img src="{{ url_for('static', filename='images/categories/' + img_name + '.jpg') }}" 
-                 class="w-[85%] h-[85%] object-cover mix-blend-multiply rounded-lg"
+                 class="w-[85%] h-[85%] object-cover mix-blend-multiply rounded-lg" 
                  onerror="this.parentElement.innerHTML='<i class=\'fas fa-leaf text-slate-400 text-sm\'></i>'">
           </div>
-          <span class="text-[9px] sm:text-sm {% if selected_category and selected_category|lower == c|lower %}font-extrabold text-emerald-950{% else %}font-medium text-slate-500 group-hover:text-slate-800{% endif %} text-center sm:text-left leading-tight break-words w-full px-0.5">{{ c }}</span>
+          <span class="text-sm {% if selected_category and selected_category|lower == c|lower %}font-extrabold text-emerald-950{% else %}font-medium text-slate-500 group-hover:text-slate-800{% endif %} text-left leading-tight break-words w-full px-0.5">{{ c }}</span>
         </a>
         {% endfor %}
       </div>
 
-      <!-- Right Content: Products Grid -->
-      <div class="flex-1 min-w-0">
+      <!-- Right Content: Products Grid (Full Width on Mobile) -->
+      <div class="flex-1 w-full min-w-0 px-1 sm:px-0">
+        <!-- Category Title & Count Header -->
+        <div class="flex items-center justify-between mb-3 px-1 sm:px-2 pt-1">
+          <div>
+            <h2 class="text-base sm:text-2xl font-black text-slate-900 tracking-tight leading-tight">
+              {{ selected_category or "All Products" }}
+            </h2>
+            <p class="text-[10px] sm:text-xs text-slate-400 font-bold mt-0.5">{{ items|length }} products found</p>
+          </div>
+        </div>
         {% if items %}
           <div id="products-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4">
           {% for p in items %}
@@ -222,6 +260,16 @@
 
     updateCartButtons();
     
+    // Auto-scroll active category pill into center on mobile
+    const slider = document.getElementById('mobile-category-slider');
+    if (slider) {
+      const activePill = slider.querySelector('.bg-emerald-600');
+      if (activePill) {
+        setTimeout(() => {
+          activePill.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        }, 120);
+      }
+    }
 
 
     // Restore Search
