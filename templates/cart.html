@@ -2,24 +2,29 @@
 
 {% block navbar %}
 <!-- 🛍️ Flipkart Style Blue Header -->
-<nav class="sticky top-0 z-[60] bg-[#2874f0] text-white px-3 sm:px-4 py-2.5 flex items-center justify-between font-['Plus_Jakarta_Sans'] shadow-md">
-   <div class="flex items-center justify-between max-w-[540px] mx-auto w-full">
-     <div class="flex items-center gap-2.5">
-       <button onclick="history.back()" class="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center text-white hover:bg-white/15 active:scale-90 rounded-full transition-all" title="Back">
-         <i class="fas fa-arrow-left text-sm sm:text-base"></i>
-       </button>
-       <div>
-         <h1 class="text-[15px] sm:text-[16px] font-bold text-white leading-tight">My Cart</h1>
-         <p id="nav-cart-items-sub" class="text-[10.5px] sm:text-[11px] font-medium text-blue-100 truncate max-w-[200px]">
-           {{ session.get('current_shop_name', 'Quick Store') }}
-         </p>
-       </div>
-     </div>
-     <div class="flex items-center gap-1.5 px-2.5 py-1 bg-white/15 border border-white/20 rounded-md text-[10px] sm:text-[10.5px] font-bold text-white shadow-2xs">
-       <i class="fas fa-bolt text-yellow-300"></i>
-       <span>10 MINS</span>
-     </div>
-   </div>
+<nav
+  class="sticky top-0 z-[60] bg-[#2874f0] text-white px-3 sm:px-4 py-2.5 flex items-center justify-between font-['Plus_Jakarta_Sans'] shadow-md">
+  <div class="flex items-center justify-between max-w-[540px] mx-auto w-full">
+    <div class="flex items-center gap-2.5">
+      <button onclick="history.back()"
+        class="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center text-white hover:bg-white/15 active:scale-90 rounded-full transition-all"
+        title="Back">
+        <i class="fas fa-arrow-left text-sm sm:text-base"></i>
+      </button>
+      <div>
+        <h1 class="text-[15px] sm:text-[16px] font-bold text-white leading-tight">My Cart</h1>
+        <p id="nav-cart-items-sub"
+          class="text-[10.5px] sm:text-[11px] font-medium text-blue-100 truncate max-w-[200px]">
+          {{ session.get('current_shop_name', 'Quick Store') }}
+        </p>
+      </div>
+    </div>
+    <div
+      class="flex items-center gap-1.5 px-2.5 py-1 bg-white/15 border border-white/20 rounded-md text-[10px] sm:text-[10.5px] font-bold text-white shadow-2xs">
+      <i class="fas fa-bolt text-yellow-300"></i>
+      <span>10 MINS</span>
+    </div>
+  </div>
 </nav>
 {% endblock %}
 
@@ -31,7 +36,8 @@
   <div class="max-w-[540px] mx-auto px-2 sm:px-3.5 space-y-2">
 
     <!-- 🛒 Empty Cart State -->
-    <div id="cart-empty" class="hidden bg-white rounded-none sm:rounded-sm p-8 sm:p-10 flex flex-col items-center justify-center text-center shadow-2xs border border-[#e0e0e0] mt-3">
+    <div id="cart-empty"
+      class="hidden bg-white rounded-none sm:rounded-sm p-8 sm:p-10 flex flex-col items-center justify-center text-center shadow-2xs border border-[#e0e0e0] mt-3">
       <div class="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mb-4 text-[#2874f0]">
         <i class="fas fa-cart-shopping text-3xl"></i>
       </div>
@@ -39,17 +45,20 @@
       <p class="text-[12px] text-[#878787] mb-5 max-w-xs leading-relaxed">
         Explore fresh daily essentials and groceries from your society store.
       </p>
-      {% set back_shop_url = url_for('shop_home', shop_id=session.get('current_shop_id')) if session.get('current_shop_id') else url_for('index') %}
-      <a href="{{ back_shop_url }}" class="w-full py-3 bg-[#2874f0] hover:bg-blue-700 active:scale-[0.98] text-white font-bold rounded-sm transition-all shadow-sm text-center text-xs uppercase tracking-wider">
+      {% set back_shop_url = url_for('shop_home', shop_id=session.get('current_shop_id')) if
+      session.get('current_shop_id') else url_for('index') %}
+      <a href="{{ back_shop_url }}"
+        class="w-full py-3 bg-[#2874f0] hover:bg-blue-700 active:scale-[0.98] text-white font-bold rounded-sm transition-all shadow-sm text-center text-xs uppercase tracking-wider">
         Shop Now
       </a>
     </div>
 
     <!-- 📦 Main Cart Container (Flipkart Style) -->
     <div id="cart-container" class="space-y-2 hidden">
-      
+
       <!-- 📍 Deliver To Address Card (Flipkart Style) -->
-      <div class="bg-white rounded-none sm:rounded-sm p-3 sm:p-3.5 border border-[#e0e0e0] shadow-2xs flex items-center justify-between">
+      <div
+        class="bg-white rounded-none sm:rounded-sm p-3 sm:p-3.5 border border-[#e0e0e0] shadow-2xs flex items-center justify-between">
         <div class="min-w-0 pr-2">
           <div class="flex items-center gap-1.5 text-[11.5px] text-[#878787] font-semibold mb-0.5">
             <span>Deliver to:</span>
@@ -59,16 +68,19 @@
             {{ session.get('current_society_name', session.get('user_address', 'Your Doorstep')) }}
           </p>
         </div>
-        <a href="{{ url_for('address_page') if is_logged_in else url_for('login') }}" class="text-[12px] font-bold text-[#2874f0] border border-[#e0e0e0] px-3.5 py-1.5 rounded-sm shrink-0 hover:bg-blue-50/50 active:scale-95 transition-all uppercase tracking-wider">
+        <a href="{{ url_for('address_page') if is_logged_in else url_for('login') }}"
+          class="text-[12px] font-bold text-[#2874f0] border border-[#e0e0e0] px-3.5 py-1.5 rounded-sm shrink-0 hover:bg-blue-50/50 active:scale-95 transition-all uppercase tracking-wider">
           Change
         </a>
       </div>
 
       <!-- ⚡ Free Delivery Goal & 10 Min ETA (Flipkart Style) -->
-      <div id="delivery-card" class="bg-white border border-[#e0e0e0] rounded-none sm:rounded-sm p-3 sm:p-3.5 shadow-2xs space-y-2 transition-all">
+      <div id="delivery-card"
+        class="bg-white border border-[#e0e0e0] rounded-none sm:rounded-sm p-3 sm:p-3.5 shadow-2xs space-y-2 transition-all">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-2">
-            <span class="w-6 h-6 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center text-xs font-bold">
+            <span
+              class="w-6 h-6 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center text-xs font-bold">
               <i class="fas fa-bolt"></i>
             </span>
             <span class="text-[12.5px] font-bold text-[#212121]">Delivery in 10 mins</span>
@@ -82,20 +94,24 @@
             </span>
           </div>
           <div class="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-            <div id="delivery-progress-bar" class="h-full bg-emerald-500 rounded-full transition-all duration-500" style="width: 0%"></div>
+            <div id="delivery-progress-bar" class="h-full bg-emerald-500 rounded-full transition-all duration-500"
+              style="width: 0%"></div>
           </div>
         </div>
       </div>
 
       <!-- Items Section Header -->
       <div class="flex items-center justify-between px-1 pt-0.5">
-         <div class="flex items-center gap-2">
-           <h3 class="text-[12px] font-bold uppercase tracking-wider text-[#878787]">Cart Items</h3>
-           <span id="items-count-badge" class="text-[11px] font-bold text-[#878787] bg-white border border-[#e0e0e0] px-2 py-0.5 rounded-sm">0 Items</span>
-         </div>
-         <a href="{{ back_shop_url }}" class="text-[11.5px] font-bold text-[#2874f0] hover:underline flex items-center gap-1 active:scale-95 transition-transform uppercase">
-           + Add More
-         </a>
+        <div class="flex items-center gap-2">
+          <h3 class="text-[12px] font-bold uppercase tracking-wider text-[#878787]">Cart Items</h3>
+          <span id="items-count-badge"
+            class="text-[11px] font-bold text-[#878787] bg-white border border-[#e0e0e0] px-2 py-0.5 rounded-sm">0
+            Items</span>
+        </div>
+        <a href="{{ back_shop_url }}"
+          class="text-[11.5px] font-bold text-[#2874f0] hover:underline flex items-center gap-1 active:scale-95 transition-transform uppercase">
+          + Add More
+        </a>
       </div>
 
       <!-- Cart Items List Container -->
@@ -104,37 +120,48 @@
       <!-- 📝 SPECIAL REQUEST / MISSING ITEMS CARD (Flipkart Style) -->
       <div id="special-request-section" class="transition-all duration-300">
         <!-- 1. EMPTY STATE (When no items added yet) -->
-        <div id="special-request-empty-card" class="bg-white border border-[#e0e0e0] rounded-none sm:rounded-sm p-3 sm:p-3.5 shadow-2xs flex items-center justify-between gap-3">
+        <div id="special-request-empty-card"
+          class="bg-white border border-[#e0e0e0] rounded-none sm:rounded-sm p-3 sm:p-3.5 shadow-2xs flex items-center justify-between gap-3">
           <div class="flex items-center gap-2.5 min-w-0">
-            <div class="w-8 h-8 rounded-sm bg-amber-50 text-amber-600 flex items-center justify-center text-xs shrink-0 font-bold border border-amber-200">
+            <div
+              class="w-8 h-8 rounded-sm bg-amber-50 text-amber-600 flex items-center justify-center text-xs shrink-0 font-bold border border-amber-200">
               <i class="fas fa-clipboard-list"></i>
             </div>
             <div class="min-w-0">
               <p class="text-[12.5px] font-bold text-[#212121] leading-tight">Missing items not listed in store?</p>
-              <p class="text-[11px] font-medium text-[#878787] truncate mt-0.5">Add Dhaniya, Mirchi, Bread, etc. point-wise</p>
+              <p class="text-[11px] font-medium text-[#878787] truncate mt-0.5">Add Dhaniya, Mirchi, Bread, etc.
+                point-wise</p>
             </div>
           </div>
-          <button type="button" onclick="openRequestDrawer()" class="px-3.5 py-1.5 bg-[#2874f0] hover:bg-blue-700 active:scale-95 text-white text-[11px] font-bold rounded-sm shadow-2xs transition-all flex items-center gap-1 shrink-0 uppercase tracking-wider">
+          <button type="button" onclick="openRequestDrawer()"
+            class="px-3.5 py-1.5 bg-[#2874f0] hover:bg-blue-700 active:scale-95 text-white text-[11px] font-bold rounded-sm shadow-2xs transition-all flex items-center gap-1 shrink-0 uppercase tracking-wider">
             <i class="fas fa-plus text-[9px]"></i>
             <span>Add</span>
           </button>
         </div>
 
         <!-- 2. SUMMARY STATE (When points are added - Sleek Chips View) -->
-        <div id="special-request-summary-card" class="hidden bg-white border border-[#e0e0e0] rounded-none sm:rounded-sm p-3 sm:p-3.5 shadow-2xs space-y-2.5 relative overflow-hidden">
+        <div id="special-request-summary-card"
+          class="hidden bg-white border border-[#e0e0e0] rounded-none sm:rounded-sm p-3 sm:p-3.5 shadow-2xs space-y-2.5 relative overflow-hidden">
           <div class="flex items-center justify-between gap-2">
             <div class="flex items-center gap-2">
-              <span class="w-5 h-5 rounded-sm bg-amber-500 text-white flex items-center justify-center text-[9px] font-black shrink-0">
+              <span
+                class="w-5 h-5 rounded-sm bg-amber-500 text-white flex items-center justify-center text-[9px] font-black shrink-0">
                 <i class="fas fa-check"></i>
               </span>
               <h4 class="text-[12.5px] font-bold text-[#212121] leading-tight">Special Request Items</h4>
-              <span id="summary-items-count-badge" class="text-[10px] font-bold bg-amber-50 text-amber-800 px-2 py-0.5 rounded border border-amber-200">0 Items</span>
+              <span id="summary-items-count-badge"
+                class="text-[10px] font-bold bg-amber-50 text-amber-800 px-2 py-0.5 rounded border border-amber-200">0
+                Items</span>
             </div>
             <div class="flex items-center gap-1.5 shrink-0">
-              <button type="button" onclick="openRequestDrawer()" class="px-2.5 py-1 bg-white hover:bg-slate-50 text-[#212121] border border-[#e0e0e0] rounded-sm text-[11px] font-bold shadow-2xs transition-all active:scale-95 flex items-center gap-1">
+              <button type="button" onclick="openRequestDrawer()"
+                class="px-2.5 py-1 bg-white hover:bg-slate-50 text-[#212121] border border-[#e0e0e0] rounded-sm text-[11px] font-bold shadow-2xs transition-all active:scale-95 flex items-center gap-1">
                 <i class="fas fa-pen text-[9px] text-[#2874f0]"></i> Edit
               </button>
-              <button type="button" onclick="clearSpecialRequest()" class="w-6 h-6 flex items-center justify-center bg-white hover:bg-rose-50 text-slate-400 hover:text-rose-600 border border-[#e0e0e0] rounded-sm text-[10px] transition-all active:scale-95" title="Remove Request">
+              <button type="button" onclick="clearSpecialRequest()"
+                class="w-6 h-6 flex items-center justify-center bg-white hover:bg-rose-50 text-slate-400 hover:text-rose-600 border border-[#e0e0e0] rounded-sm text-[10px] transition-all active:scale-95"
+                title="Remove Request">
                 <i class="fas fa-trash text-[9px]"></i>
               </button>
             </div>
@@ -144,7 +171,8 @@
           <div id="summary-items-container" class="flex flex-wrap gap-1.5 pt-0.5"></div>
 
           <!-- Remark box if provided -->
-          <div id="summary-remark-box" class="hidden bg-slate-50 border border-[#e0e0e0] rounded-sm p-2 text-[11px] font-medium text-slate-700 flex items-start gap-2">
+          <div id="summary-remark-box"
+            class="hidden bg-slate-50 border border-[#e0e0e0] rounded-sm p-2 text-[11px] font-medium text-slate-700 flex items-start gap-2">
             <i class="fas fa-comment-dots text-amber-600 text-xs mt-0.5 shrink-0"></i>
             <div class="flex-1 min-w-0">
               <span class="text-[9.5px] font-bold text-[#878787] uppercase tracking-wider block">Customer Note</span>
@@ -152,7 +180,8 @@
             </div>
           </div>
 
-          <div class="flex items-center justify-between text-[10.5px] font-medium text-[#878787] pt-1 border-t border-[#f0f0f0]">
+          <div
+            class="flex items-center justify-between text-[10.5px] font-medium text-[#878787] pt-1 border-t border-[#f0f0f0]">
             <span class="flex items-center gap-1 text-amber-700">
               <i class="fas fa-coins text-amber-600"></i> Extra item cost settled at doorstep
             </span>
@@ -164,20 +193,23 @@
       </div>
 
       <!-- 🧾 Flipkart Style PRICE DETAILS Card -->
-      <div id="bill-details-card" class="bg-white border border-[#e0e0e0] rounded-none sm:rounded-sm p-3.5 sm:p-4 shadow-2xs space-y-3">
+      <div id="bill-details-card"
+        class="bg-white border border-[#e0e0e0] rounded-none sm:rounded-sm p-3.5 sm:p-4 shadow-2xs space-y-3">
         <h3 class="text-[12px] font-bold text-[#878787] uppercase tracking-wider border-b border-[#f0f0f0] pb-2">
           PRICE DETAILS
         </h3>
 
         <!-- Savings banner when free delivery is achieved -->
-        <div id="savings-banner" class="hidden bg-[#f0fdf4] border border-emerald-200 rounded-sm p-2.5 flex items-center justify-between text-[#388e3c] font-bold text-[12px]">
+        <div id="savings-banner"
+          class="hidden bg-[#f0fdf4] border border-emerald-200 rounded-sm p-2.5 flex items-center justify-between text-[#388e3c] font-bold text-[12px]">
           <span class="flex items-center gap-1.5">
             <i class="fas fa-badge-percent text-emerald-600"></i>
             <span>Delivery savings applied!</span>
           </span>
-          <span class="bg-[#388e3c] text-white text-[10px] font-bold px-2 py-0.5 rounded-sm">SAVED ₹{{ delivery_fee }}</span>
+          <span class="bg-[#388e3c] text-white text-[10px] font-bold px-2 py-0.5 rounded-sm">SAVED ₹{{ delivery_fee
+            }}</span>
         </div>
-        
+
         <div class="space-y-2.5 text-[13px]">
           <div class="flex justify-between items-center text-[#212121]">
             <span>Price (<span id="cart-items-summary-count">items</span>)</span>
@@ -189,7 +221,8 @@
             <span class="font-medium text-[#212121]">₹{{ handling_fee }}</span>
           </div>
 
-          <div id="surge-row" class="flex justify-between items-center text-rose-600 {% if surge_charge == 0 %}hidden{% endif %}">
+          <div id="surge-row"
+            class="flex justify-between items-center text-rose-600 {% if surge_charge == 0 %}hidden{% endif %}">
             <span>Surge Charge</span>
             <span class="font-bold">₹{{ surge_charge }}</span>
           </div>
@@ -215,13 +248,15 @@
           <span id="cart-total" class="text-[17px]">₹0</span>
         </div>
 
-        <div id="savings-summary-line" class="hidden border-t border-[#f0f0f0] pt-2 text-[12px] font-bold text-[#388e3c]">
+        <div id="savings-summary-line"
+          class="hidden border-t border-[#f0f0f0] pt-2 text-[12px] font-bold text-[#388e3c]">
           You will save ₹{{ delivery_fee }} on this order
         </div>
       </div>
 
       <!-- Trust Badge & Cancellation Card -->
-      <div class="p-2.5 bg-white border border-[#e0e0e0] rounded-none sm:rounded-sm flex items-center justify-center gap-2 text-[#878787] text-[11px] font-medium">
+      <div
+        class="p-2.5 bg-white border border-[#e0e0e0] rounded-none sm:rounded-sm flex items-center justify-center gap-2 text-[#878787] text-[11px] font-medium">
         <i class="fas fa-shield-halved text-emerald-600"></i>
         <span>100% Safe Delivery Guarantee</span>
       </div>
@@ -231,7 +266,7 @@
           <i class="fas fa-clock-rotate-left mr-1"></i> Orders are packed immediately by vendor for fast delivery.
         </p>
       </div>
-      
+
     </div>
   </div>
 </div>
@@ -243,22 +278,27 @@
 
 <div id="request-drawer">
   <!-- Mobile Drag Bar (Native App Style) -->
-  <div class="pt-2.5 pb-1 flex justify-center sm:hidden shrink-0 bg-white cursor-pointer" onclick="closeRequestDrawer()">
+  <div class="pt-2.5 pb-1 flex justify-center sm:hidden shrink-0 bg-white cursor-pointer"
+    onclick="closeRequestDrawer()">
     <div class="w-12 h-1.5 bg-slate-200 hover:bg-slate-300 rounded-full transition-colors"></div>
   </div>
 
   <!-- Drawer Header -->
   <div class="px-4 py-3 sm:p-5 border-b border-slate-100 flex items-center justify-between bg-white shrink-0">
     <div class="flex items-center gap-3 min-w-0">
-      <div class="w-10 h-10 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center text-base border border-amber-200/60 shadow-2xs shrink-0">
+      <div
+        class="w-10 h-10 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center text-base border border-amber-200/60 shadow-2xs shrink-0">
         <i class="fas fa-clipboard-list"></i>
       </div>
       <div class="min-w-0">
-        <h3 class="text-[14.5px] sm:text-[16px] font-bold text-[#212121] leading-tight truncate">Special Request & Missing Items</h3>
+        <h3 class="text-[14.5px] sm:text-[16px] font-bold text-[#212121] leading-tight truncate">Special Request &
+          Missing Items</h3>
         <p class="text-[11px] font-medium text-[#878787] truncate mt-0.5">Add unlisted items from store</p>
       </div>
     </div>
-    <button type="button" onclick="closeRequestDrawer()" class="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center active:scale-95 transition-all shrink-0 ml-2" title="Close">
+    <button type="button" onclick="closeRequestDrawer()"
+      class="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center active:scale-95 transition-all shrink-0 ml-2"
+      title="Close">
       <i class="fas fa-times text-xs sm:text-sm"></i>
     </button>
   </div>
@@ -266,9 +306,11 @@
   <!-- Drawer Body (Scrollable with min-h-0 so flexbox doesn't push footer offscreen) -->
   <div class="flex-1 min-h-0 overflow-y-auto p-4 sm:p-5 space-y-4">
     <!-- Notice Banner -->
-    <div class="p-3 bg-amber-50 border border-amber-200 rounded-sm flex items-start gap-2.5 text-[11px] text-amber-800 leading-relaxed font-medium">
+    <div
+      class="p-3 bg-amber-50 border border-amber-200 rounded-sm flex items-start gap-2.5 text-[11px] text-amber-800 leading-relaxed font-medium">
       <i class="fas fa-lightbulb text-amber-600 text-xs mt-0.5 shrink-0"></i>
-      <span>Store vendor will check physical stock while packing. Any extra item cost will be settled at your doorstep.</span>
+      <span>Store vendor will check physical stock while packing. Any extra item cost will be settled at your
+        doorstep.</span>
     </div>
 
     <!-- Point-wise Input Card -->
@@ -279,16 +321,17 @@
       </div>
 
       <div class="space-y-2">
-        <input id="drawer-item-name" type="text" placeholder="Item name (e.g. Fresh Dhaniya / Nimbu / Bread)" 
-               class="w-full px-3 py-2.5 bg-white border border-[#e0e0e0] rounded-sm text-[13px] font-medium text-[#212121] placeholder:text-slate-400 outline-none focus:border-[#2874f0] focus:ring-2 focus:ring-blue-100 transition-all"
-               onkeydown="if(event.key === 'Enter') { event.preventDefault(); addSpecialItem(); }">
-        
+        <input id="drawer-item-name" type="text" placeholder="Item name (e.g. Fresh Dhaniya / Nimbu / Bread)"
+          class="w-full px-3 py-2.5 bg-white border border-[#e0e0e0] rounded-sm text-[13px] font-medium text-[#212121] placeholder:text-slate-400 outline-none focus:border-[#2874f0] focus:ring-2 focus:ring-blue-100 transition-all"
+          onkeydown="if(event.key === 'Enter') { event.preventDefault(); addSpecialItem(); }">
+
         <div class="flex gap-2">
-          <input id="drawer-item-qty" type="text" placeholder="Quantity / Unit (e.g. 1 bunch, 250g, 1 pkt)" 
-                 class="flex-1 px-3 py-2.5 bg-white border border-[#e0e0e0] rounded-sm text-[13px] font-medium text-[#212121] placeholder:text-slate-400 outline-none focus:border-[#2874f0] focus:ring-2 focus:ring-blue-100 transition-all"
-                 onkeydown="if(event.key === 'Enter') { event.preventDefault(); addSpecialItem(); }">
-          
-          <button type="button" onclick="addSpecialItem()" class="px-4 py-2.5 bg-[#2874f0] hover:bg-blue-700 active:scale-95 text-white font-bold text-[12px] rounded-sm shadow-2xs transition-all flex items-center gap-1.5 shrink-0 uppercase tracking-wider">
+          <input id="drawer-item-qty" type="text" placeholder="Quantity / Unit (e.g. 1 bunch, 250g, 1 pkt)"
+            class="flex-1 px-3 py-2.5 bg-white border border-[#e0e0e0] rounded-sm text-[13px] font-medium text-[#212121] placeholder:text-slate-400 outline-none focus:border-[#2874f0] focus:ring-2 focus:ring-blue-100 transition-all"
+            onkeydown="if(event.key === 'Enter') { event.preventDefault(); addSpecialItem(); }">
+
+          <button type="button" onclick="addSpecialItem()"
+            class="px-4 py-2.5 bg-[#2874f0] hover:bg-blue-700 active:scale-95 text-white font-bold text-[12px] rounded-sm shadow-2xs transition-all flex items-center gap-1.5 shrink-0 uppercase tracking-wider">
             <i class="fas fa-plus text-[10px]"></i>
             <span>Add</span>
           </button>
@@ -298,12 +341,22 @@
       <!-- Quick Quantity Helper Chips -->
       <div class="flex items-center gap-1.5 flex-wrap pt-0.5">
         <span class="text-[10px] font-bold text-[#878787]">Quick qty:</span>
-        <button type="button" onclick="setDrawerQty('1 pkt')" class="text-[10px] font-bold bg-white text-slate-700 border border-[#e0e0e0] px-2 py-0.5 rounded-sm hover:border-[#2874f0] active:scale-95 transition-all">1 pkt</button>
-        <button type="button" onclick="setDrawerQty('1 bunch')" class="text-[10px] font-bold bg-white text-slate-700 border border-[#e0e0e0] px-2 py-0.5 rounded-sm hover:border-[#2874f0] active:scale-95 transition-all">1 bunch</button>
-        <button type="button" onclick="setDrawerQty('2 pcs')" class="text-[10px] font-bold bg-white text-slate-700 border border-[#e0e0e0] px-2 py-0.5 rounded-sm hover:border-[#2874f0] active:scale-95 transition-all">2 pcs</button>
-        <button type="button" onclick="setDrawerQty('250g')" class="text-[10px] font-bold bg-white text-slate-700 border border-[#e0e0e0] px-2 py-0.5 rounded-sm hover:border-[#2874f0] active:scale-95 transition-all">250g</button>
-        <button type="button" onclick="setDrawerQty('500g')" class="text-[10px] font-bold bg-white text-slate-700 border border-[#e0e0e0] px-2 py-0.5 rounded-sm hover:border-[#2874f0] active:scale-95 transition-all">500g</button>
-        <button type="button" onclick="setDrawerQty('1 kg')" class="text-[10px] font-bold bg-white text-slate-700 border border-[#e0e0e0] px-2 py-0.5 rounded-sm hover:border-[#2874f0] active:scale-95 transition-all">1 kg</button>
+        <button type="button" onclick="setDrawerQty('1 pkt')"
+          class="text-[10px] font-bold bg-white text-slate-700 border border-[#e0e0e0] px-2 py-0.5 rounded-sm hover:border-[#2874f0] active:scale-95 transition-all">1
+          pkt</button>
+        <button type="button" onclick="setDrawerQty('1 bunch')"
+          class="text-[10px] font-bold bg-white text-slate-700 border border-[#e0e0e0] px-2 py-0.5 rounded-sm hover:border-[#2874f0] active:scale-95 transition-all">1
+          bunch</button>
+        <button type="button" onclick="setDrawerQty('2 pcs')"
+          class="text-[10px] font-bold bg-white text-slate-700 border border-[#e0e0e0] px-2 py-0.5 rounded-sm hover:border-[#2874f0] active:scale-95 transition-all">2
+          pcs</button>
+        <button type="button" onclick="setDrawerQty('250g')"
+          class="text-[10px] font-bold bg-white text-slate-700 border border-[#e0e0e0] px-2 py-0.5 rounded-sm hover:border-[#2874f0] active:scale-95 transition-all">250g</button>
+        <button type="button" onclick="setDrawerQty('500g')"
+          class="text-[10px] font-bold bg-white text-slate-700 border border-[#e0e0e0] px-2 py-0.5 rounded-sm hover:border-[#2874f0] active:scale-95 transition-all">500g</button>
+        <button type="button" onclick="setDrawerQty('1 kg')"
+          class="text-[10px] font-bold bg-white text-slate-700 border border-[#e0e0e0] px-2 py-0.5 rounded-sm hover:border-[#2874f0] active:scale-95 transition-all">1
+          kg</button>
       </div>
     </div>
 
@@ -312,15 +365,19 @@
     <!-- Point-wise Items List in Drawer -->
     <div class="space-y-2">
       <div class="flex items-center justify-between">
-        <label class="text-[11px] font-bold uppercase tracking-wider text-[#212121]">Requested Items (<span id="drawer-items-count">0</span>)</label>
-        <button type="button" id="drawer-clear-all-btn" onclick="clearDrawerItems()" class="text-[11px] font-bold text-rose-600 hover:underline hidden">Clear All</button>
+        <label class="text-[11px] font-bold uppercase tracking-wider text-[#212121]">Requested Items (<span
+            id="drawer-items-count">0</span>)</label>
+        <button type="button" id="drawer-clear-all-btn" onclick="clearDrawerItems()"
+          class="text-[11px] font-bold text-rose-600 hover:underline hidden">Clear All</button>
       </div>
 
       <!-- Empty state inside drawer -->
-      <div id="drawer-items-empty" class="p-6 border-2 border-dashed border-[#e0e0e0] rounded-sm flex flex-col items-center justify-center text-center text-slate-400">
+      <div id="drawer-items-empty"
+        class="p-6 border-2 border-dashed border-[#e0e0e0] rounded-sm flex flex-col items-center justify-center text-center text-slate-400">
         <i class="fas fa-bag-shopping text-2xl mb-1 text-slate-300"></i>
         <p class="text-[12px] font-bold text-[#212121]">No items added yet</p>
-        <p class="text-[10.5px] text-[#878787] mt-0.5">Use the form above or tap quick suggestions to add items point-wise.</p>
+        <p class="text-[10.5px] text-[#878787] mt-0.5">Use the form above or tap quick suggestions to add items
+          point-wise.</p>
       </div>
 
       <!-- Point-wise items list -->
@@ -329,22 +386,26 @@
 
     <!-- Optional General Remark / Instructions -->
     <div class="space-y-1.5 pt-1 pb-4">
-      <label class="text-[11px] font-bold uppercase tracking-wider text-[#212121]">Additional Instructions for Vendor (Optional)</label>
+      <label class="text-[11px] font-bold uppercase tracking-wider text-[#212121]">Additional Instructions for Vendor
+        (Optional)</label>
       <textarea id="drawer-remark-input" rows="2" maxlength="150"
-                placeholder="e.g. Please call before replacing, ensure fresh batch, etc."
-                class="w-full p-3 bg-slate-50 border border-[#e0e0e0] rounded-sm text-[12px] font-medium text-[#212121] placeholder:text-slate-400 outline-none focus:bg-white focus:border-[#2874f0] focus:ring-2 focus:ring-blue-100 transition-all resize-none"></textarea>
+        placeholder="e.g. Please call before replacing, ensure fresh batch, etc."
+        class="w-full p-3 bg-slate-50 border border-[#e0e0e0] rounded-sm text-[12px] font-medium text-[#212121] placeholder:text-slate-400 outline-none focus:bg-white focus:border-[#2874f0] focus:ring-2 focus:ring-blue-100 transition-all resize-none"></textarea>
       <p class="text-[10px] text-[#878787] text-right"><span id="drawer-remark-char-count">0</span>/150</p>
     </div>
   </div>
 
   <!-- Drawer Sticky Footer (Always 100% visible at bottom with safe area padding) -->
-  <div class="p-3.5 sm:p-4 border-t border-[#e0e0e0] bg-white flex items-center gap-3 shrink-0 shadow-[0_-4px_16px_rgba(0,0,0,0.08)] z-30 pb-[max(1rem,env(safe-area-inset-bottom))]">
-    <button type="button" onclick="closeRequestDrawer()" class="w-1/3 py-2.5 sm:py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[13px] rounded-sm transition-all active:scale-[0.98] text-center uppercase tracking-wider">
+  <div
+    class="p-3.5 sm:p-4 border-t border-[#e0e0e0] bg-white flex items-center gap-3 shrink-0 shadow-[0_-4px_16px_rgba(0,0,0,0.08)] z-30 pb-[max(1rem,env(safe-area-inset-bottom))]">
+    <button type="button" onclick="closeRequestDrawer()"
+      class="w-1/3 py-2.5 sm:py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[13px] rounded-sm transition-all active:scale-[0.98] text-center uppercase tracking-wider">
       Cancel
     </button>
-    <button type="button" onclick="saveRequestDrawer()" class="flex-1 py-2.5 sm:py-3 bg-[#fb641b] hover:bg-[#e85a15] active:scale-[0.98] text-white font-bold text-[14px] rounded-sm shadow-sm transition-all flex items-center justify-center gap-2 uppercase tracking-wider">
-      <i class="fas fa-check"></i>
-      <span id="drawer-save-btn-text">Save Request</span>
+    <button type="button" onclick="saveRequestDrawer()"
+      class="flex-1 py-2.5 sm:py-3 bg-[#fb641b] hover:bg-[#e85a15] active:scale-[0.98] text-white font-bold text-[14px] rounded-sm shadow-sm transition-all flex items-center justify-center gap-2 uppercase tracking-wider">
+      <i id="drawer-save-btn-icon" class="fas {% if is_logged_in %}fa-check{% else %}fa-lock{% endif %}"></i>
+      <span id="drawer-save-btn-text">{% if is_logged_in %}Save Request{% else %}Login to Save Request{% endif %}</span>
     </button>
   </div>
 </div>
@@ -353,13 +414,16 @@
 <!-- 🛍️ FLIPKART STYLE FLUSH BOTTOM CHECKOUT BAR   -->
 <!-- No extra space below on mobile, flush bottom-0  -->
 <!-- ============================================== -->
-<div id="checkout-bar" class="fixed bottom-0 left-0 right-0 bg-white border-t border-[#e0e0e0] z-[70] shadow-[0_-2px_10px_rgba(0,0,0,0.08)] hidden">
+<div id="checkout-bar"
+  class="fixed bottom-0 left-0 right-0 bg-white border-t border-[#e0e0e0] z-[70] shadow-[0_-2px_10px_rgba(0,0,0,0.08)] hidden">
   <div class="max-w-[540px] mx-auto px-3.5 sm:px-4 py-2 sm:py-2.5 flex items-center justify-between">
     <div class="flex flex-col">
-      <span class="text-[17px] sm:text-[19px] font-bold text-[#212121] leading-tight" id="checkout-total-footer">₹0</span>
+      <span class="text-[17px] sm:text-[19px] font-bold text-[#212121] leading-tight"
+        id="checkout-total-footer">₹0</span>
       <a href="#bill-details-card" class="text-[11px] font-bold text-[#2874f0] hover:underline">View price details</a>
     </div>
-    <button id="checkout-btn" onclick="handleCheckoutClick()" class="bg-[#fb641b] hover:bg-[#e85a15] active:scale-[0.98] text-white font-bold text-[14px] px-8 py-2.5 sm:py-3 rounded-sm shadow-sm transition-all uppercase tracking-wider flex items-center gap-1.5">
+    <button id="checkout-btn" onclick="handleCheckoutClick()"
+      class="bg-[#fb641b] hover:bg-[#e85a15] active:scale-[0.98] text-white font-bold text-[14px] px-8 py-2.5 sm:py-3 rounded-sm shadow-sm transition-all uppercase tracking-wider flex items-center gap-1.5">
       <span>{% if is_logged_in %}Place Order{% else %}Login to Order{% endif %}</span>
       <i class="fas fa-chevron-right text-xs"></i>
     </button>
@@ -369,15 +433,26 @@
 </div>
 
 <!-- Undo Notification Toast -->
-<div id="undo-toast" class="fixed bottom-16 sm:bottom-20 left-1/2 -translate-x-1/2 z-[80] bg-[#212121] text-white px-4 py-2 rounded-full shadow-2xl flex items-center gap-3 text-xs font-bold transition-all duration-300 opacity-0 pointer-events-none translate-y-3">
+<div id="undo-toast"
+  class="fixed bottom-16 sm:bottom-20 left-1/2 -translate-x-1/2 z-[80] bg-[#212121] text-white px-4 py-2 rounded-full shadow-2xl flex items-center gap-3 text-xs font-bold transition-all duration-300 opacity-0 pointer-events-none translate-y-3">
   <span id="undo-toast-text">Item removed</span>
-  <button type="button" onclick="undoRemoveItem()" class="text-amber-400 hover:text-amber-300 uppercase tracking-wider text-[11px] font-bold underline">Undo</button>
+  <button type="button" onclick="undoRemoveItem()"
+    class="text-amber-400 hover:text-amber-300 uppercase tracking-wider text-[11px] font-bold underline">Undo</button>
 </div>
 
 <style>
-  .cart-item-card { transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
-  .cart-item-card:hover { transform: translateY(-1px); }
-  .free-delivery-active { border-color: #10b981 !important; background-color: #F0FDF4 !important; }
+  .cart-item-card {
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .cart-item-card:hover {
+    transform: translateY(-1px);
+  }
+
+  .free-delivery-active {
+    border-color: #10b981 !important;
+    background-color: #F0FDF4 !important;
+  }
 
   /* ======================================= */
   /* 📱 APP-LIKE DRAWER & BOTTOM SHEET       */
@@ -465,17 +540,17 @@
   const SURGE_CHARGE = Number("{{ surge_charge }}");
   const FREE_DELIVERY_THRESHOLD = Number("{{ free_delivery_threshold }}");
   const DELIVERY_FEE = Number("{{ delivery_fee }}");
-  
+
   let hasFiredConfetti = false;
 
-  function getCart() { 
-    try { return JSON.parse(localStorage.getItem("cart") || "[]"); } 
-    catch (e) { return []; } 
+  function getCart() {
+    try { return JSON.parse(localStorage.getItem("cart") || "[]"); }
+    catch (e) { return []; }
   }
-  
-  function saveCart(cart) { 
-    localStorage.setItem("cart", JSON.stringify(cart)); 
-    window.dispatchEvent(new Event('cartUpdated')); 
+
+  function saveCart(cart) {
+    localStorage.setItem("cart", JSON.stringify(cart));
+    window.dispatchEvent(new Event('cartUpdated'));
   }
 
   function triggerConfetti() {
@@ -541,10 +616,10 @@
     const savingsSummaryLine = document.getElementById("savings-summary-line");
 
     if (!cart.length) {
-      emptyEl.classList.remove("hidden"); 
+      emptyEl.classList.remove("hidden");
       containerEl.classList.add("hidden");
       checkoutBar.classList.add("hidden");
-      itemsCountBadge.innerText = "0 Items"; 
+      itemsCountBadge.innerText = "0 Items";
       const navSub = document.getElementById("nav-cart-items-sub");
       if (navSub) {
         navSub.innerText = `{{ session.get('current_shop_name', 'Quick Store') }} • 0 items`;
@@ -552,23 +627,23 @@
       return;
     }
 
-    emptyEl.classList.add("hidden"); 
-    containerEl.classList.remove("hidden"); 
+    emptyEl.classList.add("hidden");
+    containerEl.classList.remove("hidden");
     checkoutBar.classList.remove("hidden");
     itemsEl.innerHTML = "";
-    
+
     let subtotal = 0;
     cart.forEach((item) => {
       const itemQty = Number(item.qty);
       const itemPrice = Number(item.price);
       subtotal += itemPrice * itemQty;
       const isSingle = itemQty <= 1;
-      const minusIcon = isSingle 
-        ? `<i class="fas fa-trash-can text-[10px] text-slate-500"></i>` 
+      const minusIcon = isSingle
+        ? `<i class="fas fa-trash-can text-[10px] text-slate-500"></i>`
         : `<i class="fas fa-minus text-[9px]"></i>`;
       const itemTotalFormatted = (itemPrice * itemQty).toFixed(0);
-      const priceSubtext = itemQty > 1 
-        ? `<span class="text-[11px] font-normal text-[#878787]"> (₹${itemPrice} each)</span>` 
+      const priceSubtext = itemQty > 1
+        ? `<span class="text-[11px] font-normal text-[#878787]"> (₹${itemPrice} each)</span>`
         : ``;
 
       const card = document.createElement("div");
@@ -609,7 +684,7 @@
 
     const totalQty = cart.reduce((sum, i) => sum + Number(i.qty), 0);
     itemsCountBadge.innerText = `${totalQty} Item${totalQty !== 1 ? 's' : ''}`;
-    
+
     const itemsSummaryCount = document.getElementById("cart-items-summary-count");
     if (itemsSummaryCount) {
       itemsSummaryCount.innerText = `${totalQty} item${totalQty !== 1 ? 's' : ''}`;
@@ -619,7 +694,7 @@
     if (navSub) {
       navSub.innerText = `{{ session.get('current_shop_name', 'Quick Store') }} • ${totalQty} items`;
     }
-    
+
     const progress = Math.min((subtotal / FREE_DELIVERY_THRESHOLD) * 100, 100);
     progressBar.style.width = `${progress}%`;
 
@@ -630,9 +705,9 @@
         triggerConfetti();
         hasFiredConfetti = true;
       }
-      deliveryFeeEl.textContent = "FREE"; 
+      deliveryFeeEl.textContent = "FREE";
       deliveryFeeEl.className = "font-bold text-[#388e3c]";
-      dFeeStrike.textContent = `₹${DELIVERY_FEE}`; 
+      dFeeStrike.textContent = `₹${DELIVERY_FEE}`;
       dFeeStrike.classList.remove("hidden");
       hintMain.innerHTML = '<span class="text-[#388e3c] font-bold">🎉 Free delivery unlocked!</span>';
       deliveryCard.classList.add("free-delivery-active");
@@ -641,7 +716,7 @@
     } else {
       hasFiredConfetti = false;
       const remaining = FREE_DELIVERY_THRESHOLD - subtotal;
-      deliveryFeeEl.textContent = `₹${DELIVERY_FEE}`; 
+      deliveryFeeEl.textContent = `₹${DELIVERY_FEE}`;
       deliveryFeeEl.className = "font-medium text-[#212121]";
       dFeeStrike.classList.add("hidden");
       hintMain.innerHTML = `<i class="fas fa-gift text-amber-500 text-xs"></i> <span>Add <b>₹${remaining}</b> more for free delivery</span>`;
@@ -659,7 +734,7 @@
   }
 
   function changeQty(key, delta) {
-    let cart = getCart(); 
+    let cart = getCart();
     const idx = cart.findIndex(i => (i.id && i.id === key) || i.slug === key);
     if (idx === -1) return;
 
@@ -674,7 +749,7 @@
     }
 
     cart[idx].qty = Number(cart[idx].qty) + delta;
-    saveCart(cart); 
+    saveCart(cart);
     renderCartPage();
   }
 
@@ -798,17 +873,18 @@
 
     if (countEl) countEl.textContent = specialItems.length;
 
+    const baseActionText = IS_LOGGED_IN ? "Save Request" : "Login to Save Request";
     if (!specialItems.length) {
       if (emptyEl) emptyEl.classList.remove("hidden");
       if (listEl) listEl.innerHTML = "";
       if (clearAllBtn) clearAllBtn.classList.add("hidden");
-      if (saveBtnText) saveBtnText.textContent = "Save Request";
+      if (saveBtnText) saveBtnText.textContent = baseActionText;
       return;
     }
 
     if (emptyEl) emptyEl.classList.add("hidden");
     if (clearAllBtn) clearAllBtn.classList.remove("hidden");
-    if (saveBtnText) saveBtnText.textContent = `Save Request (${specialItems.length} item${specialItems.length > 1 ? 's' : ''})`;
+    if (saveBtnText) saveBtnText.textContent = `${baseActionText} (${specialItems.length} item${specialItems.length > 1 ? 's' : ''})`;
 
     if (!listEl) return;
     listEl.innerHTML = "";
@@ -855,6 +931,11 @@
       localStorage.removeItem("cartOrderNotes");
     }
 
+    if (!IS_LOGGED_IN) {
+      window.location.href = "{{ url_for('login') }}?redirect=cart";
+      return;
+    }
+
     closeRequestDrawer();
     renderSpecialRequestSummary();
   }
@@ -870,7 +951,7 @@
 
   function renderSpecialRequestSummary() {
     loadSavedSpecialRequest();
-    
+
     const emptyCard = document.getElementById("special-request-empty-card");
     const summaryCard = document.getElementById("special-request-summary-card");
     const summaryBadge = document.getElementById("summary-items-count-badge");
@@ -965,9 +1046,9 @@
   function handleCheckoutClick() {
     if (!getCart().length) return;
 
-    if (!IS_LOGGED_IN) { 
-      window.location.href = "{{ url_for('login') }}?redirect=cart"; 
-      return; 
+    if (!IS_LOGGED_IN) {
+      window.location.href = "{{ url_for('login') }}?redirect=cart";
+      return;
     }
     window.location.href = "{{ url_for('address_page') }}";
   }
