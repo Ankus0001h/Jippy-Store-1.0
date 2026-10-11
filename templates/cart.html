@@ -120,8 +120,8 @@
       <!-- 📝 SPECIAL REQUEST / MISSING ITEMS CARD (Flipkart Style) -->
       <div id="special-request-section" class="transition-all duration-300">
         <!-- 1. EMPTY STATE (When no items added yet) -->
-        <div id="special-request-empty-card"
-          class="bg-white border border-[#e0e0e0] rounded-none sm:rounded-sm p-3 sm:p-3.5 shadow-2xs flex items-center justify-between gap-3">
+        <div id="special-request-empty-card" onclick="openRequestDrawer()"
+          class="bg-white border border-[#e0e0e0] hover:border-[#2874f0] rounded-none sm:rounded-sm p-3 sm:p-3.5 shadow-2xs flex items-center justify-between gap-3 cursor-pointer transition-colors active:bg-slate-50">
           <div class="flex items-center gap-2.5 min-w-0">
             <div
               class="w-8 h-8 rounded-sm bg-amber-50 text-amber-600 flex items-center justify-center text-xs shrink-0 font-bold border border-amber-200">
@@ -129,11 +129,10 @@
             </div>
             <div class="min-w-0">
               <p class="text-[12.5px] font-bold text-[#212121] leading-tight">Missing items not listed in store?</p>
-              <p class="text-[11px] font-medium text-[#878787] truncate mt-0.5">Add Dhaniya, Mirchi, Bread, etc.
-                point-wise</p>
+              <p class="text-[11px] font-medium text-[#878787] truncate mt-0.5">Add Dhaniya, Mirchi, Bread, etc. point-wise</p>
             </div>
           </div>
-          <button type="button" onclick="openRequestDrawer()"
+          <button type="button" onclick="event.stopPropagation(); openRequestDrawer()"
             class="px-3.5 py-1.5 bg-[#2874f0] hover:bg-blue-700 active:scale-95 text-white text-[11px] font-bold rounded-sm shadow-2xs transition-all flex items-center gap-1 shrink-0 uppercase tracking-wider">
             <i class="fas fa-plus text-[9px]"></i>
             <span>Add</span>
@@ -456,12 +455,18 @@
 
   /* ======================================= */
   /* 📱 APP-LIKE DRAWER & BOTTOM SHEET       */
+  /* (100% Android WebView & Mobile Safe)    */
   /* ======================================= */
   #request-drawer-backdrop {
     position: fixed;
-    inset: 0;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: 100%;
     background-color: rgba(0, 0, 0, 0.65);
-    z-index: 998;
+    z-index: 99998;
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
@@ -484,39 +489,30 @@
     top: auto;
     width: 100%;
     max-width: 100%;
-    height: 90vh;
-    height: 90dvh;
-    max-height: 90dvh;
+    height: 85vh;
+    max-height: 85vh;
     background-color: #ffffff;
-    z-index: 1000;
+    z-index: 99999;
     display: flex;
     flex-direction: column;
-    box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.25);
-    border-top-left-radius: 16px;
-    border-top-right-radius: 16px;
-    transform: translate3d(0, 105%, 0);
-    -webkit-transform: translate3d(0, 105%, 0);
+    box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.3);
+    border-top-left-radius: 18px;
+    border-top-right-radius: 18px;
+    transform: translateY(105%);
+    -webkit-transform: translateY(105%);
     visibility: hidden;
-    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.35s ease;
+    pointer-events: none;
+    transition: transform 0.28s ease-out, visibility 0.28s ease-out;
     font-family: 'Plus Jakarta Sans', sans-serif;
     overflow: hidden;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    text-rendering: optimizeLegibility;
-    backface-visibility: hidden;
-    -webkit-backface-visibility: hidden;
-    perspective: 1000px;
-    -webkit-perspective: 1000px;
-    filter: none !important;
-    -webkit-filter: none !important;
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
+    -webkit-overflow-scrolling: touch;
   }
 
   #request-drawer.drawer-open {
-    transform: translate3d(0, 0, 0) !important;
-    -webkit-transform: translate3d(0, 0, 0) !important;
+    transform: translateY(0) !important;
+    -webkit-transform: translateY(0) !important;
     visibility: visible !important;
+    pointer-events: auto !important;
   }
 
   /* Desktop View: Slide-in Right Drawer */
@@ -528,17 +524,18 @@
       left: auto;
       max-width: 480px;
       height: 100vh;
-      height: 100dvh;
-      max-height: 100dvh;
+      max-height: 100vh;
       border-radius: 0;
       box-shadow: -10px 0 30px rgba(0, 0, 0, 0.25);
-      transform: translate3d(105%, 0, 0);
-      -webkit-transform: translate3d(105%, 0, 0);
+      transform: translateX(105%);
+      -webkit-transform: translateX(105%);
     }
 
     #request-drawer.drawer-open {
-      transform: translate3d(0, 0, 0) !important;
-      -webkit-transform: translate3d(0, 0, 0) !important;
+      transform: translateX(0) !important;
+      -webkit-transform: translateX(0) !important;
+      visibility: visible !important;
+      pointer-events: auto !important;
     }
   }
 </style>
@@ -802,6 +799,11 @@
 
     if (!backdrop || !drawer) return;
 
+    // Reset styles & force layout reflow so WebView compositor repaints
+    drawer.style.visibility = "visible";
+    backdrop.style.visibility = "visible";
+    void drawer.offsetHeight; // Force browser layout reflow for Android WebView repaint!
+
     backdrop.classList.add("drawer-open");
     drawer.classList.add("drawer-open");
     document.body.style.overflow = "hidden";
@@ -811,7 +813,7 @@
       setTimeout(() => {
         const input = document.getElementById("drawer-item-name");
         if (input) input.focus();
-      }, 350);
+      }, 300);
     }
   }
 
@@ -824,6 +826,13 @@
     drawer.classList.remove("drawer-open");
     backdrop.classList.remove("drawer-open");
     document.body.style.overflow = "";
+
+    setTimeout(() => {
+      if (!drawer.classList.contains("drawer-open")) {
+        drawer.style.visibility = "hidden";
+        backdrop.style.visibility = "hidden";
+      }
+    }, 300);
   }
 
   document.addEventListener("keydown", (e) => {
