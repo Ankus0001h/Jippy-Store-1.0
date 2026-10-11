@@ -1015,18 +1015,16 @@ def delete_user(user_id):
     return redirect(url_for("add_user"))
 
 # ================================
-# VENDOR / DELIVERY PORTAL (unchanged)
+# VENDOR PORTAL (Separate)
 # ================================
 
-@app.route("/portal/login", methods=["GET", "POST"])
-def portal_login():
-    # GET: captcha generate + show
+@app.route("/vendor/login", methods=["GET", "POST"])
+def vendor_login():
     if request.method == "GET":
         code = "".join(str(random.randint(0, 9)) for _ in range(4))
         session["portal_captcha_code"] = code
-        return render_template("portal_login.html", captcha_code=code)
+        return render_template("vendor_login.html", captcha_code=code)
 
-    # POST: validate email/password + captcha
     email = request.form.get("email", "").strip()
     password = request.form.get("password", "")
     c = "".join([
@@ -1041,129 +1039,237 @@ def portal_login():
         code = "".join(str(random.randint(0, 9)) for _ in range(4))
         session["portal_captcha_code"] = code
         return render_template(
-            "portal_login.html",
+            "vendor_login.html",
             error="Invalid captcha. Please try again.",
             captcha_code=code,
         )
 
-    # Sirf vendor/delivery users ke liye lookup
     doc = users.find_one({
         "email": email,
-        "role": {"$in": ["vendor", "delivery"]},
+        "role": "vendor",
     })
 
     stored_hash = doc.get("password") if doc else None
 
     if stored_hash and bcrypt.check_password_hash(stored_hash, password):
-        # session fields for portal
-        session["user_role"] = doc.get("role")
+        session["user_role"] = "vendor"
         session["user_email"] = doc.get("email")
         session["portal_user_id"] = str(doc.get("_id"))
         session["portal_user_name"] = doc.get("name") or doc.get("email")
-        return redirect(url_for("portal_dashboard"))
+        return redirect(url_for("vendor_dashboard"))
 
-    # Wrong credentials -> new captcha
     code = "".join(str(random.randint(0, 9)) for _ in range(4))
     session["portal_captcha_code"] = code
     return render_template(
-        "portal_login.html",
+        "vendor_login.html",
         error="Invalid credentials.",
         captcha_code=code,
     )
 
-@app.route("/portal/logout")
-def portal_logout():
+@app.route("/vendor/logout")
+def vendor_logout():
     session.pop("user_role", None)
     session.pop("user_email", None)
-    return redirect(url_for("portal_login"))
+    session.pop("portal_user_id", None)
+    session.pop("portal_user_name", None)
+    return redirect(url_for("vendor_login"))
+
+@app.route("/vendor/refresh-captcha", methods=["POST"])
+def vendor_refresh_captcha():
+    code = "".join(str(random.randint(0, 9)) for _ in range(4))
+    session["portal_captcha_code"] = code
+    return jsonify({"captcha_code": code})
 
 
 from bson import ObjectId
 import datetime
 
-@app.route("/portal/dashboard")
-def portal_dashboard():
+@app.route("/vendor/dashboard")
+def vendor_dashboard():
     role = session.get("user_role")
     portal_user_id = session.get("portal_user_id")
-    user_name = session.get("portal_user_name", "Partner")
+    user_name = session.get("portal_user_name", "Vendor")
 
-    if not role or not portal_user_id:
-        return redirect(url_for("portal_login"))
+    if role != "vendor" or not portal_user_id:
+        return redirect(url_for("vendor_login"))
+
+    vendor_oid = ObjectId(portal_user_id)
+    all_vendor_orders = list(
+        orders.find({"items.vendor_id": vendor_oid}).sort("created_at", -1)
+    )
 
     vendor_orders_active = []
     vendor_orders_history = []
-    delivery_orders_active = []
-    delivery_orders_history = []
 
-    if role == "vendor":
-        vendor_oid = ObjectId(portal_user_id)
-        all_vendor_orders = list(
-            orders.find({"items.vendor_id": vendor_oid}).sort("created_at", -1)
-        )
-
-        for o in all_vendor_orders:
-            vstatus = o.get("vendor_status") or "pending"
-            if vstatus == "ready":
-                vendor_orders_history.append(o)
-            else:
-                vendor_orders_active.append(o)
-
-    if role == "delivery":
-        delivery_oid = ObjectId(portal_user_id)
-        all_delivery_orders = list(
-            orders.find({"delivery_id": delivery_oid}).sort("created_at", -1)
-        )
-        
-        for o in all_delivery_orders:
-            dstatus = (o.get("delivery_status") or "").lower().strip()
-            
-            # 🔥 FIXED: Perfect items processing - RELAXED filter for real data
-            items_raw = o.get("items", [])
-            if items_raw:
-                if not isinstance(items_raw, list):
-                    items_raw = list(items_raw)
-                
-                # ✅ FIXED FILTER: name + price + qty chahiye, unit optional
-                o["items"] = [
-                    it for it in items_raw 
-                    if (
-                        it.get("name") and                                    # Name ✅
-                        isinstance(it.get("price", 0), (int, float)) and      # Valid price ✅
-                        (float(it.get("price", 0)) or 0) > 0 and              # Price > 0 ✅
-                        isinstance(it.get("qty", 0), (int, float)) and        # Valid qty ✅
-                        int(it.get("qty", 0)) > 0                             # Qty > 0 ✅
-                        # unit optional banaya - agar nahi hai to bhi show ho jayega
-                    )
-                ]
-                
-                # ✅ Detailed debug (remove in production)
-               
-                if o['items']:
-                    sample_item = o['items'][0]
-                    print(f"   Sample keys: {list(sample_item.keys())}")
-                    print(f"   Sample data: {sample_item}")
-                
-            else:
-                o["items"] = []
-            
-            # delivered ho chuka hai to history me bhej
-            if dstatus == "delivered":
-                delivery_orders_history.append(o)
-            else:
-                delivery_orders_active.append(o)
+    for o in all_vendor_orders:
+        vstatus = o.get("vendor_status") or "pending"
+        if vstatus == "ready":
+            vendor_orders_history.append(o)
+        else:
+            vendor_orders_active.append(o)
 
     current_date = datetime.datetime.now(datetime.timezone.utc)
 
     return render_template(
-        "portal_dashboard.html",
-        role=role,
+        "vendor_dashboard.html",
+        role="vendor",
         user_name=user_name,
         current_date=current_date,
         vendor_orders=vendor_orders_active,
         vendor_orders_history=vendor_orders_history,
-        delivery_orders=delivery_orders_active,  # ✅ Now shows ALL valid items!
+    )
+
+
+# ================================
+# LOGISTICS / DELIVERY PORTAL (Separate)
+# ================================
+
+@app.route("/logistics/login", methods=["GET", "POST"])
+def logistics_login():
+    if request.method == "GET":
+        code = "".join(str(random.randint(0, 9)) for _ in range(4))
+        session["portal_captcha_code"] = code
+        return render_template("logistics_login.html", captcha_code=code)
+
+    email = request.form.get("email", "").strip()
+    password = request.form.get("password", "")
+    c = "".join([
+        request.form.get("captcha1", ""),
+        request.form.get("captcha2", ""),
+        request.form.get("captcha3", ""),
+        request.form.get("captcha4", ""),
+    ])
+
+    stored = session.get("portal_captcha_code", "")
+    if not stored or c != stored:
+        code = "".join(str(random.randint(0, 9)) for _ in range(4))
+        session["portal_captcha_code"] = code
+        return render_template(
+            "logistics_login.html",
+            error="Invalid captcha. Please try again.",
+            captcha_code=code,
+        )
+
+    doc = users.find_one({
+        "email": email,
+        "role": "delivery",
+    })
+
+    stored_hash = doc.get("password") if doc else None
+
+    if stored_hash and bcrypt.check_password_hash(stored_hash, password):
+        session["user_role"] = "delivery"
+        session["user_email"] = doc.get("email")
+        session["portal_user_id"] = str(doc.get("_id"))
+        session["portal_user_name"] = doc.get("name") or doc.get("email")
+        return redirect(url_for("logistics_dashboard"))
+
+    code = "".join(str(random.randint(0, 9)) for _ in range(4))
+    session["portal_captcha_code"] = code
+    return render_template(
+        "logistics_login.html",
+        error="Invalid credentials.",
+        captcha_code=code,
+    )
+
+@app.route("/logistics/logout")
+def logistics_logout():
+    session.pop("user_role", None)
+    session.pop("user_email", None)
+    session.pop("portal_user_id", None)
+    session.pop("portal_user_name", None)
+    return redirect(url_for("logistics_login"))
+
+@app.route("/logistics/refresh-captcha", methods=["POST"])
+def logistics_refresh_captcha():
+    code = "".join(str(random.randint(0, 9)) for _ in range(4))
+    session["portal_captcha_code"] = code
+    return jsonify({"captcha_code": code})
+
+@app.route("/logistics/dashboard")
+def logistics_dashboard():
+    role = session.get("user_role")
+    portal_user_id = session.get("portal_user_id")
+    user_name = session.get("portal_user_name", "Delivery")
+
+    if role != "delivery" or not portal_user_id:
+        return redirect(url_for("logistics_login"))
+
+    delivery_oid = ObjectId(portal_user_id)
+    all_delivery_orders = list(
+        orders.find({"delivery_id": delivery_oid}).sort("created_at", -1)
+    )
+
+    delivery_orders_active = []
+    delivery_orders_history = []
+
+    for o in all_delivery_orders:
+        dstatus = (o.get("delivery_status") or "").lower().strip()
+
+        items_raw = o.get("items", [])
+        if items_raw:
+            if not isinstance(items_raw, list):
+                items_raw = list(items_raw)
+
+            o["items"] = [
+                it for it in items_raw 
+                if (
+                    it.get("name") and
+                    isinstance(it.get("price", 0), (int, float)) and
+                    (float(it.get("price", 0)) or 0) > 0 and
+                    isinstance(it.get("qty", 0), (int, float)) and
+                    int(it.get("qty", 0)) > 0
+                )
+            ]
+
+            if o['items']:
+                sample_item = o['items'][0]
+                print(f"   Sample keys: {list(sample_item.keys())}")
+                print(f"   Sample data: {sample_item}")
+
+        else:
+            o["items"] = []
+
+        if dstatus == "delivered":
+            delivery_orders_history.append(o)
+        else:
+            delivery_orders_active.append(o)
+
+    current_date = datetime.datetime.now(datetime.timezone.utc)
+
+    return render_template(
+        "logistics_dashboard.html",
+        role="delivery",
+        user_name=user_name,
+        current_date=current_date,
+        delivery_orders=delivery_orders_active,
         delivery_orders_history=delivery_orders_history,
     )
+
+
+# ================================
+# BACKWARD COMPATIBILITY — Old /portal/* routes redirect
+# ================================
+
+@app.route("/portal/login", methods=["GET", "POST"])
+def portal_login():
+    return redirect(url_for("vendor_login"))
+
+@app.route("/portal/logout")
+def portal_logout():
+    role = session.get("user_role")
+    if role == "delivery":
+        return redirect(url_for("logistics_logout"))
+    return redirect(url_for("vendor_logout"))
+
+@app.route("/portal/dashboard")
+def portal_dashboard():
+    role = session.get("user_role")
+    if role == "delivery":
+        return redirect(url_for("logistics_dashboard"))
+    elif role == "vendor":
+        return redirect(url_for("vendor_dashboard"))
+    return redirect(url_for("vendor_login"))
 
 # ================================
 # CUSTOMER REGISTRATION (PHONE + OPTIONAL EMAIL)
@@ -1739,7 +1845,7 @@ def portal_update_vendor_status(order_id):
 
     # sirf vendor ko allow
     if role != "vendor" or not portal_user_id:
-        return redirect(url_for("portal_login"))
+        return redirect(url_for("vendor_login"))
 
     new_status = request.form.get("vendor_status", "").strip()
     allowed = {"received", "processing", "packed", "ready", "out_for_delivery", "delivered"}
@@ -1754,7 +1860,7 @@ def portal_update_vendor_status(order_id):
             {"$set": update_fields}
         )
 
-    return redirect(url_for("portal_dashboard"))
+    return redirect(url_for("vendor_dashboard"))
 
 @app.route("/portal/order/<order_id>/delivery-status", methods=["POST"])
 def portal_update_delivery_status(order_id):
@@ -1763,7 +1869,7 @@ def portal_update_delivery_status(order_id):
 
     # sirf delivery role allow
     if role != "delivery" or not portal_user_id:
-        return redirect(url_for("portal_login"))
+        return redirect(url_for("logistics_login"))
 
     new_status = request.form.get("delivery_status", "").strip()
     allowed = {"accepted", "picked", "out_for_delivery", "delivered"}
@@ -1777,7 +1883,7 @@ def portal_update_delivery_status(order_id):
             {"$set": {"delivery_status": new_status, "status": new_status}},
         )
 
-    return redirect(url_for("portal_dashboard"))
+    return redirect(url_for("logistics_dashboard"))
 
 @app.route("/admin/command-center/partial")
 def admin_command_center_partial():
@@ -1798,7 +1904,7 @@ def portal_vendor_history():
     role = session.get("user_role")
     portal_user_id = session.get("portal_user_id")
     if role != "vendor" or not portal_user_id:
-        return redirect(url_for("portal_login"))
+        return redirect(url_for("vendor_login"))
 
     vendoroid = ObjectId(portal_user_id)
 
@@ -2038,11 +2144,11 @@ def delivery_qr(order_id):
     role = session.get("user_role")
     portal_user_id = session.get("portal_user_id")
     if role != "delivery" or not portal_user_id:
-        return redirect(url_for("portal_login"))
+        return redirect(url_for("logistics_login"))
 
     order = orders.find_one({"order_id": order_id})
     if not order:
-        return redirect(url_for("portal_dashboard"))
+        return redirect(url_for("logistics_dashboard"))
 
     amount = float(order.get("total", 0) or 0.0)
 
