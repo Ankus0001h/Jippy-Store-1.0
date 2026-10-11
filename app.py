@@ -2,6 +2,7 @@ import os
 import re
 import random
 import datetime
+import threading
 from bson import ObjectId
 from dotenv import load_dotenv
 from flask import (
@@ -47,6 +48,8 @@ cache = Cache(app)
 bcrypt = Bcrypt(app)
 ADMIN_EMAIL = os.getenv("ADMIN_EMAIL")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")
+ADMIN_NUMBER_1 = os.getenv("ADMIN_NUMBER_1", "")
+ADMIN_NUMBER_2 = os.getenv("ADMIN_NUMBER_2", "")
 
 # ---------- Twilio Verify ----------
 account_sid = os.environ["TWILIO_ACCOUNT_SID"]
@@ -1414,24 +1417,200 @@ def login():
 import requests
 
 def send_green_api_message(phone, message):
+    if not phone:
+        return False
     url = "http://3.26.1.109:3001/send-message"
     
-    # Ensure phone has country code and no '+'. Indian numbers default to 91.
-    phone = phone.lstrip("+")
-    if len(phone) == 10:
-        phone = "91" + phone
-        
+    # Strip any non-digit characters and normalize for India
+    clean_digits = re.sub(r"\D", "", str(phone))
+    if len(clean_digits) == 10:
+        phone_formatted = "91" + clean_digits
+    elif len(clean_digits) == 12 and clean_digits.startswith("91"):
+        phone_formatted = clean_digits
+    else:
+        phone_formatted = clean_digits
+
     payload = {
-        "phone": phone,
+        "phone": phone_formatted,
         "message": message
     }
     headers = {'Content-Type': 'application/json'}
     try:
-        response = requests.post(url, json=payload, headers=headers)
+        response = requests.post(url, json=payload, headers=headers, timeout=12)
         return response.status_code == 200
     except Exception as e:
         print("Green API Error:", e)
         return False
+
+
+def format_whatsapp_order_bill(order, is_admin=False):
+    """
+    Flipkart-style WhatsApp order bill formatting.
+    """
+    user_name = order.get("user_name") or "Valued Customer"
+    order_id = str(order.get("order_id", ""))
+    short_id = order_id[-12:].upper() if len(order_id) >= 12 else order_id
+    
+    # Placed at in IST
+    created_at = order.get("created_at")
+    if created_at:
+        if created_at.tzinfo is None:
+            created_at = pytz.utc.localize(created_at)
+        time_str = created_at.astimezone(IST).strftime("%d %b %Y, %I:%M %p")
+    else:
+        time_str = datetime.datetime.now(IST).strftime("%d %b %Y, %I:%M %p")
+
+    # Items listing
+    items = order.get("items", []) or []
+    items_lines = []
+    for idx, it in enumerate(items, 1):
+        name = it.get("name", "Item")
+        unit_str = f" ({it.get('unit')})" if it.get("unit") else ""
+        qty = int(it.get("qty", 1) or 1)
+        price = float(it.get("price", 0) or 0)
+        item_total = int(price * qty)
+        items_lines.append(f"{idx}. *{name}*{unit_str}\n   Qty: {qty} × ₹{price:,.0f} = *₹{item_total:,}*")
+
+    items_block = "\n".join(items_lines) if items_lines else "No items specified"
+
+    # Financial details
+    subtotal = float(order.get("subtotal", 0) or 0)
+    handling_fee = float(order.get("handling_fee", 0) or 0)
+    platform_fee = float(order.get("platform_fee", 0) or 0)
+    surge_charge = float(order.get("surge_charge", 0) or 0)
+    delivery_fee = float(order.get("delivery_fee", 0) or 0)
+    grand_total = float(order.get("total", 0) or 0)
+
+    fee_details = []
+    fee_details.append(f"• Items Total ({len(items)} items): ₹{subtotal:,.2f}")
+    if handling_fee > 0:
+        fee_details.append(f"• Handling Fee: ₹{handling_fee:,.2f}")
+    if platform_fee > 0:
+        fee_details.append(f"• Platform Fee: ₹{platform_fee:,.2f}")
+    if surge_charge > 0:
+        fee_details.append(f"• Surge / Rain Fee: ₹{surge_charge:,.2f}")
+
+    if delivery_fee == 0:
+        fee_details.append("• Delivery Charges: *FREE* 🎁")
+    else:
+        fee_details.append(f"• Delivery Charges: ₹{delivery_fee:,.2f}")
+
+    fees_block = "\n".join(fee_details)
+
+    # Address
+    addr = order.get("address", {}) or {}
+    if isinstance(addr, dict):
+        line1 = addr.get("line1", "")
+        line2 = addr.get("line2", "")
+        city = addr.get("city", "")
+        pincode = addr.get("pincode", "")
+        alt_phone = addr.get("alt_phone")
+        addr_parts = [p for p in [line1, line2] if p]
+        if city or pincode:
+            addr_parts.append(f"{city} - {pincode}".strip(" -"))
+        address_text = "\n".join(addr_parts) if addr_parts else "Address on record"
+    else:
+        address_text = str(addr)
+        alt_phone = None
+
+    # Special Notes / unlisted items
+    notes = str(order.get("notes") or order.get("order_notes") or "").strip()
+    notes_block = ""
+    if notes:
+        notes_block = (
+            f"\n\n📝 *SPECIAL REQUEST / NOTES:*\n"
+            f"_{notes}_\n"
+            f"*(Unlisted items will be settled at doorstep)*"
+        )
+
+    base_url = (os.getenv("BASE_URL") or "https://freshkart-jade.vercel.app").rstrip("/")
+    track_url = f"{base_url}/order-confirmation?order_id={order_id}"
+
+    if is_admin:
+        header_title = "🚨 *NEW ORDER RECEIVED | JIPPY STORE* 🚨"
+        header_intro = (
+            f"👤 *Customer:* {user_name}\n"
+            f"📱 *Phone:* {order.get('user_phone', 'N/A')}"
+            + (f"\n📞 *Alt Phone:* {alt_phone}" if alt_phone else "")
+        )
+        footer_link = f"🔗 *Admin Orders Portal:* {base_url}/admin/orders"
+    else:
+        header_title = "🛍️ *ORDER CONFIRMED | JIPPY STORE* 🛍️"
+        header_intro = (
+            f"Hi *{user_name}*,\n"
+            f"Thank you for ordering with Jippy! Your order has been placed successfully and is being packed. ⚡ *Delivery in 10-15 mins*"
+        )
+        footer_link = f"🔗 *Track Order Status:* {track_url}"
+
+    msg = (
+        f"{header_title}\n"
+        f"═══════════════════════\n"
+        f"{header_intro}\n\n"
+        f"📋 *ORDER DETAILS:*\n"
+        f"• *Order ID:* #{short_id}\n"
+        f"• *Date & Time:* {time_str}\n"
+        f"• *Payment Mode:* Cash on Delivery (COD)\n"
+        f"═══════════════════════\n"
+        f"🛒 *ITEMS ORDERED ({len(items)}):*\n"
+        f"{items_block}\n"
+        f"═══════════════════════\n"
+        f"🧾 *PRICE BREAKDOWN:*\n"
+        f"{fees_block}\n"
+        f"───────────────────────\n"
+        f"💵 *TOTAL PAYABLE: ₹{grand_total:,.2f}*\n"
+        f"═══════════════════════\n"
+        f"📍 *DELIVERY ADDRESS:*\n"
+        f"{address_text}"
+        f"{notes_block}\n"
+        f"═══════════════════════\n"
+        f"🛡️ *100% Safe & Contactless Delivery*\n"
+        f"{footer_link}\n"
+        f"═══════════════════════\n"
+        f"Need help? Contact support or reply to this message."
+    )
+    return msg
+
+
+def send_order_whatsapp_notifications(order):
+    """
+    Sends WhatsApp invoice bill to customer and both Admin numbers.
+    """
+    try:
+        # 1. Send to Customer
+        customer_phone = order.get("user_phone")
+        if not customer_phone or customer_phone == "guest":
+            customer_phone = order.get("address", {}).get("alt_phone")
+            
+        if customer_phone and customer_phone != "guest":
+            customer_msg = format_whatsapp_order_bill(order, is_admin=False)
+            res = send_green_api_message(customer_phone, customer_msg)
+            print(f"Customer WhatsApp sent to {customer_phone}: {res}")
+
+        # 2. Send to Admin Number 1
+        admin1 = os.getenv("ADMIN_NUMBER_1", "").strip()
+        if admin1:
+            admin_msg1 = format_whatsapp_order_bill(order, is_admin=True)
+            res1 = send_green_api_message(admin1, admin_msg1)
+            print(f"Admin 1 WhatsApp sent to {admin1}: {res1}")
+
+        # 3. Send to Admin Number 2
+        admin2 = os.getenv("ADMIN_NUMBER_2", "").strip()
+        if admin2 and admin2 != admin1:
+            admin_msg2 = format_whatsapp_order_bill(order, is_admin=True)
+            res2 = send_green_api_message(admin2, admin_msg2)
+            print(f"Admin 2 WhatsApp sent to {admin2}: {res2}")
+
+    except Exception as e:
+        print("Error sending WhatsApp notifications:", e)
+
+
+def send_order_whatsapp_notifications_async(order):
+    """
+    Dispatches order confirmation WhatsApp messages in a background thread
+    so the checkout API responds instantly without any latency.
+    """
+    threading.Thread(target=send_order_whatsapp_notifications, args=(order,), daemon=True).start()
+
 
 @app.route("/api/send-whatsapp-otp", methods=["POST"])
 def send_whatsapp_otp():
@@ -1677,6 +1856,12 @@ def checkout():
 
     orders.insert_one(order)
 
+    # 📱 WhatsApp Notification: Send Flipkart-style Bill to User & Both Admins
+    try:
+        send_order_whatsapp_notifications_async(order)
+    except Exception as e:
+        print("WhatsApp dispatch failed:", e)
+
     return jsonify({
         "message": "Order placed successfully",
         "order_id": order_id,
@@ -1748,6 +1933,46 @@ def my_orders():
     orders_list = list(orders_cursor)
 
     return render_template("my_orders.html", orders=orders_list)
+
+@app.route("/order/<order_id>")
+def order_detail(order_id):
+    user_id = session.get("user_id")
+    user_phone = session.get("user_phone")
+
+    if not user_id and not user_phone:
+        return redirect(url_for("login"))
+
+    order = orders.find_one({"order_id": order_id})
+    if not order:
+        return redirect(url_for("my_orders"))
+
+    # Status logic: only 2 statuses (RECEIVED and DELIVERED, plus CANCELLED)
+    raw = (order.get("status") or "pending").lower()
+    if raw in ["delivered"]:
+        status = "DELIVERED"
+        is_delivered = True
+        is_cancelled = False
+        step_index = 1
+    elif raw in ["cancelled", "canceled"]:
+        status = "CANCELLED"
+        is_delivered = False
+        is_cancelled = True
+        step_index = 1
+    else:
+        status = "RECEIVED"
+        is_delivered = False
+        is_cancelled = False
+        step_index = 0
+
+    return render_template(
+        "order_detail.html",
+        order=order,
+        status=status,
+        is_cancelled=is_cancelled,
+        is_delivered=is_delivered,
+        step_index=step_index,
+    )
+
 
 @app.route("/logout")
 def logout():
