@@ -288,7 +288,7 @@ def category_page(name):
         items = list(items)  # Copy to avoid mutating the cached list
         random.shuffle(items)
 
-        print(f"✅ VERCEL FIX: Category='{original_category}', Found {len(items)} items")
+        print(f"[OK] Category='{original_category}', Found {len(items)} items")
 
         return render_template("products.html",
                              page_type="products",
@@ -298,7 +298,7 @@ def category_page(name):
                              item_count=len(items),
                              shop=shop)
     except Exception as e:
-        print(f"❌ VERCEL Error: {str(e)}")
+        print(f"[ERROR] Category error: {str(e)}")
         return render_template("products.html", items=[], categories=[], item_count=0, shop=None)
 
 @app.route("/")
