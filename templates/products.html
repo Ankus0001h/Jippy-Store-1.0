@@ -5,7 +5,7 @@
 
   <!-- 🔍 Search Bar (Shown on products listing page) -->
   {% if page_type != "categories" %}
-  <div class="w-full px-2 sm:px-0 mt-1 sm:mt-2">
+  <div class="relative w-full px-2 sm:px-0 mt-1 sm:mt-2">
     <div
       class="relative flex items-center bg-white rounded-sm border border-[#e0e0e0] shadow-2xs focus-within:border-[#2874f0] focus-within:ring-2 focus-within:ring-blue-100 transition-all">
       <i class="fas fa-search ml-3.5 text-[#2874f0] text-sm"></i>
@@ -22,58 +22,79 @@
     </div>
   </div>
 
-  <!-- 🛍️ Flipkart Style Promo Banners (Only on products page) -->
+  <!-- 🛍️ Category Highlight Promo Banners (Connected to Top Categories) -->
   <div class="flex overflow-x-auto gap-3 sm:gap-4 no-scrollbar snap-x pb-1 px-2 sm:px-0">
-    <!-- Banner 1: Super Deals (Flipkart Blue) -->
-    <div
-      class="flex-none snap-center w-[85vw] sm:w-[380px] rounded-sm overflow-hidden relative bg-gradient-to-br from-[#2874f0] to-[#1253ba] p-5 shadow-xs border border-[#1a5bb8]">
+    <!-- Banner 1: Chilled Soft Drinks & Juices -->
+    <a href="{{ url_for('category_page', name='Soft Drinks') }}" onclick="localStorage.removeItem('lastSearch')"
+      class="group flex-none snap-center w-[85vw] sm:w-[360px] rounded-sm overflow-hidden relative bg-gradient-to-br from-[#7c3aed] to-[#581c87] p-5 shadow-xs border border-[#6d28d9] transition-all hover:shadow-md">
       <div class="relative z-10 w-2/3">
         <div
-          class="bg-white/20 backdrop-blur-md w-fit px-2 py-0.5 rounded-sm text-[8.5px] font-bold text-white uppercase tracking-wider mb-2">
-          Deal of the Day</div>
-        <h3 class="text-white font-bold text-[20px] sm:text-[22px] leading-tight mb-1">Super Value Deals</h3>
-        <p class="text-blue-100 text-[11px] font-medium mb-4">Snacks, beverages & staples</p>
-        <button
-          class="bg-[#fb641b] hover:bg-[#e85a15] active:scale-95 text-white text-[10.5px] font-bold px-4 py-2 rounded-sm uppercase tracking-wider shadow-sm transition-all">Explore</button>
-      </div>
-      <div class="absolute -top-10 -right-10 w-36 h-36 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
-      <i
-        class="fas fa-tag absolute -bottom-3 -right-3 text-white/10 text-[95px] transform -rotate-12 pointer-events-none"></i>
-    </div>
-
-    <!-- Banner 2: Farm Fresh (Green) -->
-    <div
-      class="flex-none snap-center w-[85vw] sm:w-[380px] rounded-sm overflow-hidden relative bg-gradient-to-br from-[#1b8755] to-[#0f5c37] p-5 shadow-xs border border-[#13683f]">
-      <div class="relative z-10 w-2/3">
-        <div
-          class="bg-white/20 backdrop-blur-md w-fit px-2 py-0.5 rounded-sm text-[8.5px] font-bold text-white uppercase tracking-wider mb-2">
-          100% Quality</div>
-        <h3 class="text-white font-bold text-[20px] sm:text-[22px] leading-tight mb-1">Farm Fresh</h3>
-        <p class="text-emerald-100 text-[11px] font-medium mb-4">Handpicked fruits & vegetables</p>
-        <button
-          class="bg-white hover:bg-emerald-50 active:scale-95 text-[#1b8755] text-[10.5px] font-bold px-4 py-2 rounded-sm uppercase tracking-wider shadow-sm transition-all">Shop
-          Now</button>
+          class="bg-white/20 backdrop-blur-xs w-fit px-2 py-0.5 rounded-sm text-[8.5px] font-bold text-white uppercase tracking-wider mb-2">
+          Chilled & Refreshing</div>
+        <h3 class="text-white font-bold text-[19px] sm:text-[21px] leading-tight mb-1 group-hover:translate-x-0.5 transition-transform">Cold Drinks & Juices</h3>
+        <p class="text-purple-100 text-[11px] font-medium mb-3.5">Soda, Mango Juice & Energy Drinks</p>
+        <span
+          class="inline-flex items-center gap-1.5 bg-white group-hover:bg-purple-50 active:scale-95 text-[#6d28d9] text-[10.5px] font-bold px-3.5 py-1.5 rounded-sm uppercase tracking-wider shadow-sm transition-all">
+          Shop Drinks <i class="fas fa-chevron-right text-[8px]"></i>
+        </span>
       </div>
       <div class="absolute -bottom-10 -left-10 w-36 h-36 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
       <i
-        class="fas fa-carrot absolute -bottom-3 -right-3 text-white/10 text-[95px] transform rotate-12 pointer-events-none"></i>
-    </div>
+        class="fas fa-glass-water absolute -bottom-3 -right-3 text-white/15 text-[95px] transform rotate-12 pointer-events-none group-hover:scale-105 transition-transform"></i>
+    </a>
 
-    <!-- Banner 3: Morning Essentials (Amber) -->
-    <div
-      class="flex-none snap-center w-[85vw] sm:w-[380px] rounded-sm overflow-hidden relative bg-gradient-to-br from-[#d97706] to-[#b45309] p-5 shadow-xs border border-[#92400e]">
+    <!-- Banner 2: Dairy Products -->
+    <a href="{{ url_for('category_page', name='Dairy Products') }}" onclick="localStorage.removeItem('lastSearch')"
+      class="group flex-none snap-center w-[85vw] sm:w-[360px] rounded-sm overflow-hidden relative bg-gradient-to-br from-[#1e40af] to-[#1e3a8a] p-5 shadow-xs border border-[#1d4ed8] transition-all hover:shadow-md">
       <div class="relative z-10 w-2/3">
         <div
-          class="bg-white/20 backdrop-blur-md w-fit px-2 py-0.5 rounded-sm text-[8.5px] font-bold text-white uppercase tracking-wider mb-2">
-          Daily Savings</div>
-        <h3 class="text-white font-bold text-[20px] sm:text-[22px] leading-tight mb-1">Morning Fresh</h3>
-        <p class="text-amber-100 text-[11px] font-medium mb-4">Milk, bread, butter & eggs</p>
-        <button
-          class="bg-white hover:bg-amber-50 active:scale-95 text-[#b45309] text-[10.5px] font-bold px-4 py-2 rounded-sm uppercase tracking-wider shadow-sm transition-all">Stock
-          Up</button>
+          class="bg-white/20 backdrop-blur-xs w-fit px-2 py-0.5 rounded-sm text-[8.5px] font-bold text-white uppercase tracking-wider mb-2">
+          Daily Essentials</div>
+        <h3 class="text-white font-bold text-[19px] sm:text-[21px] leading-tight mb-1 group-hover:translate-x-0.5 transition-transform">Dairy Products</h3>
+        <p class="text-blue-100 text-[11px] font-medium mb-3.5">Fresh Milk, Dahi, Paneer & Butter</p>
+        <span
+          class="inline-flex items-center gap-1.5 bg-[#fb641b] group-hover:bg-[#e85a15] active:scale-95 text-white text-[10.5px] font-bold px-3.5 py-1.5 rounded-sm uppercase tracking-wider shadow-sm transition-all">
+          Explore Dairy <i class="fas fa-chevron-right text-[8px]"></i>
+        </span>
       </div>
-      <i class="fas fa-mug-hot absolute -bottom-2 -right-3 text-white/10 text-[85px] transform pointer-events-none"></i>
-    </div>
+      <div class="absolute -top-10 -right-10 w-36 h-36 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
+      <i
+        class="fas fa-bottle-droplet absolute -bottom-3 -right-3 text-white/15 text-[95px] transform -rotate-12 pointer-events-none group-hover:scale-105 transition-transform"></i>
+    </a>
+
+    <!-- Banner 3: Instant Food & Snacks -->
+    <a href="{{ url_for('category_page', name='Breakfast and Instant food') }}" onclick="localStorage.removeItem('lastSearch')"
+      class="group flex-none snap-center w-[85vw] sm:w-[360px] rounded-sm overflow-hidden relative bg-gradient-to-br from-[#c2410c] to-[#9a3412] p-5 shadow-xs border border-[#b45309] transition-all hover:shadow-md">
+      <div class="relative z-10 w-2/3">
+        <div
+          class="bg-white/20 backdrop-blur-xs w-fit px-2 py-0.5 rounded-sm text-[8.5px] font-bold text-white uppercase tracking-wider mb-2">
+          Quick Munchies</div>
+        <h3 class="text-white font-bold text-[19px] sm:text-[21px] leading-tight mb-1 group-hover:translate-x-0.5 transition-transform">Instant Food & Snacks</h3>
+        <p class="text-amber-100 text-[11px] font-medium mb-3.5">Maggi, Noodles, Chips & Quick Bites</p>
+        <span
+          class="inline-flex items-center gap-1.5 bg-white group-hover:bg-amber-50 active:scale-95 text-[#9a3412] text-[10.5px] font-bold px-3.5 py-1.5 rounded-sm uppercase tracking-wider shadow-sm transition-all">
+          Order Snacks <i class="fas fa-chevron-right text-[8px]"></i>
+        </span>
+      </div>
+      <i class="fas fa-bowl-food absolute -bottom-2 -right-3 text-white/15 text-[85px] transform pointer-events-none group-hover:scale-105 transition-transform"></i>
+    </a>
+
+    <!-- Banner 4: Aata & Daily Staples -->
+    <a href="{{ url_for('category_page', name='Aata & more') }}" onclick="localStorage.removeItem('lastSearch')"
+      class="group flex-none snap-center w-[85vw] sm:w-[360px] rounded-sm overflow-hidden relative bg-gradient-to-br from-[#b45309] to-[#78350f] p-5 shadow-xs border border-[#92400e] transition-all hover:shadow-md">
+      <div class="relative z-10 w-2/3">
+        <div
+          class="bg-white/20 backdrop-blur-xs w-fit px-2 py-0.5 rounded-sm text-[8.5px] font-bold text-white uppercase tracking-wider mb-2">
+          Kitchen Staples</div>
+        <h3 class="text-white font-bold text-[19px] sm:text-[21px] leading-tight mb-1 group-hover:translate-x-0.5 transition-transform">Aata & Staples</h3>
+        <p class="text-amber-100 text-[11px] font-medium mb-3.5">Chakki Fresh Aata, Rice & Dal</p>
+        <span
+          class="inline-flex items-center gap-1.5 bg-white group-hover:bg-amber-50 active:scale-95 text-[#78350f] text-[10.5px] font-bold px-3.5 py-1.5 rounded-sm uppercase tracking-wider shadow-sm transition-all">
+          Stock Staples <i class="fas fa-chevron-right text-[8px]"></i>
+        </span>
+      </div>
+      <i class="fas fa-wheat-awn absolute -bottom-2 -right-3 text-white/15 text-[85px] transform -rotate-12 pointer-events-none group-hover:scale-105 transition-transform"></i>
+    </a>
   </div>
   {% endif %}
 
@@ -83,37 +104,44 @@
   {% if page_type == "categories" %}
   <div class="px-2 sm:px-0 pt-0.5 space-y-3">
 
-    <!-- 1. Flipkart Grocery Category Hero Banner -->
+    <!-- 1. Flipkart Grocery Category Hero Banner (Blue & Orange Gradient) -->
     <div
-      class="bg-gradient-to-r from-[#2874f0] via-[#1a62d6] to-[#0d47a1] rounded-sm p-4 sm:p-6 text-white shadow-xs relative overflow-hidden">
+      class="bg-gradient-to-r from-[#2874f0] via-[#1a5bb8] to-[#fb641b] rounded-sm p-4 sm:p-6 text-white shadow-xs relative overflow-hidden border border-blue-400/20">
       <div class="relative z-10 max-w-lg">
         <div
-          class="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-white/20 backdrop-blur-md rounded-sm text-[9.5px] font-bold uppercase tracking-wider text-yellow-300 mb-2">
+          class="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-black/25 rounded-sm text-[9.5px] font-bold uppercase tracking-wider text-yellow-300 mb-2 border border-white/20">
           <i class="fas fa-sparkles"></i> 100% Fresh & Authentic
         </div>
-        <h1 class="text-[20px] sm:text-[25px] font-extrabold leading-tight tracking-tight">
+        <h1 class="text-[20px] sm:text-[25px] font-extrabold leading-tight tracking-tight text-white drop-shadow-xs">
           Explore Grocery Categories
         </h1>
-        <p class="text-[12px] sm:text-[13px] text-blue-100 font-medium mt-1 leading-snug">
+        <p class="text-[12px] sm:text-[13px] text-white/95 font-medium mt-1 leading-snug">
           Farm-fresh vegetables, dairy, staples, snacks & household essentials
         </p>
       </div>
+      <!-- Decorative Accents: Orange & Blue Ambient Glows -->
+      <div class="absolute -right-6 -top-6 w-40 h-40 bg-[#fb641b]/35 rounded-full blur-xl pointer-events-none"></div>
+      <div class="absolute -left-6 -bottom-6 w-40 h-40 bg-[#2874f0]/35 rounded-full blur-xl pointer-events-none"></div>
       <i
-        class="fas fa-basket-shopping absolute -bottom-4 -right-4 text-white/10 text-[110px] transform -rotate-12 pointer-events-none"></i>
+        class="fas fa-basket-shopping absolute -bottom-4 -right-4 text-white/15 text-[110px] transform -rotate-12 pointer-events-none"></i>
     </div>
 
-    <!-- 2. Instant Category Search Filter -->
-    <div
-      class="relative flex items-center bg-white rounded-sm border border-[#e0e0e0] shadow-2xs focus-within:border-[#2874f0] focus-within:ring-2 focus-within:ring-blue-100 transition-all">
-      <i class="fas fa-search ml-3.5 text-[#2874f0] text-sm"></i>
-      <input type="text" id="category-search"
-        placeholder="Search categories (e.g. Vegetables, Dairy, Snacks, Masale)..."
-        class="w-full pl-3 pr-10 py-3 bg-transparent text-[#212121] text-[13.5px] sm:text-sm font-medium outline-none placeholder:text-[#878787] placeholder:font-normal"
-        autocomplete="off">
-      <button id="clear-category-search"
-        class="absolute right-3.5 text-[#878787] hover:text-rose-600 hidden transition-colors" title="Clear">
-        <i class="fas fa-times-circle text-sm"></i>
-      </button>
+    <!-- 2. Search Bar (Same to Same as Product Page) -->
+    <div class="relative w-full">
+      <div
+        class="relative flex items-center bg-white rounded-sm border border-[#e0e0e0] shadow-2xs focus-within:border-[#2874f0] focus-within:ring-2 focus-within:ring-blue-100 transition-all">
+        <i class="fas fa-search ml-3.5 text-[#2874f0] text-sm"></i>
+        <input type="text" id="product-search" placeholder="Search for products, groceries & more..."
+          class="w-full pl-3 pr-10 py-3 bg-transparent text-[#212121] text-[13.5px] sm:text-sm font-medium outline-none placeholder:text-[#878787] placeholder:font-normal"
+          autocomplete="off">
+        <button id="clear-search" class="absolute right-3.5 text-[#878787] hover:text-rose-600 hidden transition-colors"
+          title="Clear search">
+          <i class="fas fa-times-circle text-sm"></i>
+        </button>
+      </div>
+      <div id="product-suggestions"
+        class="absolute left-0 right-0 mt-1.5 bg-white rounded-sm shadow-xl border border-[#e0e0e0] max-h-80 overflow-y-auto hidden z-[100]">
+      </div>
     </div>
 
     <!-- 3. Category Grid Container -->
@@ -373,21 +401,56 @@
 </div>
 
 
+<script type="application/json" id="categories-json">{{ (categories if categories else []) | tojson }}</script>
+
 <script>
+  const IS_CATEGORY_PAGE = document.getElementById("category-grid") !== null;
+  let ALL_CATEGORIES = [];
+  try {
+    const catScript = document.getElementById("categories-json");
+    if (catScript) {
+      ALL_CATEGORIES = JSON.parse(catScript.textContent || "[]");
+    }
+  } catch (e) {
+    ALL_CATEGORIES = [];
+  }
+
   const searchInput = document.getElementById("product-search");
   const suggestBox = document.getElementById("product-suggestions");
   const clearBtn = document.getElementById("clear-search");
 
-  // Handle Back Button Cache Reset
-  window.addEventListener("pageshow", (event) => {
-    if (event.persisted || (window.performance && window.performance.navigation.type === 2)) {
-      localStorage.removeItem('lastSearch');
-      if (searchInput) {
-        searchInput.value = "";
-        toggleClearButton("");
-        filterOnScreenItems("");
-      }
+  // In-memory instant suggestions cache
+  const suggestionsCache = new Map();
+  let activeAbortController = null;
+
+  function clearSearchState() {
+    localStorage.removeItem('lastSearch');
+    sessionStorage.removeItem('lastSearch');
+    if (searchInput) {
+      searchInput.value = "";
+      toggleClearButton("");
+      filterOnScreenItems("");
     }
+    if (suggestBox) {
+      suggestBox.classList.add("hidden");
+      suggestBox.innerHTML = "";
+    }
+    const noCatEl = document.getElementById("no-category-found");
+    if (noCatEl) noCatEl.classList.add("hidden");
+  }
+
+  // Handle Back Button Cache Reset across all browsers, bfcache & mobile WebViews
+  window.addEventListener("pageshow", (event) => {
+    const navEntries = performance.getEntriesByType && performance.getEntriesByType("navigation");
+    const isBackForward = (navEntries && navEntries.length > 0 && navEntries[0].type === "back_forward") ||
+                          (window.performance && window.performance.navigation && window.performance.navigation.type === 2);
+    if (event.persisted || isBackForward || IS_CATEGORY_PAGE) {
+      clearSearchState();
+    }
+  });
+
+  window.addEventListener("popstate", () => {
+    clearSearchState();
   });
 
   document.addEventListener("DOMContentLoaded", () => {
@@ -399,41 +462,6 @@
         const j = Math.floor(Math.random() * (i + 1));
         categoryGrid.appendChild(cards[j]);
       }
-    }
-
-    // 2. Category Search Filter Handler
-    const catSearch = document.getElementById("category-search");
-    const clearCatSearch = document.getElementById("clear-category-search");
-    const noCatEl = document.getElementById("no-category-found");
-    if (catSearch) {
-      catSearch.addEventListener("input", (e) => {
-        const q = e.target.value.toLowerCase().trim();
-        if (clearCatSearch) {
-          if (q.length > 0) clearCatSearch.classList.remove("hidden");
-          else clearCatSearch.classList.add("hidden");
-        }
-        const cards = document.querySelectorAll('.category-card');
-        let visibleCount = 0;
-        cards.forEach(card => {
-          const name = card.getAttribute('data-name') || '';
-          const match = (name.includes(q) || q === "");
-          card.style.display = match ? "" : "none";
-          if (match) visibleCount++;
-        });
-        if (noCatEl) {
-          if (visibleCount === 0 && q.length > 0) noCatEl.classList.remove("hidden");
-          else noCatEl.classList.add("hidden");
-        }
-      });
-
-      clearCatSearch?.addEventListener("click", () => {
-        catSearch.value = "";
-        clearCatSearch.classList.add("hidden");
-        const cards = document.querySelectorAll('.category-card');
-        cards.forEach(card => card.style.display = "");
-        if (noCatEl) noCatEl.classList.add("hidden");
-        catSearch.focus();
-      });
     }
 
     syncVariantSelectsWithCart();
@@ -450,35 +478,59 @@
       }
     }
 
-    // Restore Search
-    const savedSearch = localStorage.getItem('lastSearch');
-    if (savedSearch && searchInput) {
-      searchInput.value = savedSearch;
-      toggleClearButton(savedSearch);
-      filterOnScreenItems(savedSearch.toLowerCase());
+    // Category page always starts fresh and cleared
+    if (IS_CATEGORY_PAGE) {
+      clearSearchState();
+    } else {
+      // Check URL search param first, then localStorage
+      const urlParams = new URLSearchParams(window.location.search);
+      const searchParam = urlParams.get('search');
+      if (searchParam && searchInput) {
+        searchInput.value = searchParam;
+        toggleClearButton(searchParam);
+        filterOnScreenItems(searchParam.toLowerCase());
+      } else {
+        const savedSearch = localStorage.getItem('lastSearch');
+        if (savedSearch && searchInput) {
+          searchInput.value = savedSearch;
+          toggleClearButton(savedSearch);
+          filterOnScreenItems(savedSearch.toLowerCase());
+        }
+      }
     }
 
     searchInput?.addEventListener("input", (e) => {
       const q = e.target.value.toLowerCase().trim();
       toggleClearButton(e.target.value);
-      localStorage.setItem('lastSearch', e.target.value);
+      if (!IS_CATEGORY_PAGE) {
+        localStorage.setItem('lastSearch', e.target.value);
+      }
       filterOnScreenItems(q);
       if (q.length === 0) {
-        suggestBox.classList.add("hidden");
+        suggestBox?.classList.add("hidden");
         localStorage.removeItem('lastSearch');
+        const noCatEl = document.getElementById("no-category-found");
+        if (noCatEl) noCatEl.classList.add("hidden");
         return;
       }
       fetchSuggestions(q);
     });
 
+    // Enter key support to trigger top suggestion
+    searchInput?.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        const firstSuggestion = suggestBox?.querySelector("div");
+        if (firstSuggestion && !suggestBox.classList.contains("hidden")) {
+          firstSuggestion.click();
+        }
+      }
+    });
+
     // Clear Search Logic
     clearBtn?.addEventListener("click", () => {
-      searchInput.value = "";
-      localStorage.removeItem('lastSearch');
-      toggleClearButton("");
-      filterOnScreenItems("");
-      suggestBox.classList.add("hidden");
-      searchInput.focus();
+      clearSearchState();
+      searchInput?.focus();
     });
 
     document.addEventListener("click", (e) => {
@@ -493,49 +545,132 @@
     else clearBtn?.classList.add("hidden");
   }
 
-  async function fetchSuggestions(q) {
-    try {
-      const resp = await fetch(`/api/suggestions?q=${encodeURIComponent(q)}`);
-      const suggestions = await resp.json();
-      if (suggestions.length > 0) {
-        suggestBox.classList.remove("hidden");
-        suggestBox.innerHTML = suggestions.map(item => `
-          <div onclick="handleSuggestionClick('${item.name.replace(/'/g, "\\'")}', '${item.type}', '${item.url}')" 
-               class="px-4 py-3 hover:bg-blue-50 cursor-pointer border-b border-[#f0f0f0] last:border-0 flex items-center justify-between group transition-colors">
-            <div class="flex items-center gap-3">
-              <i class="fas fa-search text-[#878787] group-hover:text-[#2874f0] text-xs"></i>
-              <span class="text-[13px] font-medium text-[#212121] capitalize">${item.name}</span>
-            </div>
-            <span class="text-[9.5px] font-bold text-[#2874f0] bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-sm uppercase">${item.type}</span>
-          </div>`).join('');
-      } else { suggestBox.classList.add("hidden"); }
-    } catch (err) { console.error(err); }
+  function renderSuggestionsList(items) {
+    if (!suggestBox) return;
+    if (!items || items.length === 0) {
+      suggestBox.classList.add("hidden");
+      return;
+    }
+    suggestBox.classList.remove("hidden");
+    suggestBox.innerHTML = items.map(item => {
+      const isCat = item.type === 'category';
+      const safeName = (item.name || '').replace(/'/g, "\\'");
+      const safeUrl = (item.url || '').replace(/'/g, "\\'");
+      return `
+        <div onclick="handleSuggestionClick('${safeName}', '${item.type}', '${safeUrl}')" 
+             class="px-3.5 py-2.5 hover:bg-blue-50/80 cursor-pointer border-b border-[#f0f0f0] last:border-0 flex items-center justify-between group transition-colors">
+          <div class="flex items-center gap-2.5 min-w-0">
+            <i class="fas ${isCat ? 'fa-th-large text-emerald-500' : 'fa-search text-[#878787]'} group-hover:text-[#2874f0] text-xs shrink-0"></i>
+            <span class="text-[13px] font-medium text-[#212121] capitalize truncate">${item.name}</span>
+          </div>
+          <span class="text-[9.5px] font-bold ${isCat ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : 'text-[#2874f0] bg-blue-50 border-blue-200'} border px-2 py-0.5 rounded-sm uppercase tracking-wider shrink-0">${item.type}</span>
+        </div>`;
+    }).join('');
   }
 
-  function handleSuggestionClick(name, type, url) {
-    suggestBox.classList.add("hidden");
-    if (type === 'category') {
-      localStorage.removeItem('lastSearch');
-      window.location.href = url;
-    } else {
-      localStorage.setItem('lastSearch', name);
-      if (searchInput) {
-        searchInput.value = name;
-        toggleClearButton(name);
+  function getLocalInstantSuggestions(q) {
+    if (!q) return [];
+    const matches = [];
+    // 1. Instant Category matches from memory (0ms lag)
+    if (Array.isArray(ALL_CATEGORIES)) {
+      ALL_CATEGORIES.forEach(c => {
+        if (c.toLowerCase().includes(q)) {
+          matches.push({
+            name: c,
+            type: 'category',
+            url: `/category/${encodeURIComponent(c)}`
+          });
+        }
+      });
+    }
+    // 2. On products page, match on-screen product cards too (0ms lag)
+    const cards = document.querySelectorAll('.product-card');
+    cards.forEach(card => {
+      const name = card.getAttribute('data-name');
+      if (name && name.toLowerCase().includes(q)) {
+        if (!matches.some(m => m.name.toLowerCase() === name.toLowerCase())) {
+          matches.push({
+            name: name,
+            type: 'product',
+            url: window.location.pathname + `?search=${encodeURIComponent(name)}`
+          });
+        }
       }
-      const cards = document.querySelectorAll('.product-card');
-      const isOnCurrentPage = Array.from(cards).some(card => card.getAttribute('data-name') === name.toLowerCase());
-      if (isOnCurrentPage) filterOnScreenItems(name.toLowerCase());
-      else window.location.href = url;
+    });
+    return matches.slice(0, 8);
+  }
+
+  async function fetchSuggestions(q) {
+    // 1. Instantly render local memory suggestions (0ms lag)
+    const localMatches = getLocalInstantSuggestions(q);
+    if (localMatches.length > 0) {
+      renderSuggestionsList(localMatches);
+    }
+
+    // 2. Return cached response if available (0ms lag)
+    if (suggestionsCache.has(q)) {
+      renderSuggestionsList(suggestionsCache.get(q));
+      return;
+    }
+
+    // 3. Abort previous in-flight request
+    if (activeAbortController) {
+      activeAbortController.abort();
+    }
+    activeAbortController = new AbortController();
+
+    try {
+      const resp = await fetch(`/api/suggestions?q=${encodeURIComponent(q)}`, {
+        signal: activeAbortController.signal
+      });
+      if (!resp.ok) return;
+      const suggestions = await resp.json();
+      suggestionsCache.set(q, suggestions);
+      // Ensure input hasn't changed while request was in-flight
+      if (searchInput && searchInput.value.toLowerCase().trim() === q) {
+        renderSuggestionsList(suggestions);
+      }
+    } catch (err) {
+      if (err.name !== 'AbortError') {
+        console.error(err);
+      }
     }
   }
 
+  function handleSuggestionClick(name, type, url) {
+    suggestBox?.classList.add("hidden");
+    clearSearchState();
+    window.location.href = url;
+  }
+
   function filterOnScreenItems(query) {
-    const cards = document.querySelectorAll('.category-card, .product-card');
-    cards.forEach(card => {
-      const name = card.getAttribute('data-name') || '';
-      card.style.display = (name.includes(query) || query === "") ? "" : "none";
-    });
+    const catCards = document.querySelectorAll('.category-card');
+    const prodCards = document.querySelectorAll('.product-card');
+    const noCatEl = document.getElementById("no-category-found");
+
+    if (catCards.length > 0) {
+      let visibleCount = 0;
+      catCards.forEach(card => {
+        const name = card.getAttribute('data-name') || '';
+        const match = (name.includes(query) || query === "");
+        card.style.display = match ? "" : "none";
+        if (match) visibleCount++;
+      });
+      if (noCatEl) {
+        if (visibleCount === 0 && query.length > 0 && (!suggestBox || suggestBox.classList.contains("hidden"))) {
+          noCatEl.classList.remove("hidden");
+        } else {
+          noCatEl.classList.add("hidden");
+        }
+      }
+    }
+
+    if (prodCards.length > 0) {
+      prodCards.forEach(card => {
+        const name = card.getAttribute('data-name') || '';
+        card.style.display = (name.includes(query) || query === "") ? "" : "none";
+      });
+    }
   }
 
   // 🛍️ Flipkart Style Buttons in JS
