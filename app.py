@@ -1644,6 +1644,8 @@ def checkout():
         for item in cart:
             item["vendor_id"] = vendor_id
 
+    notes = str(data.get("notes") or data.get("order_notes") or "").strip()[:500]
+
     # ---- STEP 3: Order object creation ----
     order = {
         "user_id": user_id,
@@ -1651,6 +1653,7 @@ def checkout():
         "user_phone": user_phone,
         "user_name": user_name,
         "items": cart,
+        "notes": notes,
         "vendor_status": vendor_status,
         "subtotal": subtotal,
         "platform_fee": platform_fee,
