@@ -1,273 +1,375 @@
 {% extends "base.html" %}
 {% block content %}
 
-<div class="w-full space-y-4 sm:space-y-8">
+<div class="w-full space-y-3 sm:space-y-5 font-['Plus_Jakarta_Sans']">
 
-  <!-- Mobile Search Bar (Only shown if page_type is not categories) -->
+  <!-- 🔍 Search Bar (Shown on products listing page) -->
   {% if page_type != "categories" %}
-  <div class="w-full px-2 sm:px-0 mt-2 sm:mt-4">
-    <div class="relative flex items-center bg-white rounded-2xl sm:rounded-[1.5rem] border border-slate-200 shadow-sm focus-within:shadow-md focus-within:border-emerald-400 transition-all duration-300">
-      <i class="fas fa-search ml-4 text-emerald-600 sm:text-slate-400 text-sm"></i>
-      <input type="text" id="product-search" 
-             placeholder="Search 'Milk', 'Bread' or 'Eggs'..." 
-             class="w-full pl-3 pr-10 py-3.5 sm:py-4 bg-transparent text-slate-800 text-sm sm:text-base font-bold outline-none placeholder:text-slate-400 placeholder:font-medium" autocomplete="off">
-      <button id="clear-search" class="absolute right-4 text-slate-400 hover:text-rose-500 hidden transition-colors">
-        <i class="fas fa-times-circle"></i>
+  <div class="w-full px-2 sm:px-0 mt-1 sm:mt-2">
+    <div
+      class="relative flex items-center bg-white rounded-sm border border-[#e0e0e0] shadow-2xs focus-within:border-[#2874f0] focus-within:ring-2 focus-within:ring-blue-100 transition-all">
+      <i class="fas fa-search ml-3.5 text-[#2874f0] text-sm"></i>
+      <input type="text" id="product-search" placeholder="Search for products, groceries & more..."
+        class="w-full pl-3 pr-10 py-3 bg-transparent text-[#212121] text-[13.5px] sm:text-sm font-medium outline-none placeholder:text-[#878787] placeholder:font-normal"
+        autocomplete="off">
+      <button id="clear-search" class="absolute right-3.5 text-[#878787] hover:text-rose-600 hidden transition-colors"
+        title="Clear search">
+        <i class="fas fa-times-circle text-sm"></i>
       </button>
     </div>
-    <div id="product-suggestions" class="absolute left-2 right-2 sm:left-0 sm:right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-slate-100 max-h-80 overflow-y-auto hidden z-[100]"></div>
+    <div id="product-suggestions"
+      class="absolute left-2 right-2 sm:left-0 sm:right-0 mt-1.5 bg-white rounded-sm shadow-xl border border-[#e0e0e0] max-h-80 overflow-y-auto hidden z-[100]">
+    </div>
+  </div>
+
+  <!-- 🛍️ Flipkart Style Promo Banners (Only on products page) -->
+  <div class="flex overflow-x-auto gap-3 sm:gap-4 no-scrollbar snap-x pb-1 px-2 sm:px-0">
+    <!-- Banner 1: Super Deals (Flipkart Blue) -->
+    <div
+      class="flex-none snap-center w-[85vw] sm:w-[380px] rounded-sm overflow-hidden relative bg-gradient-to-br from-[#2874f0] to-[#1253ba] p-5 shadow-xs border border-[#1a5bb8]">
+      <div class="relative z-10 w-2/3">
+        <div
+          class="bg-white/20 backdrop-blur-md w-fit px-2 py-0.5 rounded-sm text-[8.5px] font-bold text-white uppercase tracking-wider mb-2">
+          Deal of the Day</div>
+        <h3 class="text-white font-bold text-[20px] sm:text-[22px] leading-tight mb-1">Super Value Deals</h3>
+        <p class="text-blue-100 text-[11px] font-medium mb-4">Snacks, beverages & staples</p>
+        <button
+          class="bg-[#fb641b] hover:bg-[#e85a15] active:scale-95 text-white text-[10.5px] font-bold px-4 py-2 rounded-sm uppercase tracking-wider shadow-sm transition-all">Explore</button>
+      </div>
+      <div class="absolute -top-10 -right-10 w-36 h-36 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
+      <i
+        class="fas fa-tag absolute -bottom-3 -right-3 text-white/10 text-[95px] transform -rotate-12 pointer-events-none"></i>
+    </div>
+
+    <!-- Banner 2: Farm Fresh (Green) -->
+    <div
+      class="flex-none snap-center w-[85vw] sm:w-[380px] rounded-sm overflow-hidden relative bg-gradient-to-br from-[#1b8755] to-[#0f5c37] p-5 shadow-xs border border-[#13683f]">
+      <div class="relative z-10 w-2/3">
+        <div
+          class="bg-white/20 backdrop-blur-md w-fit px-2 py-0.5 rounded-sm text-[8.5px] font-bold text-white uppercase tracking-wider mb-2">
+          100% Quality</div>
+        <h3 class="text-white font-bold text-[20px] sm:text-[22px] leading-tight mb-1">Farm Fresh</h3>
+        <p class="text-emerald-100 text-[11px] font-medium mb-4">Handpicked fruits & vegetables</p>
+        <button
+          class="bg-white hover:bg-emerald-50 active:scale-95 text-[#1b8755] text-[10.5px] font-bold px-4 py-2 rounded-sm uppercase tracking-wider shadow-sm transition-all">Shop
+          Now</button>
+      </div>
+      <div class="absolute -bottom-10 -left-10 w-36 h-36 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
+      <i
+        class="fas fa-carrot absolute -bottom-3 -right-3 text-white/10 text-[95px] transform rotate-12 pointer-events-none"></i>
+    </div>
+
+    <!-- Banner 3: Morning Essentials (Amber) -->
+    <div
+      class="flex-none snap-center w-[85vw] sm:w-[380px] rounded-sm overflow-hidden relative bg-gradient-to-br from-[#d97706] to-[#b45309] p-5 shadow-xs border border-[#92400e]">
+      <div class="relative z-10 w-2/3">
+        <div
+          class="bg-white/20 backdrop-blur-md w-fit px-2 py-0.5 rounded-sm text-[8.5px] font-bold text-white uppercase tracking-wider mb-2">
+          Daily Savings</div>
+        <h3 class="text-white font-bold text-[20px] sm:text-[22px] leading-tight mb-1">Morning Fresh</h3>
+        <p class="text-amber-100 text-[11px] font-medium mb-4">Milk, bread, butter & eggs</p>
+        <button
+          class="bg-white hover:bg-amber-50 active:scale-95 text-[#b45309] text-[10.5px] font-bold px-4 py-2 rounded-sm uppercase tracking-wider shadow-sm transition-all">Stock
+          Up</button>
+      </div>
+      <i class="fas fa-mug-hot absolute -bottom-2 -right-3 text-white/10 text-[85px] transform pointer-events-none"></i>
+    </div>
   </div>
   {% endif %}
 
-  <!-- Category Page Header (Only shown on category pages) -->
+  <!-- ================================================================ -->
+  <!-- 🗂️ CATEGORY EXPLORATION PAGE (Flipkart Grocery Premium UI)        -->
+  <!-- ================================================================ -->
   {% if page_type == "categories" %}
-  <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-4 px-2 sm:px-0">
-    <div class="space-y-1">
-      <h1 class="text-2xl sm:text-4xl font-extrabold text-slate-900 tracking-tight leading-none">
-        Shop by Category
-      </h1>
-      <p class="text-slate-500 font-medium flex items-center gap-2 text-xs sm:text-sm">
-        <span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-        {{ categories|length }} Categories available
-      </p>
-    </div>
-  </div>
-  {% endif %}
+  <div class="px-2 sm:px-0 pt-0.5 space-y-3">
 
-  <!-- Promo Banners (Zepto Style) -->
-  <div class="flex overflow-x-auto gap-4 sm:gap-6 no-scrollbar snap-x pb-4 px-2 sm:px-0">
-    
-    <!-- Banner 1: Movie Night -->
-    <div class="flex-none snap-center w-[85vw] sm:w-[400px] rounded-[1.5rem] overflow-hidden relative bg-gradient-to-br from-[#1e1b4b] to-[#312e81] p-6 shadow-lg">
-      <div class="relative z-10 w-2/3">
-        <div class="bg-indigo-500/30 backdrop-blur-md w-fit px-2.5 py-1 rounded-md text-[9px] font-black text-indigo-100 uppercase tracking-widest mb-3">Chill Time</div>
-        <h3 class="text-white font-extrabold text-2xl sm:text-3xl leading-tight mb-2 tracking-tight">Movie Night</h3>
-        <p class="text-indigo-200 text-xs font-medium mb-5">Snacks, drinks & more</p>
-        <button class="bg-indigo-500 text-white text-[11px] font-black px-6 py-2.5 rounded-xl uppercase tracking-wider shadow-md hover:bg-indigo-400 active:scale-95 transition-all">Explore</button>
+    <!-- 1. Flipkart Grocery Category Hero Banner -->
+    <div
+      class="bg-gradient-to-r from-[#2874f0] via-[#1a62d6] to-[#0d47a1] rounded-sm p-4 sm:p-6 text-white shadow-xs relative overflow-hidden">
+      <div class="relative z-10 max-w-lg">
+        <div
+          class="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-white/20 backdrop-blur-md rounded-sm text-[9.5px] font-bold uppercase tracking-wider text-yellow-300 mb-2">
+          <i class="fas fa-sparkles"></i> 100% Fresh & Authentic
+        </div>
+        <h1 class="text-[20px] sm:text-[25px] font-extrabold leading-tight tracking-tight">
+          Explore Grocery Categories
+        </h1>
+        <p class="text-[12px] sm:text-[13px] text-blue-100 font-medium mt-1 leading-snug">
+          Farm-fresh vegetables, dairy, staples, snacks & household essentials
+        </p>
       </div>
-      <div class="absolute -top-10 -right-10 w-40 h-40 bg-indigo-500/20 rounded-full blur-2xl pointer-events-none"></div>
-      <i class="fas fa-popcorn absolute -bottom-4 -right-4 text-indigo-400/20 text-[110px] transform -rotate-12 pointer-events-none"></i>
+      <i
+        class="fas fa-basket-shopping absolute -bottom-4 -right-4 text-white/10 text-[110px] transform -rotate-12 pointer-events-none"></i>
     </div>
 
-    <!-- Banner 2: Farm to Home -->
-    <div class="flex-none snap-center w-[85vw] sm:w-[400px] rounded-[1.5rem] overflow-hidden relative bg-gradient-to-br from-[#064e3b] to-[#047857] p-6 shadow-lg">
-      <div class="relative z-10 w-2/3">
-        <div class="bg-emerald-500/30 backdrop-blur-md w-fit px-2.5 py-1 rounded-md text-[9px] font-black text-emerald-100 uppercase tracking-widest mb-3">100% Quality</div>
-        <h3 class="text-white font-extrabold text-2xl sm:text-3xl leading-tight mb-2 tracking-tight">Farm Fresh</h3>
-        <p class="text-emerald-200 text-xs font-medium mb-5">Handpicked vegetables</p>
-        <button class="bg-emerald-500 text-white text-[11px] font-black px-6 py-2.5 rounded-xl uppercase tracking-wider shadow-md hover:bg-emerald-400 active:scale-95 transition-all">Shop Now</button>
+    <!-- 2. Instant Category Search Filter -->
+    <div
+      class="relative flex items-center bg-white rounded-sm border border-[#e0e0e0] shadow-2xs focus-within:border-[#2874f0] focus-within:ring-2 focus-within:ring-blue-100 transition-all">
+      <i class="fas fa-search ml-3.5 text-[#2874f0] text-sm"></i>
+      <input type="text" id="category-search"
+        placeholder="Search categories (e.g. Vegetables, Dairy, Snacks, Masale)..."
+        class="w-full pl-3 pr-10 py-3 bg-transparent text-[#212121] text-[13.5px] sm:text-sm font-medium outline-none placeholder:text-[#878787] placeholder:font-normal"
+        autocomplete="off">
+      <button id="clear-category-search"
+        class="absolute right-3.5 text-[#878787] hover:text-rose-600 hidden transition-colors" title="Clear">
+        <i class="fas fa-times-circle text-sm"></i>
+      </button>
+    </div>
+
+    <!-- 3. Category Grid Container -->
+    <div class="bg-white border border-[#e0e0e0] rounded-sm p-3.5 sm:p-5 shadow-2xs">
+      <div class="flex items-center justify-between border-b border-[#f0f0f0] pb-2.5 mb-3.5">
+        <div class="flex items-center gap-2">
+          <h2 class="text-[15px] sm:text-[17px] font-bold text-[#212121]">All Categories</h2>
+          <span
+            class="text-[10px] sm:text-[10.5px] font-bold text-[#2874f0] bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-sm">
+            {{ categories|length }} Available
+          </span>
+        </div>
+        <span class="text-[11px] text-[#878787] font-medium hidden sm:inline">Tap any category to explore
+          products</span>
       </div>
-      <div class="absolute -bottom-10 -left-10 w-40 h-40 bg-emerald-500/20 rounded-full blur-2xl pointer-events-none"></div>
-      <i class="fas fa-carrot absolute -bottom-4 -right-2 text-emerald-400/20 text-[110px] transform rotate-12 pointer-events-none"></i>
-    </div>
 
-    <!-- Banner 3: Morning Essentials -->
-    <div class="flex-none snap-center w-[85vw] sm:w-[400px] rounded-[1.5rem] overflow-hidden relative bg-gradient-to-br from-[#7c2d12] to-[#b45309] p-6 shadow-lg">
-      <div class="relative z-10 w-2/3">
-        <div class="bg-orange-500/30 backdrop-blur-md w-fit px-2.5 py-1 rounded-md text-[9px] font-black text-orange-100 uppercase tracking-widest mb-3">Breakfast</div>
-        <h3 class="text-white font-extrabold text-2xl sm:text-3xl leading-tight mb-2 tracking-tight">Good Morning</h3>
-        <p class="text-orange-200 text-xs font-medium mb-5">Milk, bread & eggs</p>
-        <button class="bg-orange-500 text-white text-[11px] font-black px-6 py-2.5 rounded-xl uppercase tracking-wider shadow-md hover:bg-orange-400 active:scale-95 transition-all">Stock Up</button>
-      </div>
-      <i class="fas fa-mug-hot absolute -bottom-2 -right-4 text-orange-400/20 text-[100px] transform pointer-events-none"></i>
-    </div>
-
-  </div>
-
-  {% if page_type == "categories" %}
-    <div class="mt-4 px-2 sm:px-0">
-      <h2 class="text-lg sm:text-2xl font-extrabold text-slate-900 mb-4 tracking-tight">Shop by Category</h2>
-      <div id="category-grid" class="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 gap-x-3 gap-y-6 sm:gap-6">
+      <!-- Modern Responsive 3-to-8 Column Grid -->
+      <div id="category-grid" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2.5 sm:gap-3.5">
         {% for c in categories %}
-        <a href="{{ url_for('category_page', name=c) }}" 
-           class="category-card group flex flex-col items-center gap-2.5" 
-           data-name="{{ c|lower }}" onclick="localStorage.removeItem('lastSearch')">
-          <div class="w-full aspect-square rounded-3xl bg-[#f8fafc] overflow-hidden border border-slate-100 group-hover:border-emerald-200 transition-all duration-300 group-hover:shadow-lg">
-            {% set img_name = c|lower|replace(' ', '_') %}
-            <img src="{{ url_for('static', filename='images/categories/' + img_name + '.jpg') }}" 
-                 class="w-full h-full object-cover mix-blend-multiply group-hover:scale-110 transition-transform duration-500" 
-                 onerror="this.parentElement.innerHTML='<div class=\'w-full h-full flex items-center justify-center\'><i class=\'fas fa-leaf text-2xl sm:text-3xl text-emerald-300\'></i></div>'">
+        {% set img_name = c|lower|replace(' ', '_') %}
+        <a href="{{ url_for('category_page', name=c) }}"
+          class="category-card group bg-white border border-[#e8eaed] hover:border-[#2874f0] rounded-xl p-2 sm:p-2.5 flex flex-col items-center shadow-2xs hover:shadow-md transition-all duration-200 active:scale-95 text-center"
+          data-name="{{ c|lower }}" onclick="localStorage.removeItem('lastSearch')">
+
+          <!-- Image Box: Soft Tinted Squircle without harsh borders -->
+          <div
+            class="w-full aspect-square rounded-lg bg-gradient-to-b from-[#f8fafc] to-[#f1f5f9] group-hover:from-blue-50 group-hover:to-blue-100/60 p-2 flex items-center justify-center transition-colors overflow-hidden relative">
+            <img src="{{ url_for('static', filename='images/categories/' + img_name + '.jpg') }}"
+              class="w-full h-full object-contain mix-blend-multiply group-hover:scale-110 transition-transform duration-300 drop-shadow-xs"
+              alt="{{ c }}"
+              onerror="this.parentElement.innerHTML='<div class=\'w-full h-full flex items-center justify-center\'><i class=\'fas fa-leaf text-2xl text-[#388e3c]\'></i></div>'">
           </div>
-          <span class="text-[11px] sm:text-sm font-extrabold text-slate-800 text-center leading-tight tracking-tight px-1 break-words group-hover:text-emerald-700 transition-colors">{{ c }}</span>
+
+          <!-- Category Title -->
+          <span
+            class="mt-2 text-[11.5px] sm:text-[12.5px] font-bold text-[#212121] leading-snug line-clamp-2 group-hover:text-[#2874f0] transition-colors min-h-[30px] sm:min-h-[34px] flex items-center justify-center">
+            {{ c }}
+          </span>
+
+          <!-- Explore Micro-Tag -->
+          <span
+            class="text-[9.5px] font-semibold text-[#878787] group-hover:text-[#2874f0] flex items-center gap-0.5 mt-0.5 opacity-60 group-hover:opacity-100 transition-opacity">
+            Explore <i class="fas fa-chevron-right text-[7px]"></i>
+          </span>
         </a>
         {% endfor %}
       </div>
-    </div>
 
+      <!-- No Category Matched (Search empty state) -->
+      <div id="no-category-found" class="hidden py-10 flex flex-col items-center justify-center text-center">
+        <div class="w-12 h-12 rounded-full bg-blue-50 text-[#2874f0] flex items-center justify-center text-lg mb-2">
+          <i class="fas fa-search"></i>
+        </div>
+        <p class="text-[13.5px] font-bold text-[#212121]">No category found</p>
+        <p class="text-[11px] text-[#878787] mt-0.5">Try searching with a different keyword</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================================ -->
+  <!-- 🛒 PRODUCTS LISTING PAGE (When page_type != "categories")         -->
+  <!-- ================================================================ -->
   {% else %}
-    <!-- Mobile Horizontal Category Slider (Blinkit & Zepto Style - Visible on Mobile only) -->
-    <div class="sm:hidden -mx-2 px-2 sticky top-[56px] z-30 bg-[#f8fafc]/95 backdrop-blur-md py-2 border-b border-slate-100 shadow-[0_4px_12px_-6px_rgba(0,0,0,0.05)]">
-      <div class="flex items-center gap-2 overflow-x-auto no-scrollbar scroll-smooth px-1" id="mobile-category-slider">
-        
-        <!-- "All" pill -->
-        {% set shop_all_url = url_for('shop_home', shop_id=shop._id) if shop else (url_for('shop_home', shop_id=session.get('current_shop_id')) if session.get('current_shop_id') else url_for('index')) %}
-        <a href="{{ shop_all_url }}" 
-           class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold shrink-0 transition-all active:scale-95 shadow-sm {% if not selected_category %} bg-emerald-600 text-white ring-2 ring-emerald-500/20 {% else %} bg-white text-slate-600 border border-slate-200/80 hover:bg-slate-50 {% endif %}">
-          <i class="fas fa-layer-group text-[11px] {% if not selected_category %} text-white {% else %} text-emerald-600 {% endif %}"></i>
-          <span>All</span>
-        </a>
+  <!-- 📱 Mobile Horizontal Category Slider (Flipkart Style Sticky Bar) -->
+  <div
+    class="sm:hidden -mx-2 px-2 sticky top-[56px] z-30 bg-white/95 backdrop-blur-md py-2 border-b border-[#e0e0e0] shadow-2xs">
+    <div class="flex items-center gap-2 overflow-x-auto no-scrollbar scroll-smooth px-1" id="mobile-category-slider">
 
-        <!-- Each category pill -->
-        {% for c in categories %}
-          {% set is_active = (selected_category and selected_category|lower == c|lower) %}
-          {% set img_name = c|lower|replace(' ', '_') %}
-          <a href="{{ url_for('category_page', name=c) }}" 
-             class="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold shrink-0 transition-all active:scale-95 shadow-sm {% if is_active %} bg-emerald-600 text-white ring-2 ring-emerald-500/20 {% else %} bg-white text-slate-700 border border-slate-200/80 hover:bg-slate-50 {% endif %}">
-            <div class="w-5 h-5 rounded-full overflow-hidden bg-slate-100 flex items-center justify-center shrink-0">
-              <img src="{{ url_for('static', filename='images/categories/' + img_name + '.jpg') }}" 
-                   class="w-full h-full object-cover mix-blend-multiply" 
-                   onerror="this.parentElement.innerHTML='<i class=\'fas fa-leaf text-[9px] text-emerald-500\'></i>'">
-            </div>
-            <span class="whitespace-nowrap">{{ c }}</span>
-          </a>
-        {% endfor %}
+      <!-- "All" pill -->
+      {% set shop_all_url = url_for('shop_home', shop_id=shop._id) if shop else (url_for('shop_home',
+      shop_id=session.get('current_shop_id')) if session.get('current_shop_id') else url_for('index')) %}
+      <a href="{{ shop_all_url }}"
+        class="flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-xs font-bold shrink-0 transition-all active:scale-95 shadow-2xs {% if not selected_category %} bg-[#2874f0] text-white border border-[#2874f0] {% else %} bg-[#f1f3f6] text-[#212121] border border-[#e0e0e0] hover:bg-slate-200 {% endif %}">
+        <i
+          class="fas fa-layer-group text-[10px] {% if not selected_category %} text-white {% else %} text-[#2874f0] {% endif %}"></i>
+        <span>All</span>
+      </a>
+
+      <!-- Each category pill -->
+      {% for c in categories %}
+      {% set is_active = (selected_category and selected_category|lower == c|lower) %}
+      {% set img_name = c|lower|replace(' ', '_') %}
+      <a href="{{ url_for('category_page', name=c) }}"
+        class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-sm text-xs font-semibold shrink-0 transition-all active:scale-95 shadow-2xs {% if is_active %} bg-[#2874f0] text-white border border-[#2874f0] font-bold {% else %} bg-[#f1f3f6] text-[#212121] border border-[#e0e0e0] hover:bg-slate-200 {% endif %}">
+        <div
+          class="w-4 h-4 rounded-xs overflow-hidden bg-white flex items-center justify-center shrink-0 border border-[#e0e0e0]">
+          <img src="{{ url_for('static', filename='images/categories/' + img_name + '.jpg') }}"
+            class="w-full h-full object-contain mix-blend-multiply"
+            onerror="this.parentElement.innerHTML='<i class=\'fas fa-leaf text-[8px] text-[#388e3c]\'></i>'">
+        </div>
+        <span class="whitespace-nowrap">{{ c }}</span>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- 🖥️ Main View (Flipkart Desktop Split Layout / Full Width Mobile) -->
+  <div class="flex gap-0 sm:gap-4 items-start -mx-1 sm:mx-0">
+
+    <!-- Left Sidebar: Categories (Desktop only: hidden on mobile) -->
+    <div
+      class="hidden sm:flex w-[230px] shrink-0 sticky top-[68px] h-[calc(100dvh-78px)] overflow-y-auto overflow-x-hidden no-scrollbar flex-col pb-32 bg-white border border-[#e0e0e0] rounded-sm shadow-2xs">
+      <div class="p-3 border-b border-[#f0f0f0] bg-[#fafafa]">
+        <span class="text-[11px] font-bold uppercase tracking-wider text-[#878787]">Categories</span>
       </div>
+
+      {% set shop_all_url = url_for('shop_home', shop_id=shop._id) if shop else (url_for('shop_home',
+      shop_id=session.get('current_shop_id')) if session.get('current_shop_id') else url_for('index')) %}
+      <a href="{{ shop_all_url }}"
+        class="flex items-center gap-3 px-3.5 py-2.5 transition-all border-b border-[#f5f5f5] {% if not selected_category %} bg-blue-50/70 border-l-[3px] border-l-[#2874f0] text-[#2874f0] font-bold {% else %} text-[#212121] hover:bg-[#f1f3f6] font-medium border-l-[3px] border-l-transparent {% endif %}"
+        onclick="localStorage.removeItem('lastSearch')">
+        <div
+          class="w-7 h-7 rounded-sm {% if not selected_category %}bg-[#2874f0] text-white{% else %}bg-[#f1f3f6] text-[#878787]{% endif %} flex items-center justify-center shrink-0 text-xs">
+          <i class="fas fa-layer-group"></i>
+        </div>
+        <span class="text-[12.5px] truncate w-full">All Products</span>
+      </a>
+
+      {% for c in categories %}
+      {% set is_active = (selected_category and selected_category|lower == c|lower) %}
+      {% set img_name = c|lower|replace(' ', '_') %}
+      <a href="{{ url_for('category_page', name=c) }}"
+        class="flex items-center gap-3 px-3.5 py-2.5 transition-all border-b border-[#f5f5f5] {% if is_active %} bg-blue-50/70 border-l-[3px] border-l-[#2874f0] text-[#2874f0] font-bold {% else %} text-[#212121] hover:bg-[#f1f3f6] font-medium border-l-[3px] border-l-transparent {% endif %}"
+        onclick="localStorage.removeItem('lastSearch')">
+        <div
+          class="w-7 h-7 rounded-sm bg-white overflow-hidden flex items-center justify-center shrink-0 border border-[#e0e0e0] p-0.5">
+          <img src="{{ url_for('static', filename='images/categories/' + img_name + '.jpg') }}"
+            class="max-w-full max-h-full object-contain mix-blend-multiply"
+            onerror="this.parentElement.innerHTML='<i class=\'fas fa-leaf text-slate-400 text-xs\'></i>'">
+        </div>
+        <span class="text-[12.5px] truncate w-full">{{ c }}</span>
+      </a>
+      {% endfor %}
     </div>
 
-    <!-- Main View (Zepto Split Layout on Desktop, Full Width on Mobile) -->
-    <div class="flex gap-0 sm:gap-6 items-start -mx-1 sm:mx-0">
-      
-      <!-- Left Sidebar: Categories (Desktop only: hidden on mobile) -->
-      <div class="hidden sm:flex w-[240px] shrink-0 sticky top-[68px] h-[calc(100dvh-78px)] overflow-y-auto overflow-x-hidden no-scrollbar flex-col pb-32 bg-[#f8fafc] border-r border-slate-100/50 pt-2 px-0 shadow-[inset_-4px_0_10px_-10px_rgba(0,0,0,0.05)]">
-        {% set shop_all_url = url_for('shop_home', shop_id=shop._id) if shop else (url_for('shop_home', shop_id=session.get('current_shop_id')) if session.get('current_shop_id') else url_for('index')) %}
-        <a href="{{ shop_all_url }}" 
-           class="flex items-center gap-4 px-5 py-3.5 transition-all relative group {% if not selected_category %} bg-white shadow-sm {% else %} hover:bg-white/60 {% endif %}" 
-           onclick="localStorage.removeItem('lastSearch')">
-          
-          {% if not selected_category %}
-          <!-- Active Indicator -->
-          <div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-12 bg-emerald-500 rounded-r-md"></div>
-          {% endif %}
-          
-          <div class="w-12 h-12 rounded-[14px] {% if not selected_category %}bg-emerald-50 text-emerald-600{% else %}bg-[#f1f5f9] text-slate-400{% endif %} flex items-center justify-center shrink-0 border border-transparent {% if not selected_category %}border-emerald-100{% endif %}">
-            <i class="fas fa-layer-group text-base"></i>
-          </div>
-          <span class="text-sm {% if not selected_category %}font-extrabold text-emerald-950{% else %}font-medium text-slate-500{% endif %} text-left leading-tight break-words w-full px-0.5">All</span>
-        </a>
-        
-        {% for c in categories %}
-        <a href="{{ url_for('category_page', name=c) }}" 
-           class="flex items-center gap-4 px-5 py-3.5 transition-all relative group {% if selected_category and selected_category|lower == c|lower %} bg-white shadow-sm {% else %} hover:bg-white/60 {% endif %}" 
-           onclick="localStorage.removeItem('lastSearch')">
-          
-          {% if selected_category and selected_category|lower == c|lower %}
-          <!-- Active Indicator -->
-          <div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-12 bg-emerald-500 rounded-r-md"></div>
-          {% endif %}
-          
-          {% set img_name = c|lower|replace(' ', '_') %}
-          <div class="w-12 h-12 rounded-[14px] bg-[#f1f5f9] overflow-hidden flex items-center justify-center shrink-0 border {% if selected_category and selected_category|lower == c|lower %}border-emerald-100 ring-2 ring-emerald-50 ring-offset-1{% else %}border-slate-200/60{% endif %} group-hover:border-emerald-200 transition-all">
-            <img src="{{ url_for('static', filename='images/categories/' + img_name + '.jpg') }}" 
-                 class="w-[85%] h-[85%] object-cover mix-blend-multiply rounded-lg" 
-                 onerror="this.parentElement.innerHTML='<i class=\'fas fa-leaf text-slate-400 text-sm\'></i>'">
-          </div>
-          <span class="text-sm {% if selected_category and selected_category|lower == c|lower %}font-extrabold text-emerald-950{% else %}font-medium text-slate-500 group-hover:text-slate-800{% endif %} text-left leading-tight break-words w-full px-0.5">{{ c }}</span>
-        </a>
-        {% endfor %}
+    <!-- Right Content: Products Grid -->
+    <div class="flex-1 w-full min-w-0 px-2 sm:px-0">
+      <!-- Title & Count Header Card -->
+      <div class="bg-white border border-[#e0e0e0] rounded-sm p-3 mb-2.5 flex items-center justify-between shadow-2xs">
+        <div>
+          <h2 class="text-[16px] sm:text-[18px] font-bold text-[#212121] leading-tight">
+            {{ selected_category or "All Products" }}
+          </h2>
+          <p class="text-[11px] text-[#878787] font-medium mt-0.5">{{ items|length }} product{% if items|length != 1
+            %}s{% endif %} available</p>
+        </div>
       </div>
 
-      <!-- Right Content: Products Grid (Full Width on Mobile) -->
-      <div class="flex-1 w-full min-w-0 px-3 sm:px-0">
-        <!-- Category Title & Count Header -->
-        <div class="flex items-center justify-between mb-3 px-1 sm:px-2 pt-1">
-          <div>
-            <h2 class="text-base sm:text-2xl font-black text-slate-900 tracking-tight leading-tight">
-              {{ selected_category or "All Products" }}
-            </h2>
-            <p class="text-[10px] sm:text-xs text-slate-400 font-bold mt-0.5">{{ items|length }} products found</p>
+      {% if items %}
+      <div id="products-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-2.5">
+        {% for p in items %}
+        {% set is_oos = p.get('out_of_stock', false) %}
+        {% set has_discount = (p.discount_price is not none and p.discount_price and p.discount_price < p.price) %} {%
+          if is_oos and (loop.first or not loop.previtem.get('out_of_stock', false)) %} <div class="col-span-full py-2">
+          <div class="flex items-center gap-3">
+            <div class="h-px flex-1 bg-[#e0e0e0]"></div>
+            <span
+              class="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-rose-600 bg-rose-50 border border-rose-200 px-3 py-1 rounded-sm flex items-center gap-1.5 shadow-2xs">
+              <i class="fas fa-ban"></i> Out of Stock Items
+            </span>
+            <div class="h-px flex-1 bg-[#e0e0e0]"></div>
+          </div>
+      </div>
+      {% endif %}
+
+      <!-- 📦 Flipkart Style Product Card -->
+      <div
+        class="product-card bg-white rounded-sm p-2 sm:p-3 border border-[#e0e0e0] hover:border-[#c2c2c2] hover:shadow-md transition-all flex flex-col h-full relative group"
+        data-name="{{ p.name|lower|e }}">
+
+        <!-- Image Area -->
+        <div
+          class="relative w-full aspect-[4/3] rounded-sm bg-white overflow-hidden mb-1.5 flex items-center justify-center p-1 border border-[#f5f5f5]">
+          <img src="{{ p.image }}"
+            class="product-img max-w-full max-h-full object-contain mix-blend-multiply transition-transform duration-300 group-hover:scale-105 {% if is_oos %} opacity-60 grayscale-[50%] {% endif %}"
+            alt="{{ p.name }}">
+
+          <!-- 10 Mins Delivery Tag (Flipkart Style) -->
+          <div class="absolute top-1 left-1 bg-white/95 border border-emerald-200 rounded-xs px-1.5 py-0.5 shadow-2xs">
+            <span class="text-[8.5px] sm:text-[9.5px] font-bold text-[#388e3c] flex items-center gap-0.5"><i
+                class="fas fa-bolt text-yellow-500"></i> 10 MINS</span>
+          </div>
+
+          <!-- Sold Out Overlay -->
+          <div
+            class="oos-overlay absolute inset-0 bg-white/70 backdrop-blur-[1px] flex items-center justify-center {% if not is_oos %}hidden{% endif %}">
+            <span
+              class="bg-[#212121] text-white text-[9.5px] sm:text-[10px] font-bold px-2 py-0.5 rounded-sm uppercase tracking-wide shadow-sm">Sold
+              Out</span>
+          </div>
+
+          <!-- Discount Tag (Flipkart Emerald Green) -->
+          <div
+            class="discount-tag absolute top-1 right-1 bg-[#388e3c] text-white px-1.5 py-0.5 rounded-xs shadow-2xs {% if not has_discount %}hidden{% endif %}">
+            <span class="discount-val text-[8.5px] sm:text-[9.5px] font-bold">{{ (((p.price - p.discount_price) /
+              p.price) * 100)|round(0)|int if (has_discount and p.price > 0) else '' }}% OFF</span>
           </div>
         </div>
-        {% if items %}
-          <div id="products-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-4">
-          {% for p in items %}
-          {% set is_oos = p.get('out_of_stock', false) %}
-          {% set has_discount = (p.discount_price is not none and p.discount_price and p.discount_price < p.price) %}
-          
-          {% if is_oos and (loop.first or not loop.previtem.get('out_of_stock', false)) %}
-          <div class="col-span-full pt-4 pb-2">
-            <div class="flex items-center gap-3">
-              <div class="h-[1px] flex-1 bg-slate-200"></div>
-              <span class="text-[10px] sm:text-xs font-black uppercase tracking-widest text-slate-400 bg-slate-100 px-3 py-1 rounded-full flex items-center gap-1.5 shadow-sm">
-                <i class="fas fa-ban text-rose-400"></i> Sold Out / Out of Stock
-              </span>
-              <div class="h-[1px] flex-1 bg-slate-200"></div>
-            </div>
+
+        <!-- Product Details -->
+        <div class="flex flex-col flex-1 px-0.5">
+          <h3 class="text-[12px] sm:text-[13px] font-medium text-[#212121] line-clamp-2 leading-snug mb-1">{{ p.name }}
+          </h3>
+
+          {% if p.has_multiple_variants %}
+          <!-- Flipkart Style Variant Dropdown -->
+          <div class="relative my-1">
+            <select
+              class="variant-select w-full appearance-none bg-[#f1f3f6] hover:bg-slate-100 border border-[#e0e0e0] text-[#212121] text-[9.5px] sm:text-[10.5px] font-semibold py-1 px-1.5 pr-4 rounded-sm outline-none cursor-pointer focus:border-[#2874f0] transition-colors"
+              onchange="handleVariantChange(this)">
+              {% for v in p.variants %}
+              {% set v_has_disc = (v.discount_price is not none and v.discount_price and v.discount_price < v.price) %}
+                {% set v_final=v.discount_price if v_has_disc else v.price %} {% set v_label=v.unit ~ ' - ₹' ~
+                (v_final|round(0)|int if (v_final % 1==0) else v_final) %} {% if v.out_of_stock %} {% set
+                v_label=v_label ~ ' (OOS)' %} {% endif %} <option value="{{ v._id }}" data-id="{{ v._id }}"
+                data-slug="{{ v.slug }}" data-price="{{ v_final }}" data-orig-price="{{ v.price }}"
+                data-unit="{{ v.unit }}" data-has-discount="{{ 'true' if v_has_disc else 'false' }}"
+                data-disc-percent="{{ (((v.price - v.discount_price) / v.price) * 100)|round(0)|int if v_has_disc else 0 }}"
+                data-oos="{{ 'true' if v.out_of_stock else 'false' }}" {% if v._id==p.default_variant._id %} selected {%
+                endif %}>
+                {{ v_label }}
+                </option>
+                {% endfor %}
+            </select>
+            <i
+              class="fas fa-chevron-down absolute right-1.5 top-1/2 -translate-y-1/2 text-[7px] text-[#878787] pointer-events-none"></i>
           </div>
+          {% else %}
+          <p class="text-[11px] font-medium text-[#878787] mb-1">{{ p.unit }}</p>
           {% endif %}
-          
-          <div class="product-card bg-white rounded-xl p-1.5 sm:p-3 transition-all duration-300 hover:shadow-xl flex flex-col h-full relative border border-slate-100/60 shadow-sm" data-name="{{ p.name|lower|e }}">
-            <div class="relative w-full aspect-[4/3] rounded-lg bg-[#f8f9fa] overflow-hidden mb-1 group">
-              <img src="{{ p.image }}" class="product-img w-full h-full object-contain p-1 mix-blend-multiply transition-transform duration-500 group-hover:scale-110 {% if is_oos %} opacity-70 grayscale-[50%] {% endif %}">
-              
-              <!-- 10 Mins Delivery Tag -->
-              <div class="absolute top-0 left-0 bg-white/90 backdrop-blur-md rounded-br-xl px-1.5 py-0.5 shadow-sm">
-                <span class="text-[8px] sm:text-[9px] font-black text-emerald-600 flex items-center gap-0.5 sm:gap-1"><i class="fas fa-bolt"></i> 10 MINS</span>
-              </div>
 
-              <!-- Sold Out Overlay -->
-              <div class="oos-overlay absolute inset-0 bg-white/30 flex items-center justify-center {% if not is_oos %}hidden{% endif %}">
-                <span class="bg-slate-900 text-white text-[9px] sm:text-[10px] font-black px-2 sm:px-3 py-1 sm:py-1.5 rounded-full uppercase text-center shadow-lg">Sold Out</span>
-              </div>
-
-              <!-- Discount Tag -->
-              <div class="discount-tag absolute top-0 right-0 bg-gradient-to-tr from-rose-500 to-pink-500 text-white px-1.5 py-0.5 rounded-bl-xl shadow-sm {% if not has_discount %}hidden{% endif %}">
-                <span class="discount-val text-[8px] sm:text-[9px] font-black">{{ (((p.price - p.discount_price) / p.price) * 100)|round(0)|int if (has_discount and p.price > 0) else '' }}% OFF</span>
-              </div>
+          <!-- Price & CTA Bottom Section -->
+          <div class="mt-auto pt-1 flex flex-col gap-2">
+            <div class="flex items-baseline gap-1.5 flex-wrap">
+              <span class="price-final text-[14px] sm:text-[16px] font-bold text-[#212121] leading-none">₹{{
+                p.discount_price if has_discount else p.price }}</span>
+              <span
+                class="price-strike text-[10.5px] font-medium text-[#878787] line-through {% if not has_discount %}hidden{% endif %}">₹{{
+                p.price }}</span>
             </div>
-            
-            <div class="flex flex-col flex-1 px-0.5">
-              <h3 class="text-[10px] sm:text-[13px] font-bold text-slate-800 line-clamp-2 leading-tight mb-0.5">{{ p.name }}</h3>
-              
-              {% if p.has_multiple_variants %}
-              <!-- Zepto / Blinkit Variant Selector -->
-              <div class="relative my-1">
-                <select class="variant-select w-full appearance-none bg-slate-50 hover:bg-slate-100 border border-slate-200/90 text-slate-700 text-[8px] sm:text-[10px] font-bold py-1 px-1.5 pr-4 rounded-md outline-none cursor-pointer focus:border-emerald-500 transition-colors"
-                        onchange="handleVariantChange(this)">
-                  {% for v in p.variants %}
-                    {% set v_has_disc = (v.discount_price is not none and v.discount_price and v.discount_price < v.price) %}
-                    {% set v_final = v.discount_price if v_has_disc else v.price %}
-                    {% set v_label = v.unit ~ ' - ₹' ~ (v_final|round(0)|int if (v_final % 1 == 0) else v_final) %}
-                    {% if v.out_of_stock %}
-                      {% set v_label = v_label ~ ' (OOS)' %}
-                    {% endif %}
-                    <option value="{{ v._id }}" 
-                            data-id="{{ v._id }}" 
-                            data-slug="{{ v.slug }}" 
-                            data-price="{{ v_final }}" 
-                            data-orig-price="{{ v.price }}" 
-                            data-unit="{{ v.unit }}" 
-                            data-has-discount="{{ 'true' if v_has_disc else 'false' }}" 
-                            data-disc-percent="{{ (((v.price - v.discount_price) / v.price) * 100)|round(0)|int if v_has_disc else 0 }}"
-                            data-oos="{{ 'true' if v.out_of_stock else 'false' }}"
-                            {% if v._id == p.default_variant._id %} selected {% endif %}>
-                      {{ v_label }}
-                    </option>
-                  {% endfor %}
-                </select>
-                <i class="fas fa-chevron-down absolute right-1.5 top-1/2 -translate-y-1/2 text-[7px] text-slate-400 pointer-events-none"></i>
-              </div>
-              {% else %}
-              <p class="text-[8px] sm:text-[11px] font-semibold text-slate-400 mb-1">{{ p.unit }}</p>
-              {% endif %}
-              
-              <div class="mt-auto flex flex-col gap-1 sm:gap-3">
-                <div class="flex flex-col">
-                  <span class="price-strike text-[8px] sm:text-[10px] font-bold text-slate-400 line-through {% if not has_discount %}hidden{% endif %}">₹{{ p.price }}</span>
-                  <span class="price-final text-[12px] sm:text-[16px] font-black text-slate-900 leading-none">₹{{ p.discount_price if has_discount else p.price }}</span>
-                </div>
-                
-                <div class="w-full">
-                  <div class="cart-btn-wrapper w-full" data-id="{{ p._id }}" data-slug="{{ p.slug }}" data-name="{{ p.name }}" data-price="{{ p.discount_price if has_discount else p.price }}" data-image="{{ p.image }}" data-unit="{{ p.unit }}" data-oos="{{ 'true' if is_oos else 'false' }}"></div>
-                </div>
+
+            <div class="w-full">
+              <div class="cart-btn-wrapper w-full" data-id="{{ p._id }}" data-slug="{{ p.slug }}"
+                data-name="{{ p.name }}" data-price="{{ p.discount_price if has_discount else p.price }}"
+                data-image="{{ p.image }}" data-unit="{{ p.unit }}" data-oos="{{ 'true' if is_oos else 'false' }}">
               </div>
             </div>
           </div>
-          {% endfor %}
         </div>
-        {% endif %}
-      </div> <!-- Close right content -->
-    </div> <!-- Close split layout -->
-  {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div> <!-- Close right content -->
+</div> <!-- Close split layout -->
+{% endif %}
 </div>
 
 
@@ -278,18 +380,18 @@
 
   // Handle Back Button Cache Reset
   window.addEventListener("pageshow", (event) => {
-      if (event.persisted || (window.performance && window.performance.navigation.type === 2)) {
-          localStorage.removeItem('lastSearch');
-          if (searchInput) {
-              searchInput.value = "";
-              toggleClearButton("");
-              filterOnScreenItems("");
-          }
+    if (event.persisted || (window.performance && window.performance.navigation.type === 2)) {
+      localStorage.removeItem('lastSearch');
+      if (searchInput) {
+        searchInput.value = "";
+        toggleClearButton("");
+        filterOnScreenItems("");
       }
+    }
   });
 
   document.addEventListener("DOMContentLoaded", () => {
-    // 1. Shuffle Categories
+    // 1. Shuffle Categories (kept for freshness)
     const categoryGrid = document.getElementById("category-grid");
     if (categoryGrid) {
       const cards = Array.from(categoryGrid.children);
@@ -299,13 +401,48 @@
       }
     }
 
+    // 2. Category Search Filter Handler
+    const catSearch = document.getElementById("category-search");
+    const clearCatSearch = document.getElementById("clear-category-search");
+    const noCatEl = document.getElementById("no-category-found");
+    if (catSearch) {
+      catSearch.addEventListener("input", (e) => {
+        const q = e.target.value.toLowerCase().trim();
+        if (clearCatSearch) {
+          if (q.length > 0) clearCatSearch.classList.remove("hidden");
+          else clearCatSearch.classList.add("hidden");
+        }
+        const cards = document.querySelectorAll('.category-card');
+        let visibleCount = 0;
+        cards.forEach(card => {
+          const name = card.getAttribute('data-name') || '';
+          const match = (name.includes(q) || q === "");
+          card.style.display = match ? "" : "none";
+          if (match) visibleCount++;
+        });
+        if (noCatEl) {
+          if (visibleCount === 0 && q.length > 0) noCatEl.classList.remove("hidden");
+          else noCatEl.classList.add("hidden");
+        }
+      });
+
+      clearCatSearch?.addEventListener("click", () => {
+        catSearch.value = "";
+        clearCatSearch.classList.add("hidden");
+        const cards = document.querySelectorAll('.category-card');
+        cards.forEach(card => card.style.display = "");
+        if (noCatEl) noCatEl.classList.add("hidden");
+        catSearch.focus();
+      });
+    }
+
     syncVariantSelectsWithCart();
     updateCartButtons();
-    
+
     // Auto-scroll active category pill into center on mobile
     const slider = document.getElementById('mobile-category-slider');
     if (slider) {
-      const activePill = slider.querySelector('.bg-emerald-600');
+      const activePill = slider.querySelector('.bg-\\[\\#2874f0\\]');
       if (activePill) {
         setTimeout(() => {
           activePill.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
@@ -313,10 +450,9 @@
       }
     }
 
-
     // Restore Search
     const savedSearch = localStorage.getItem('lastSearch');
-    if (savedSearch) {
+    if (savedSearch && searchInput) {
       searchInput.value = savedSearch;
       toggleClearButton(savedSearch);
       filterOnScreenItems(savedSearch.toLowerCase());
@@ -325,12 +461,12 @@
     searchInput?.addEventListener("input", (e) => {
       const q = e.target.value.toLowerCase().trim();
       toggleClearButton(e.target.value);
-      localStorage.setItem('lastSearch', e.target.value); 
+      localStorage.setItem('lastSearch', e.target.value);
       filterOnScreenItems(q);
-      if (q.length === 0) { 
-        suggestBox.classList.add("hidden"); 
+      if (q.length === 0) {
+        suggestBox.classList.add("hidden");
         localStorage.removeItem('lastSearch');
-        return; 
+        return;
       }
       fetchSuggestions(q);
     });
@@ -353,8 +489,8 @@
   });
 
   function toggleClearButton(val) {
-    if (val.length > 0) clearBtn.classList.remove("hidden");
-    else clearBtn.classList.add("hidden");
+    if (val.length > 0) clearBtn?.classList.remove("hidden");
+    else clearBtn?.classList.add("hidden");
   }
 
   async function fetchSuggestions(q) {
@@ -365,12 +501,12 @@
         suggestBox.classList.remove("hidden");
         suggestBox.innerHTML = suggestions.map(item => `
           <div onclick="handleSuggestionClick('${item.name.replace(/'/g, "\\'")}', '${item.type}', '${item.url}')" 
-               class="px-5 py-4 hover:bg-emerald-50 cursor-pointer border-b border-slate-50 last:border-0 flex items-center justify-between group transition-colors">
+               class="px-4 py-3 hover:bg-blue-50 cursor-pointer border-b border-[#f0f0f0] last:border-0 flex items-center justify-between group transition-colors">
             <div class="flex items-center gap-3">
-              <i class="fas fa-search text-slate-300 group-hover:text-emerald-500"></i>
-              <span class="text-sm font-semibold text-slate-700 capitalize">${item.name}</span>
+              <i class="fas fa-search text-[#878787] group-hover:text-[#2874f0] text-xs"></i>
+              <span class="text-[13px] font-medium text-[#212121] capitalize">${item.name}</span>
             </div>
-            <span class="text-[9px] font-black text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md uppercase">${item.type}</span>
+            <span class="text-[9.5px] font-bold text-[#2874f0] bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-sm uppercase">${item.type}</span>
           </div>`).join('');
       } else { suggestBox.classList.add("hidden"); }
     } catch (err) { console.error(err); }
@@ -383,8 +519,10 @@
       window.location.href = url;
     } else {
       localStorage.setItem('lastSearch', name);
-      searchInput.value = name;
-      toggleClearButton(name);
+      if (searchInput) {
+        searchInput.value = name;
+        toggleClearButton(name);
+      }
       const cards = document.querySelectorAll('.product-card');
       const isOnCurrentPage = Array.from(cards).some(card => card.getAttribute('data-name') === name.toLowerCase());
       if (isOnCurrentPage) filterOnScreenItems(name.toLowerCase());
@@ -400,24 +538,25 @@
     });
   }
 
+  // 🛍️ Flipkart Style Buttons in JS
   function updateCartButtons() {
     const cart = JSON.parse(localStorage.getItem("cart") || "[]");
     document.querySelectorAll(".cart-btn-wrapper").forEach(wrapper => {
       const { id, slug, oos } = wrapper.dataset;
       if (oos === "true") {
-        wrapper.innerHTML = `<button disabled class="w-full py-1.5 rounded-lg text-[8px] font-bold bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed uppercase">Out of Stock</button>`;
+        wrapper.innerHTML = `<button disabled class="w-full py-1.5 rounded-sm text-[10px] font-bold bg-[#f1f3f6] text-[#878787] border border-[#e0e0e0] cursor-not-allowed uppercase tracking-wide">Out of Stock</button>`;
         return;
       }
       const item = cart.find(i => (id && i.id === id) || (i.slug && i.slug === slug));
       if (!item) {
-        wrapper.innerHTML = `<button class="w-full py-1.5 rounded-lg text-[11px] font-black border-2 border-emerald-600 text-emerald-600 hover:bg-emerald-600 hover:text-white transition-all duration-300 uppercase tracking-tight" onclick="handleCartClick(this.parentElement)">Add</button>`;
+        wrapper.innerHTML = `<button class="w-full py-1.5 rounded-sm text-[12px] font-bold border border-[#2874f0] bg-white text-[#2874f0] hover:bg-blue-50 active:scale-95 transition-all uppercase tracking-wide flex items-center justify-center gap-1 shadow-2xs" onclick="handleCartClick(this.parentElement)"><i class="fas fa-plus text-[9px]"></i> Add</button>`;
       } else {
         const itemKey = id || slug;
         wrapper.innerHTML = `
-          <div class="flex items-center justify-between bg-emerald-600 p-0.5 rounded-lg shadow-lg shadow-emerald-100 w-full">
-            <button onclick="changeQty('${itemKey}', -1, event)" class="w-7 h-7 flex items-center justify-center rounded-md hover:bg-white/20 text-white transition-colors active:scale-95"><i class="fas fa-minus text-[9px]"></i></button>
-            <span class="text-white font-black text-xs tabular-nums">${item.qty}</span>
-            <button onclick="changeQty('${itemKey}', 1, event)" class="w-7 h-7 flex items-center justify-center rounded-md hover:bg-white/20 text-white transition-colors active:scale-95"><i class="fas fa-plus text-[9px]"></i></button>
+          <div class="flex items-center justify-between bg-[#2874f0] text-white p-0.5 rounded-sm shadow-2xs w-full">
+            <button onclick="changeQty('${itemKey}', -1, event)" class="w-7 h-7 flex items-center justify-center rounded-sm hover:bg-white/20 text-white transition-colors active:scale-90"><i class="fas fa-minus text-[9px]"></i></button>
+            <span class="text-white font-bold text-xs tabular-nums">${item.qty}</span>
+            <button onclick="changeQty('${itemKey}', 1, event)" class="w-7 h-7 flex items-center justify-center rounded-sm hover:bg-white/20 text-white transition-colors active:scale-90"><i class="fas fa-plus text-[9px]"></i></button>
           </div>`;
       }
     });
@@ -446,6 +585,7 @@
     updateCartButtons();
     window.dispatchEvent(new Event('cartUpdated'));
   }
+
   function handleVariantChange(selectEl) {
     const card = selectEl.closest('.product-card');
     const opt = selectEl.options[selectEl.selectedIndex];
@@ -493,8 +633,8 @@
       else oosOverlay.classList.add('hidden');
     }
     if (imgEl) {
-      if (isOos) imgEl.classList.add('opacity-70', 'grayscale-[50%]');
-      else imgEl.classList.remove('opacity-70', 'grayscale-[50%]');
+      if (isOos) imgEl.classList.add('opacity-60', 'grayscale-[50%]');
+      else imgEl.classList.remove('opacity-60', 'grayscale-[50%]');
     }
 
     // 4. Update Cart Button wrapper dataset and re-render button
@@ -532,18 +672,44 @@
 </script>
 
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
-  body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #fcfdfd; -webkit-tap-highlight-color: transparent; }
-  @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
-  .animate-marquee { animation: marquee 35s linear infinite; width: max-content; }
-  .no-scrollbar::-webkit-scrollbar { display: none; }
-  .product-card:hover { transform: translateY(-2px); }
-  @media (max-width: 640px) {
-    .product-card { min-height: 220px; }
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+  body {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    background-color: #f1f3f6;
+    -webkit-tap-highlight-color: transparent;
   }
-  input::placeholder { color: #94a3b8; font-weight: 500; }
-  #product-suggestions::-webkit-scrollbar { width: 6px; }
-  #product-suggestions::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
-  .tabular-nums { font-variant-numeric: tabular-nums; }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .product-card:hover {
+    transform: translateY(-2px);
+  }
+
+  @media (max-width: 640px) {
+    .product-card {
+      min-height: 220px;
+    }
+  }
+
+  input::placeholder {
+    color: #878787;
+    font-weight: 400;
+  }
+
+  #product-suggestions::-webkit-scrollbar {
+    width: 5px;
+  }
+
+  #product-suggestions::-webkit-scrollbar-thumb {
+    background: #e0e0e0;
+    border-radius: 4px;
+  }
+
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
 </style>
 {% endblock %}
