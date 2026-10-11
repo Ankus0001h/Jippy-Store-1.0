@@ -1,151 +1,273 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Order Success | FreshKart</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+{% extends "base.html" %}
 
-    <style>
-        body { 
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #f8fafc;
-            overflow-x: hidden;
-        }
+{% block navbar %}
+<!-- 🛍️ Flipkart Style Blue Header -->
+<nav class="sticky top-0 z-[60] bg-[#2874f0] text-white px-3 sm:px-4 py-2.5 flex items-center justify-between font-['Plus_Jakarta_Sans'] shadow-md">
+   <div class="flex items-center justify-between max-w-[540px] mx-auto w-full">
+     <div class="flex items-center gap-2.5">
+       <a href="{{ url_for('index') }}" class="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center text-white hover:bg-white/15 active:scale-90 rounded-full transition-all" title="Home">
+         <i class="fas fa-home text-sm sm:text-base"></i>
+       </a>
+       <div>
+         <h1 class="text-[15px] sm:text-[16px] font-bold text-white leading-tight">Order Confirmed</h1>
+         <p class="text-[10.5px] sm:text-[11px] font-medium text-blue-100 truncate mt-0.5">Thank you for your order!</p>
+       </div>
+     </div>
+     <div class="flex items-center gap-1.5 px-2.5 py-1 bg-white/15 border border-white/20 rounded-md text-[10px] sm:text-[10.5px] font-bold text-white shadow-2xs">
+       <i class="fas fa-check-circle text-emerald-300"></i>
+       <span>SUCCESS</span>
+     </div>
+   </div>
+</nav>
+{% endblock %}
 
-        /* Custom Animations */
-        @keyframes pop {
-            0% { transform: scale(0.5); opacity: 0; }
-            80% { transform: scale(1.1); }
-            100% { transform: scale(1); opacity: 1; }
-        }
-        .tick-pop { animation: pop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
-        
-        .py-4\.5 { padding-top: 1.125rem; padding-bottom: 1.125rem; }
-        .hide-overlay { opacity: 0; pointer-events: none; transform: scale(1.2); visibility: hidden; }
-        .reveal-content { opacity: 1 !important; transform: translateY(0) !important; visibility: visible !important; }
+{% block full_content %}
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
-        /* Scrollbar styling for standalone feel */
-        ::-webkit-scrollbar { width: 5px; }
-        ::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
-    </style>
-</head>
-<body>
+<!-- 📱 Main Page Content Container (Flipkart Style: #f1f3f6 body, compact spacing) -->
+<div class="bg-[#f1f3f6] min-h-[100dvh] font-['Plus_Jakarta_Sans'] pb-20 pt-2 sm:pt-3">
+  <div class="max-w-[540px] mx-auto px-2.5 sm:px-4 space-y-2.5">
 
-    <div id="paytm-overlay" class="fixed inset-0 z-[100] bg-emerald-500 flex flex-col items-center justify-center transition-all duration-700">
-        <div class="relative">
-            <div class="absolute inset-0 bg-white/20 rounded-full animate-ping scale-150"></div>
-            <div class="relative w-32 h-32 bg-white rounded-full flex items-center justify-center shadow-2xl tick-pop">
-                <i class="fas fa-check text-6xl text-emerald-500"></i>
-            </div>
+    <!-- 1. 🛍️ Flipkart Style Success Banner Card -->
+    <div class="bg-white border border-[#e0e0e0] rounded-none sm:rounded-sm p-4 sm:p-5 shadow-2xs">
+      <div class="flex items-start gap-3.5">
+        <div class="w-12 h-12 rounded-full bg-emerald-50 text-[#388e3c] flex items-center justify-center text-xl shrink-0 border border-emerald-200">
+          <i class="fas fa-check"></i>
         </div>
-        <h2 class="mt-8 text-2xl font-black text-white tracking-widest uppercase animate-bounce text-center px-4">Order Successful</h2>
+        <div class="min-w-0 flex-1">
+          <h2 class="text-[16px] sm:text-[18px] font-bold text-[#212121] leading-tight">Order Placed Successfully!</h2>
+          <p class="text-[12px] text-[#878787] font-medium mt-1 leading-snug">
+            Your order has been sent to the store vendor and is being packed.
+          </p>
+          <div class="inline-flex items-center gap-1.5 mt-2.5 px-2.5 py-1 bg-emerald-50 text-[#388e3c] rounded-sm text-[11px] font-bold border border-emerald-200">
+            <i class="fas fa-bolt text-yellow-500"></i>
+            <span>Delivery in 10-15 mins</span>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <div id="main-content" class="min-h-screen w-full flex flex-col items-center justify-start pt-12 pb-20 px-4 opacity-0 invisible translate-y-10 transition-all duration-1000 relative z-[60]">
-      
-      <div class="relative mb-6">
-        <div class="w-20 h-20 bg-emerald-500 rounded-full flex items-center justify-center shadow-xl border-4 border-white">
-          <i class="fas fa-check text-2xl text-white"></i>
-        </div>
+    <!-- 🛍️ Flipkart Style Items Ordered Card -->
+    {% set order_items = order.get('items', []) if order.get('items') else [] %}
+    {% if order_items and order_items|length > 0 %}
+    <div class="bg-white border border-[#e0e0e0] rounded-none sm:rounded-sm p-3.5 sm:p-4 shadow-2xs space-y-3">
+      <div class="flex items-center justify-between border-b border-[#f0f0f0] pb-2">
+        <h3 class="text-[12px] font-bold uppercase tracking-wider text-[#878787]">
+          ITEMS ORDERED ({{ order_items|length }})
+        </h3>
+        <span class="text-[10.5px] font-bold text-[#2874f0] bg-blue-50 px-2 py-0.5 rounded-sm uppercase tracking-wide">
+          {{ order_items|length }} Item{% if order_items|length != 1 %}s{% endif %}
+        </span>
       </div>
 
-      <div class="text-center mb-8">
-        <h1 class="text-3xl font-black text-slate-900 tracking-tight leading-none mb-2">Order Confirmed!</h1>
-        <p class="text-sm font-bold text-emerald-600 uppercase tracking-[0.2em]">Transaction Successful</p>
+      <div class="divide-y divide-[#f0f0f0]">
+        {% for item in order_items %}
+        <div class="py-2.5 first:pt-0 last:pb-0 flex items-center justify-between gap-3">
+          <div class="flex items-center gap-3 min-w-0">
+            {% if item.image %}
+            <div class="w-12 h-12 bg-white rounded-sm border border-[#f0f0f0] p-1 flex items-center justify-center shrink-0">
+              <img src="{{ item.image }}" alt="{{ item.name }}" class="max-w-full max-h-full object-contain mix-blend-multiply" onerror="this.src='/static/images/placeholder.png'">
+            </div>
+            {% else %}
+            <div class="w-10 h-10 rounded-sm bg-slate-50 border border-[#f0f0f0] flex items-center justify-center text-[#878787] shrink-0 text-sm">
+              <i class="fas fa-box"></i>
+            </div>
+            {% endif %}
+            <div class="min-w-0">
+              <h4 class="text-[13px] font-medium text-[#212121] leading-tight truncate">{{ item.name }}</h4>
+              <div class="flex items-center gap-2 mt-0.5 text-[11px] text-[#878787]">
+                {% if item.unit %}<span>{{ item.unit }}</span> • {% endif %}
+                <span>Qty: <b class="text-[#212121]">{{ item.qty or 1 }}</b></span>
+                <span>× ₹{{ item.price }}</span>
+              </div>
+            </div>
+          </div>
+          <div class="text-right shrink-0">
+            <span class="text-[13.5px] font-bold text-[#212121]">₹{{ ((item.price|float) * ((item.qty or 1)|float))|int }}</span>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- 2. 🧾 Flipkart Order Summary & Price Breakdown Card -->
+    <div class="bg-white border border-[#e0e0e0] rounded-none sm:rounded-sm p-3.5 sm:p-4 shadow-2xs space-y-3">
+      <div class="flex items-center justify-between border-b border-[#f0f0f0] pb-2">
+        <h3 class="text-[12px] font-bold uppercase tracking-wider text-[#878787]">
+          ORDER & PRICE DETAILS
+        </h3>
+        <span class="text-[10.5px] font-bold text-[#388e3c] bg-green-50 px-2 py-0.5 rounded-sm border border-green-200">
+          {{ order.get('payment_method', 'Cash on Delivery') }}
+        </span>
       </div>
 
-      <div class="w-full max-w-md bg-white border border-slate-100 rounded-[2.5rem] p-8 shadow-2xl shadow-slate-200/50 space-y-6">
-        
-        <div class="flex flex-col items-center justify-center border-b border-slate-50 pb-6 text-center">
-            <span class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">Total Amount</span>
-            <h2 class="text-4xl font-black text-slate-900 tracking-tighter">₹{{ "{:,.2f}".format(order.total) }}</h2>
-            <div class="mt-3 px-4 py-1.5 bg-emerald-50 text-emerald-700 rounded-full text-[10px] font-black uppercase tracking-widest border border-emerald-100">
-                Cash on Delivery
-            </div>
+      <div class="space-y-2 text-[13px]">
+        <!-- Order ID -->
+        <div class="flex justify-between items-center text-[#212121]">
+          <span class="text-[#878787]">Order ID</span>
+          <span class="font-bold font-mono text-[#212121]">#{{ (order.get('order_id', '')[-12:])|upper }}</span>
         </div>
 
-        <div class="space-y-4 pt-2">
-            <div class="flex justify-between items-center text-sm">
-                <span class="font-bold text-slate-400 uppercase tracking-wider text-[11px]">Order ID</span>
-                <span class="font-black text-slate-800 font-mono tracking-tighter bg-slate-50 px-2 py-1 rounded">#{{ order.order_id[-12:]|upper }}</span>
-            </div>
-            <div class="flex justify-between items-center text-sm">
-                <span class="font-bold text-slate-400 uppercase tracking-wider text-[11px]">Placed At</span>
-                <span class="font-black text-slate-800">{{ order.created_at|ist_time }}</span>
-            </div>
-            
-            <div class="bg-slate-50 rounded-2xl p-5 border border-slate-100">
-                <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] mb-2 flex items-center gap-2">
-                    <i class="fas fa-map-marker-alt text-emerald-500"></i> Delivery Address
-                </p>
-                <p class="text-xs font-bold text-slate-600 leading-relaxed">
-                    {{ order.address.line1 }}, {{ order.address.line2 }}<br>
-                    {{ order.address.city }} - {{ order.address.pincode }}
-                </p>
-            </div>
+        <!-- Order Placed At -->
+        <div class="flex justify-between items-center text-[#212121]">
+          <span class="text-[#878787]">Order Placed At</span>
+          <span class="font-medium text-[#212121]">{{ order.get('created_at')|ist_time }}</span>
         </div>
 
-        <div class="pt-2 space-y-3">
-            <a href="{{ url_for('my_orders') }}" class="w-full py-4.5 rounded-2xl bg-slate-900 text-white text-base font-black flex items-center justify-center gap-3 shadow-xl hover:bg-emerald-600 transition-all active:scale-95">
-                <i class="fas fa-truck-fast text-sm"></i>
-                <span>TRACK MY ORDER</span>
-            </a>
-            <a href="{{ url_for('index') }}" class="w-full py-4.5 rounded-2xl bg-white border-2 border-slate-100 text-slate-500 text-sm font-black flex items-center justify-center gap-3 hover:bg-slate-50 transition-all">
-                <span>Go to Homepage</span>
-            </a>
+        <div class="h-px border-b border-[#f0f0f0] my-2"></div>
+
+        <!-- Items Subtotal -->
+        <div class="flex justify-between items-center text-[#212121]">
+          <span class="text-[#878787]">Items Total ({% if order_items %}{{ order_items|length }}{% else %}0{% endif %} items)</span>
+          <span class="font-medium text-[#212121]">₹{{ "{:,.2f}".format((order.get('subtotal', 0) or 0)|float) }}</span>
+        </div>
+
+        <!-- Handling Fee -->
+        {% if order.get('handling_fee') is not none and (order.get('handling_fee', 0)|float > 0) %}
+        <div class="flex justify-between items-center text-[#212121]">
+          <span class="text-[#878787]">Handling Fee</span>
+          <span class="font-medium text-[#212121]">₹{{ "{:,.2f}".format(order.get('handling_fee', 0)|float) }}</span>
+        </div>
+        {% endif %}
+
+        <!-- Platform Fee -->
+        {% if order.get('platform_fee') is not none and (order.get('platform_fee', 0)|float > 0) %}
+        <div class="flex justify-between items-center text-[#212121]">
+          <span class="text-[#878787]">Platform Fee</span>
+          <span class="font-medium text-[#212121]">₹{{ "{:,.2f}".format(order.get('platform_fee', 0)|float) }}</span>
+        </div>
+        {% endif %}
+
+        <!-- Surge Charge (if any) -->
+        {% if order.get('surge_charge') is not none and (order.get('surge_charge', 0)|float > 0) %}
+        <div class="flex justify-between items-center text-rose-600">
+          <span>Surge Charge</span>
+          <span class="font-bold">₹{{ "{:,.2f}".format(order.get('surge_charge', 0)|float) }}</span>
+        </div>
+        {% endif %}
+
+        <!-- Delivery Fee -->
+        <div class="flex justify-between items-center text-[#212121]">
+          <span class="text-[#878787]">Delivery Charges</span>
+          <div>
+            {% if (order.get('delivery_fee', 0) or 0)|float == 0 %}
+              <span class="text-[#388e3c] font-bold text-[12px] bg-green-50 px-2 py-0.5 rounded-sm border border-green-200">FREE</span>
+            {% else %}
+              <span class="font-medium text-[#212121]">₹{{ "{:,.2f}".format((order.get('delivery_fee', 0) or 0)|float) }}</span>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="h-px border-b border-dashed border-[#e0e0e0] my-2"></div>
+
+        <!-- Total Amount -->
+        <div class="flex justify-between items-center text-[15px] font-bold text-[#212121]">
+          <span>Total Amount</span>
+          <span class="text-[18px] text-[#212121]">₹{{ "{:,.2f}".format((order.get('total', 0) or 0)|float) }}</span>
         </div>
       </div>
+    </div>
 
-      <p class="mt-8 text-[11px] font-black text-slate-400 uppercase tracking-widest">
-        © 2026 FreshKart Express
+    <!-- 3. 📝 Order Notes & Special Instructions (if present) -->
+    {% set notes_val = (order.get('notes') or order.get('order_notes') or '')|string|trim %}
+    {% if notes_val %}
+    <div class="bg-white border border-[#e0e0e0] rounded-none sm:rounded-sm p-3.5 sm:p-4 shadow-2xs space-y-2.5">
+      <div class="flex items-center justify-between border-b border-[#f0f0f0] pb-2">
+        <h3 class="text-[12px] font-bold uppercase tracking-wider text-[#878787] flex items-center gap-1.5">
+          <i class="fas fa-clipboard-list text-amber-600"></i>
+          <span>SPECIAL NOTES / REQUEST ITEMS</span>
+        </h3>
+        <span class="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-sm border border-amber-200">
+          Doorstep Settlement
+        </span>
+      </div>
+      <div class="bg-amber-50/70 border border-amber-200/80 rounded-sm p-3 text-[12.5px] font-medium text-slate-800 whitespace-pre-line leading-relaxed">
+        {{ notes_val }}
+      </div>
+      <p class="text-[10.5px] text-[#878787] flex items-center gap-1.5">
+        <i class="fas fa-circle-info text-amber-600 shrink-0"></i>
+        <span>Cost of unlisted/special items will be collected by delivery partner at your doorstep.</span>
       </p>
     </div>
+    {% endif %}
 
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const overlay = document.getElementById('paytm-overlay');
-            const mainContent = document.getElementById('main-content');
+    <!-- 4. 📍 Delivery Address Card -->
+    {% set addr = order.get('address') %}
+    {% if addr %}
+    <div class="bg-white border border-[#e0e0e0] rounded-none sm:rounded-sm p-3.5 sm:p-4 shadow-2xs space-y-2">
+      <h3 class="text-[12px] font-bold uppercase tracking-wider text-[#878787] border-b border-[#f0f0f0] pb-2">
+        DELIVERY ADDRESS
+      </h3>
+      <div class="flex items-start gap-2.5 pt-0.5">
+        <i class="fas fa-map-marker-alt text-[#2874f0] text-sm mt-0.5 shrink-0"></i>
+        <div class="text-[12.5px] font-medium text-[#212121] leading-relaxed">
+          {% if addr is mapping %}
+            <p class="font-bold text-[#212121]">{{ addr.line1 or '' }}</p>
+            {% if addr.line2 %}<p class="text-[#878787]">{{ addr.line2 }}</p>{% endif %}
+            <p class="text-[#878787]">{{ addr.city or '' }}{% if addr.pincode %} - {{ addr.pincode }}{% endif %}</p>
+            {% if addr.alt_phone %}
+            <p class="text-[11px] text-[#878787] mt-1"><i class="fas fa-phone-alt text-[9px] mr-1"></i> Alternate: {{ addr.alt_phone }}</p>
+            {% endif %}
+          {% else %}
+            <p class="font-bold text-[#212121]">{{ addr }}</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endif %}
 
-            // Overlay to Content Logic
-            setTimeout(() => {
-                overlay.classList.add('hide-overlay');
-                mainContent.classList.add('reveal-content');
-                
-                // Trigger Confetti
-                setTimeout(fireConfetti, 400);
-            }, 2300); 
+    <!-- 5. 🎯 Flipkart Style Action Buttons -->
+    <div class="pt-1.5 space-y-2.5">
+      <a href="{{ url_for('my_orders') }}" class="w-full py-3 bg-[#fb641b] hover:bg-[#e85a15] active:scale-[0.98] text-white font-bold text-[14px] rounded-sm shadow-sm transition-all uppercase tracking-wider flex items-center justify-center gap-2">
+        <i class="fas fa-box-open text-sm"></i>
+        <span>Track My Order</span>
+      </a>
+      <a href="{{ url_for('index') }}" class="w-full py-3 bg-white hover:bg-slate-50 active:scale-[0.98] text-[#2874f0] border border-[#e0e0e0] font-bold text-[13px] rounded-sm transition-all uppercase tracking-wider flex items-center justify-center gap-2">
+        <i class="fas fa-bag-shopping text-sm"></i>
+        <span>Continue Shopping</span>
+      </a>
+    </div>
 
-            function fireConfetti() {
-                const duration = 3 * 1000;
-                const animationEnd = Date.now() + duration;
-                const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 200 };
+    <!-- 6. 🛡️ Trust & Safety Footer -->
+    <div class="p-3 bg-white border border-[#e0e0e0] rounded-none sm:rounded-sm flex items-center justify-center gap-2 text-[#878787] text-[11px] font-medium text-center">
+      <i class="fas fa-shield-halved text-[#388e3c]"></i>
+      <span>100% Safe & Contactless Delivery Guaranteed</span>
+    </div>
 
-                function randomInRange(min, max) {
-                    return Math.random() * (max - min) + min;
-                }
+  </div>
+</div>
 
-                const interval = setInterval(function() {
-                    const timeLeft = animationEnd - Date.now();
-                    if (timeLeft <= 0) return clearInterval(interval);
-
-                    const particleCount = 45 * (timeLeft / duration);
-                    confetti(Object.assign({}, defaults, { 
-                        particleCount, 
-                        origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } 
-                    }));
-                    confetti(Object.assign({}, defaults, { 
-                        particleCount, 
-                        origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } 
-                    }));
-                }, 250);
-            }
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    // Confetti celebration (Flipkart signature colors)
+    if (typeof confetti === 'function') {
+      confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ['#2874f0', '#fb641b', '#388e3c', '#ffea00']
+      });
+      setTimeout(() => {
+        confetti({
+          particleCount: 60,
+          angle: 60,
+          spread: 55,
+          origin: { x: 0 },
+          colors: ['#2874f0', '#fb641b', '#388e3c']
         });
-    </script>
-</body>
-</html>
+        confetti({
+          particleCount: 60,
+          angle: 120,
+          spread: 55,
+          origin: { x: 1 },
+          colors: ['#2874f0', '#fb641b', '#388e3c']
+        });
+      }, 350);
+    }
+  });
+</script>
+{% endblock %}
+
+{% block mobile_nav %}{% endblock %}
+{% block footer %}{% endblock %}
