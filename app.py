@@ -257,6 +257,26 @@ def get_cached_category_items(original_category):
         item["display_price"] = item.get("discount_price") or item.get("price", 0)
     return items
 
+def sort_available_first(items):
+    """Sort items so in-stock/available products appear first and sold-out items appear last."""
+    in_stock = []
+    out_of_stock = []
+    for item in items:
+        is_oos = bool(item.get("out_of_stock", False))
+        if not is_oos and item.get("stock") is not None:
+            try:
+                if float(item.get("stock")) <= 0:
+                    is_oos = True
+            except (ValueError, TypeError):
+                pass
+        item["out_of_stock"] = is_oos
+        if is_oos:
+            out_of_stock.append(item)
+        else:
+            in_stock.append(item)
+    random.shuffle(in_stock)
+    return in_stock + out_of_stock
+
 @app.route("/category/<path:name>")
 def category_page(name):
     try:
@@ -285,8 +305,8 @@ def category_page(name):
         # Step 2: Database Query (Cached)
         items = get_cached_category_items(original_category)
         
-        items = list(items)  # Copy to avoid mutating the cached list
-        random.shuffle(items)
+        # Place available products first, sold out items at the end
+        items = sort_available_first(list(items))
 
         print(f"[OK] Category='{original_category}', Found {len(items)} items")
 
@@ -498,8 +518,7 @@ def api_shop_category_products(shop_id, category_name):
     try:
         original_category = clean_cat_name(category_name)
         items = get_cached_category_items(original_category)
-        items = list(items)
-        random.shuffle(items)
+        items = sort_available_first(list(items))
         
         products_data = []
         for p in items:
