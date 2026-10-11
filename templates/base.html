@@ -126,6 +126,12 @@
                     </div>
                     Customer Support
                   </a>
+                  <a href="{{ url_for('societies_page') }}" class="flex items-center gap-4 px-4 py-3 rounded-2xl text-sm font-bold text-slate-600 hover:bg-emerald-50 hover:text-emerald-700 transition-all group">
+                    <div class="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-white group-hover:text-emerald-500 transition-all">
+                      <i class="fas fa-building"></i>
+                    </div>
+                    Change Society
+                  </a>
                   <a href="{{ url_for('privacy') }}" class="flex items-center gap-4 px-4 py-3 rounded-2xl text-sm font-bold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all group">
                     <div class="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-white group-hover:text-slate-600 transition-all">
                       <i class="fas fa-fingerprint"></i>
@@ -163,25 +169,30 @@
 
   <!-- Mobile Bottom Navigation (Floating Zepto Style) -->
   {% block mobile_nav %}
-  <div class="fixed bottom-8 sm:bottom-10 left-0 right-0 z-50 flex justify-center lg:hidden pointer-events-none pb-[env(safe-area-inset-bottom)]">
-    <div class="pointer-events-auto w-[92%] max-w-sm mx-auto bg-white/95 backdrop-blur-xl border border-slate-100 rounded-[2rem] shadow-[0_10px_40px_-10px_rgba(0,0,0,0.2)]">
-      <div class="flex items-center justify-around py-2.5 px-2">
-      <a href="{{ url_for('index') }}" class="flex flex-col items-center gap-1 transition-colors {{ 'text-emerald-600' if request.endpoint in ['index', 'societies_page', 'shop_home'] else 'text-slate-400 hover:text-emerald-600' }}">
-        <i class="fas fa-store text-xl"></i>
+  <div class="fixed bottom-6 sm:bottom-8 left-0 right-0 z-50 flex justify-center lg:hidden pointer-events-none pb-[env(safe-area-inset-bottom)]">
+    <div class="pointer-events-auto w-[95%] max-w-md mx-auto bg-white/95 backdrop-blur-xl border border-slate-100 rounded-[2rem] shadow-[0_10px_40px_-10px_rgba(0,0,0,0.2)]">
+      <div class="flex items-center justify-around py-2 px-1.5">
+      {% set home_target = url_for('shop_home', shop_id=session.get('current_shop_id')) if session.get('current_shop_id') else (url_for('society_shops', society_id=session.get('current_society_id')) if session.get('current_society_id') else url_for('index')) %}
+      <a href="{{ home_target }}" class="flex flex-col items-center gap-0.5 min-w-[54px] transition-colors {{ 'text-emerald-600' if request.endpoint in ['index', 'shop_home'] else 'text-slate-400 hover:text-emerald-600' }}">
+        <i class="fas fa-store text-lg sm:text-xl"></i>
         <span class="text-[9px] font-black tracking-wide">HOME</span>
       </a>
-      <a href="{{ url_for('category_page', name='categories') }}" class="flex flex-col items-center gap-1 transition-colors {{ 'text-emerald-600' if request.endpoint == 'category_page' else 'text-slate-400 hover:text-emerald-600' }}">
-        <i class="fas fa-border-all text-xl"></i>
+      <a href="{{ url_for('category_page', name='categories') }}" class="flex flex-col items-center gap-0.5 min-w-[54px] transition-colors {{ 'text-emerald-600' if request.endpoint == 'category_page' else 'text-slate-400 hover:text-emerald-600' }}">
+        <i class="fas fa-border-all text-lg sm:text-xl"></i>
         <span class="text-[9px] font-black tracking-wide">CATEGORIES</span>
       </a>
-      <a href="{{ url_for('cart_page') }}" class="flex flex-col items-center gap-1 transition-colors relative {{ 'text-emerald-600' if request.endpoint == 'cart_page' else 'text-slate-400 hover:text-emerald-600' }}">
-        <i class="fas fa-shopping-bag text-xl"></i>
-        <span class="text-[9px] font-black tracking-wide">CART</span>
-        <span class="mobile-badge absolute -top-1.5 -right-1.5 bg-rose-500 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center scale-0 transition-transform duration-300">0</span>
+      <a href="{{ url_for('my_orders') }}" class="flex flex-col items-center gap-0.5 min-w-[54px] transition-colors {{ 'text-emerald-600' if request.endpoint in ['my_orders', 'order_confirmation'] else 'text-slate-400 hover:text-emerald-600' }}">
+        <i class="fas fa-box-open text-lg sm:text-xl"></i>
+        <span class="text-[9px] font-black tracking-wide">ORDERS</span>
       </a>
-      <a href="{{ url_for('my_profile') }}" class="flex flex-col items-center gap-1 transition-colors {{ 'text-emerald-600' if request.endpoint == 'my_profile' else 'text-slate-400 hover:text-emerald-600' }}">
-        <i class="fas fa-user-circle text-xl"></i>
-        <span class="text-[9px] font-black tracking-wide">PROFILE</span>
+      <a href="{{ url_for('societies_page') }}" class="flex flex-col items-center gap-0.5 min-w-[54px] transition-colors {{ 'text-emerald-600' if request.endpoint in ['societies_page', 'society_shops'] else 'text-slate-400 hover:text-emerald-600' }}">
+        <i class="fas fa-building text-lg sm:text-xl"></i>
+        <span class="text-[9px] font-black tracking-wide">SOCIETY</span>
+      </a>
+      <a href="{{ url_for('cart_page') }}" class="flex flex-col items-center gap-0.5 min-w-[54px] transition-colors relative {{ 'text-emerald-600' if request.endpoint == 'cart_page' else 'text-slate-400 hover:text-emerald-600' }}">
+        <i class="fas fa-shopping-bag text-lg sm:text-xl"></i>
+        <span class="text-[9px] font-black tracking-wide">CART</span>
+        <span class="mobile-badge absolute -top-1.5 right-1 bg-rose-500 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center scale-0 transition-transform duration-300">0</span>
       </a>
     </div>
   </div>
