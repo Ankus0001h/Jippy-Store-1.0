@@ -1,72 +1,128 @@
 {% extends "base.html" %}
 {% block content %}
-
-<!-- Header with Address -->
-<div class="sticky top-0 z-40 bg-white border-b border-slate-100 shadow-[0_4px_20px_-10px_rgba(0,0,0,0.05)] pb-4 pt-6 px-4">
-  <a href="{{ url_for('index', force=1) }}" class="inline-flex items-center gap-2 mb-4 text-emerald-600 hover:text-emerald-700 font-bold text-sm transition-colors">
-    <i class="fas fa-arrow-left"></i> Change Location
-  </a>
-  
-  <div class="flex items-start gap-3">
-    <div class="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 mt-1">
-      <i class="fas fa-map-marker-alt"></i>
+<!-- 🛍️ Flipkart Style Sticky Blue Header (#2874f0) -->
+<header class="sticky top-0 z-40 bg-[#2874f0] text-white px-3 sm:px-6 py-2.5 shadow-md font-['Plus_Jakarta_Sans']">
+  <div class="max-w-6xl mx-auto flex items-center justify-between gap-3">
+    <div class="flex items-center gap-2.5 min-w-0 flex-1">
+      <a href="{{ url_for('index', force=1) }}" class="w-8 h-8 flex items-center justify-center text-white hover:bg-white/15 rounded-full transition-all shrink-0" title="Change Location">
+        <i class="fas fa-arrow-left text-sm"></i>
+      </a>
+      <div class="min-w-0">
+        <div class="flex items-center gap-1.5 text-[11px] text-blue-100 font-medium">
+          <i class="fas fa-map-marker-alt text-xs text-yellow-300"></i>
+          <span>Delivering to</span>
+        </div>
+        <h1 class="text-[13.5px] sm:text-[14.5px] font-bold text-white leading-tight truncate mt-0.5">
+          {{ user_address or 'Current Location' }}
+        </h1>
+      </div>
     </div>
-    <div>
-      <p class="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Delivering to</p>
-      <h2 class="text-sm font-bold text-slate-900 leading-tight line-clamp-2 pr-4">{{ user_address }}</h2>
-    </div>
+    
+    <a href="{{ url_for('index', force=1) }}" class="shrink-0 px-2.5 py-1 bg-white/15 hover:bg-white/25 active:scale-95 border border-white/20 rounded-sm text-[11px] font-bold text-white transition-all uppercase tracking-wide">
+      Change
+    </a>
   </div>
-</div>
+</header>
 
-<div class="min-h-screen bg-slate-50 pt-6 px-4 pb-20">
-  <div class="max-w-6xl mx-auto w-full">
-    <h3 class="text-xl sm:text-2xl font-black text-slate-800 mb-6 tracking-tight">Select your society</h3>
+<!-- Main Page Body (Flipkart Style #f1f3f6) -->
+<div class="min-h-[88vh] bg-[#f1f3f6] py-3 sm:py-5 px-2.5 sm:px-4 font-['Plus_Jakarta_Sans'] pb-20">
+  <div class="max-w-6xl mx-auto w-full space-y-3">
+    
+    <!-- Section Title & Counter -->
+    <div class="bg-white border border-[#e0e0e0] rounded-none sm:rounded-sm p-3.5 flex items-center justify-between shadow-2xs">
+      <div>
+        <h2 class="text-[14px] sm:text-[16px] font-bold text-[#212121] tracking-tight">Select Your Society / Apartment</h2>
+        <p class="text-[11px] text-[#878787] font-medium mt-0.5">Choose your society to view partner stores with 10-minute delivery</p>
+      </div>
+      {% if societies %}
+      <span class="text-[11px] font-bold text-[#2874f0] bg-blue-50 px-2 py-0.5 rounded-sm uppercase tracking-wide shrink-0">
+        {{ societies|length }} Societ{% if societies|length != 1 %}ies{% else %}y{% endif %}
+      </span>
+      {% endif %}
+    </div>
     
     {% if societies %}
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 sm:gap-3.5">
         {% for soc in societies %}
-          <a href="/society/{{ soc.id }}/shops" class="relative block h-40 rounded-[2rem] overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 group">
-            <!-- Background Image -->
-            <img src="{{ soc.image or 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&q=80&w=600' }}" class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" alt="{{ soc.name }}">
+          <a href="/society/{{ soc.id }}/shops" class="group bg-white border border-[#e0e0e0] hover:border-[#2874f0] rounded-none sm:rounded-sm overflow-hidden shadow-2xs hover:shadow-md transition-all flex flex-col justify-between">
             
-            <!-- Gradient Overlay -->
-            <div class="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/30 to-slate-900/10"></div>
-            
-            <!-- Content -->
-            <div class="absolute inset-0 p-5 flex flex-col justify-end">
-              <div class="flex items-end justify-between">
-                <div>
-                  <h4 class="text-lg font-black text-white leading-tight tracking-wide drop-shadow-md">{{ soc.name }}</h4>
-                  <p class="text-xs font-medium text-slate-200 mt-1 drop-shadow-sm">
-                    {{ soc.city }}
-                    {% if soc.distance is not none %}
-                      <span class="text-emerald-400 font-bold ml-1">• {{ soc.distance }} km away</span>
-                    {% elif soc.pincode %}
-                      <span class="ml-1 text-slate-300">• {{ soc.pincode }}</span>
-                    {% endif %}
-                  </p>
-                </div>
-                <div class="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white shrink-0 group-hover:bg-emerald-500 transition-colors shadow-lg">
-                  <i class="fas fa-chevron-right text-sm"></i>
-                </div>
+            <!-- Society Image Container -->
+            <div class="aspect-[16/9] w-full bg-slate-100 relative overflow-hidden">
+              <img
+                src="{{ soc.image or 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&q=80&w=600' }}"
+                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                alt="{{ soc.name }}"
+                onerror="this.src='https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&q=80&w=600'"
+              />
+              <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent"></div>
+              
+              <!-- Distance Badge -->
+              <div class="absolute top-2 right-2">
+                {% if soc.distance is not none %}
+                <span class="bg-black/70 backdrop-blur-xs text-white text-[10px] font-bold px-2 py-0.5 rounded-sm border border-white/20 flex items-center gap-1">
+                  <i class="fas fa-location-arrow text-emerald-400 text-[9px]"></i>
+                  <span>{{ soc.distance }} km</span>
+                </span>
+                {% elif soc.pincode %}
+                <span class="bg-black/70 backdrop-blur-xs text-white text-[10px] font-bold px-2 py-0.5 rounded-sm border border-white/20">
+                  {{ soc.pincode }}
+                </span>
+                {% endif %}
+              </div>
+
+              <!-- Quick Tag on Bottom of Image -->
+              <div class="absolute bottom-2 left-3 right-3">
+                <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-300 bg-emerald-950/80 px-1.5 py-0.5 rounded-sm">
+                  10 Min Delivery Available
+                </span>
               </div>
             </div>
+
+            <!-- Society Information Card Body -->
+            <div class="p-3 sm:p-3.5 flex flex-col justify-between flex-1 space-y-2.5">
+              <div>
+                <h3 class="text-[14.5px] sm:text-[15px] font-bold text-[#212121] group-hover:text-[#2874f0] transition-colors leading-snug line-clamp-1">
+                  {{ soc.name }}
+                </h3>
+                <p class="text-[11.5px] text-[#878787] font-medium mt-0.5 flex items-center gap-1 truncate">
+                  <i class="fas fa-city text-[10px] text-slate-400"></i>
+                  <span>{{ soc.city }}</span>
+                  {% if soc.pincode %}
+                  <span>• {{ soc.pincode }}</span>
+                  {% endif %}
+                </p>
+              </div>
+
+              <!-- Action Link Bar -->
+              <div class="pt-2 border-t border-[#f0f0f0] flex items-center justify-between text-[12px] font-bold text-[#2874f0]">
+                <span>View Available Stores</span>
+                <i class="fas fa-chevron-right text-[10px] group-hover:translate-x-0.5 transition-transform"></i>
+              </div>
+            </div>
+
           </a>
         {% endfor %}
       </div>
     {% else %}
-      <div class="bg-white border border-slate-100 rounded-3xl p-8 flex flex-col items-center justify-center text-center shadow-sm">
-        <div class="w-16 h-16 bg-rose-50 rounded-full flex items-center justify-center text-rose-500 mb-4">
-          <i class="fas fa-search-location text-2xl"></i>
+      <div class="bg-white border border-[#e0e0e0] rounded-none sm:rounded-sm p-8 sm:p-12 flex flex-col items-center justify-center text-center shadow-2xs space-y-3">
+        <div class="w-14 h-14 bg-red-50 text-red-500 rounded-full flex items-center justify-center text-2xl border border-red-100">
+          <i class="fas fa-search-location"></i>
         </div>
-        <h4 class="text-lg font-bold text-slate-800 mb-2">No societies found</h4>
-        <p class="text-sm font-medium text-slate-500 mb-6">We couldn't find any Jippy serviceable societies near this location.</p>
-        <a href="{{ url_for('index', force=1) }}" class="bg-slate-900 text-white px-6 py-3 rounded-xl text-sm font-bold shadow-md hover:bg-slate-800 transition-colors">Try Another Location</a>
+        <div>
+          <h3 class="text-[16px] font-bold text-[#212121]">No Societies Found</h3>
+          <p class="text-[12.5px] text-[#878787] font-medium max-w-sm mx-auto mt-1 leading-snug">
+            We couldn't find any serviced societies at this location yet. Please search your area manually or try another location.
+          </p>
+        </div>
+        <a href="{{ url_for('index', force=1) }}" class="mt-2 inline-flex items-center gap-2 px-5 py-2.5 bg-[#2874f0] hover:bg-blue-600 active:scale-95 text-white text-[13px] font-bold rounded-sm transition-all shadow-xs uppercase tracking-wider">
+          <i class="fas fa-location-dot text-xs"></i>
+          <span>Try Another Location</span>
+        </a>
       </div>
     {% endif %}
+
   </div>
 </div>
-
 {% endblock %}
 
 {% block mobile_nav %}{% endblock %}
