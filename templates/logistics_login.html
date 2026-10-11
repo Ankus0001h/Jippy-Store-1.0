@@ -11,80 +11,94 @@
     body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f8fafc; }
     .captcha-box-design { border: 2px dashed #94a3b8; }
     input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    #logistics-login-form input:not([name^="captcha"]),
+    #logistics-login-form input:not([name^="captcha"]):focus,
+    #logistics-login-form input:not([name^="captcha"]):focus-visible {
+      outline: none !important;
+      box-shadow: none !important;
+      border: none !important;
+      -webkit-tap-highlight-color: transparent !important;
+    }
   </style>
 </head>
-<body class="min-h-[100dvh] bg-white sm:bg-[#f8fafc] flex flex-col sm:items-center sm:justify-center sm:px-4">
-  <div class="w-full flex-1 sm:flex-none sm:max-w-md bg-white sm:border sm:border-slate-200 sm:rounded-[2.5rem] sm:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] p-8 sm:p-10 flex flex-col pb-safe">
+<body class="min-h-[100dvh] bg-slate-50 sm:bg-[#f8fafc] flex flex-col justify-start sm:justify-center items-center p-2 sm:p-4 overflow-y-auto">
+  <div class="w-full max-w-[390px] bg-white rounded-3xl sm:rounded-[32px] sm:shadow-xl sm:border sm:border-slate-200/80 p-4 sm:p-6 flex flex-col my-auto overflow-hidden">
       
-      <div class="text-center mb-8">
-        <div class="w-16 h-16 rounded-2xl bg-blue-600 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-200 border-4 border-white">
-          <i class="fas fa-truck-fast text-white text-2xl"></i>
+      <!-- Compact Header -->
+      <div class="flex items-center gap-3 pt-1 pb-3 border-b border-slate-100 mb-3">
+        <div class="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center shrink-0 shadow-sm border-2 border-white">
+          <i class="fas fa-truck-fast text-white text-base"></i>
         </div>
-        <h2 class="text-2xl font-black text-slate-900 tracking-tight leading-none">Logistics Portal</h2>
-        <p class="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mt-3">Delivery Partner Access</p>
+        <div>
+          <h2 class="text-lg font-black text-slate-900 tracking-tight leading-tight">Logistics Portal</h2>
+          <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Delivery Partner Access</p>
+        </div>
       </div>
 
       {% if error %}
-        <div class="mb-6 rounded-2xl bg-rose-50 border-2 border-rose-100 px-4 py-3 text-xs font-black uppercase text-rose-600 flex items-center gap-3">
-          <i class="fas fa-circle-exclamation text-sm"></i>
+        <div class="mb-3 text-[11px] font-bold text-rose-700 bg-rose-50 border border-rose-200 rounded-xl px-3 py-2 flex items-center gap-2">
+          <i class="fas fa-circle-exclamation text-xs shrink-0"></i>
           <span>{{ error }}</span>
         </div>
       {% endif %}
 
-      <form method="post" class="space-y-5 flex flex-col flex-1" id="logistics-login-form">
-        <div class="space-y-1.5">
-          <label class="block text-[11px] font-black uppercase tracking-wider text-slate-600 ml-1">Official Email</label>
-          <div class="relative group">
-            <span class="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400 group-focus-within:text-blue-600 transition-colors">
+      <form method="post" class="space-y-2.5 flex flex-col" id="logistics-login-form">
+        <div>
+          <span class="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1 ml-0.5">Official Email</span>
+          <label for="logistics-email" class="group flex items-center bg-slate-50 rounded-xl border border-slate-200 focus-within:border-blue-600 focus-within:ring-2 focus-within:ring-blue-500/10 focus-within:bg-white transition-all overflow-hidden h-11 sm:h-12 cursor-text">
+            <span class="w-10 flex items-center justify-center text-slate-400 group-focus-within:text-blue-600 transition-colors shrink-0">
               <i class="fas fa-envelope text-xs"></i>
             </span>
             <input
               type="email"
+              id="logistics-email"
               name="email"
               placeholder="rider@jippyexpress.com"
-              class="w-full border-2 border-slate-300 bg-white text-slate-900 rounded-2xl pl-11 pr-4 py-3.5 text-sm font-bold focus:outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-500/5 transition-all"
+              class="w-full h-full pr-3 bg-transparent border-none outline-none text-slate-900 text-sm font-bold placeholder:text-slate-400 placeholder:font-normal"
               required
             >
-          </div>
+          </label>
         </div>
 
-        <div class="space-y-1.5">
-          <label class="block text-[11px] font-black uppercase tracking-wider text-slate-600 ml-1">Secure Key</label>
-          <div class="relative group">
-            <span class="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400 group-focus-within:text-blue-600 transition-colors">
+        <div>
+          <span class="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1 ml-0.5">Secure Key</span>
+          <label for="logistics-password" class="group flex items-center bg-slate-50 rounded-xl border border-slate-200 focus-within:border-blue-600 focus-within:ring-2 focus-within:ring-blue-500/10 focus-within:bg-white transition-all overflow-hidden h-11 sm:h-12 cursor-text">
+            <span class="w-10 flex items-center justify-center text-slate-400 group-focus-within:text-blue-600 transition-colors shrink-0">
               <i class="fas fa-lock text-xs"></i>
             </span>
             <input
               type="password"
+              id="logistics-password"
               name="password"
               placeholder="••••••••"
-              class="w-full border-2 border-slate-300 bg-white text-slate-900 rounded-2xl pl-11 pr-4 py-3.5 text-sm font-bold focus:outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-500/5 transition-all"
+              class="w-full h-full pr-3 bg-transparent border-none outline-none text-slate-900 text-sm font-bold placeholder:text-slate-400 placeholder:font-normal"
               required
             >
-          </div>
+          </label>
         </div>
 
-        <div class="pt-2 space-y-3">
-          <div class="flex items-center justify-between">
-            <label class="text-[11px] font-black uppercase tracking-wider text-slate-600 ml-1">Human Check</label>
-            <button type="button" onclick="refreshCaptcha()" class="text-[10px] font-black text-blue-600 hover:text-blue-800 uppercase tracking-tighter transition-colors">
-                <i class="fas fa-sync-alt mr-1"></i> New Code
+        <!-- Captcha Box (Compact) -->
+        <div class="pt-0.5 space-y-1">
+          <div class="flex items-center justify-between ml-0.5">
+            <span class="text-[10px] font-black uppercase tracking-wider text-slate-400">Human Check</span>
+            <button type="button" onclick="refreshCaptcha()" class="text-[9px] font-black text-blue-600 hover:text-blue-800 uppercase tracking-tight flex items-center gap-1 transition-colors">
+                <i class="fas fa-sync-alt text-[8px]"></i> New Code
             </button>
           </div>
 
-          <div class="captcha-box-design rounded-2xl bg-slate-50 p-3 flex items-center justify-between gap-4">
-            <div id="captcha-box" class="text-xl sm:text-2xl font-black text-slate-900 tracking-[0.2em] select-none flex-1 text-center">
+          <div class="captcha-box-design rounded-xl bg-slate-50 p-2 flex items-center justify-between gap-2">
+            <div id="captcha-box" class="text-base sm:text-lg font-black text-slate-900 tracking-[0.2em] select-none flex-1 text-center bg-white/70 py-1 rounded-lg border border-slate-200/50">
               {{ captcha_code }}
             </div>
             
-            <div class="flex items-center gap-1.5 sm:gap-2">
+            <div class="flex items-center gap-1">
               {% for i in range(1,5) %}
               <input
                 type="text"
                 inputmode="numeric"
                 maxlength="1"
                 name="captcha{{ i }}"
-                class="w-10 h-10 text-center text-lg font-black rounded-xl border-2 border-slate-400 bg-white text-slate-900 focus:outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-500/10 transition-all"
+                class="w-8 h-9 text-center text-base font-black rounded-lg border border-slate-300 bg-white text-slate-900 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-500/10 transition-all"
               >
               {% endfor %}
             </div>
@@ -94,30 +108,39 @@
         <button
           type="submit"
           id="logistics-login-submit"
-          class="w-full bg-blue-600 text-white py-4 rounded-2xl text-sm font-black uppercase tracking-widest hover:bg-blue-700 transition-all active:scale-[0.98] shadow-lg shadow-blue-200 mt-auto sm:mt-6 mb-2 sm:mb-0"
+          class="w-full h-11 sm:h-12 bg-blue-600 text-white rounded-xl text-sm font-black uppercase tracking-widest hover:bg-blue-700 transition-all active:scale-[0.98] shadow-md shadow-blue-700/20 mt-2"
         >
           <span id="logistics-login-submit-text">Enter Logistics Portal</span>
         </button>
       </form>
       
-      <div class="mt-6 flex items-center justify-between text-xs text-slate-500 pt-4 border-t border-slate-100">
-        <a href="{{ url_for('login') }}" class="hover:text-blue-700 font-semibold flex items-center gap-1.5 transition-colors">
+      <!-- Quick Navigation Links (Compact) -->
+      <div class="mt-3 flex items-center justify-between text-[11px] text-slate-500 pt-2.5 border-t border-slate-100">
+        <a href="{{ url_for('login') }}" class="hover:text-blue-700 font-bold flex items-center gap-1.5 transition-colors">
           <i class="fas fa-arrow-left text-[10px]"></i> Customer Login
         </a>
-        <a href="{{ url_for('vendor_login') }}" class="hover:text-emerald-600 font-semibold flex items-center gap-1.5 text-emerald-600 transition-colors">
+        <a href="{{ url_for('vendor_login') }}" class="hover:text-emerald-600 font-bold flex items-center gap-1.5 text-emerald-600 transition-colors">
           Vendor Portal <i class="fas fa-arrow-right text-[10px]"></i>
         </a>
       </div>
 
-      <div class="mt-6 text-center pt-2">
-        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center justify-center gap-2">
+      <div class="mt-2.5 text-center border-t border-slate-100 pt-2">
+        <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest flex items-center justify-center gap-1.5">
             <i class="fas fa-shield-halved text-blue-600"></i> Encrypted Session
         </p>
       </div>
-    </div>
   </div>
 
   <script>
+    // Auto scroll into view on keyboard focus
+    document.querySelectorAll('input').forEach(input => {
+      input.addEventListener('focus', () => {
+        setTimeout(() => {
+          input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 250);
+      });
+    });
+
     const captchaInputs = document.querySelectorAll('input[name^="captcha"]');
     captchaInputs.forEach((input, idx) => {
       input.addEventListener("input", () => {
