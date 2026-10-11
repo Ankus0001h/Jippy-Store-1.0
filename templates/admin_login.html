@@ -9,54 +9,62 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     body { font-family: 'Plus Jakarta Sans', sans-serif; }
-    /* Darker dashed border for captcha box */
     .captcha-dash { border: 2px dashed #94a3b8; }
     input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-    
-    /* Standard line spacing overrides */
-    .space-y-custom > :not([hidden]) ~ :not([hidden]) { margin-top: 1.25rem; }
+    #admin-login-form input:not(.admin-captcha-input),
+    #admin-login-form input:not(.admin-captcha-input):focus,
+    #admin-login-form input:not(.admin-captcha-input):focus-visible {
+      outline: none !important;
+      box-shadow: none !important;
+      border: none !important;
+      -webkit-tap-highlight-color: transparent !important;
+    }
   </style>
 </head>
-<body class="min-h-[100dvh] bg-white sm:bg-[#f1f5f9] flex flex-col sm:items-center sm:justify-center sm:px-4">
+<body class="min-h-[100dvh] bg-slate-50 sm:bg-[#f1f5f9] flex flex-col justify-start sm:justify-center items-center p-2 sm:p-4 overflow-y-auto">
 
-  <div class="w-full flex-1 sm:flex-none sm:max-w-md bg-white sm:border-2 sm:border-slate-200 sm:rounded-[2rem] sm:shadow-xl p-8 sm:p-10 flex flex-col pb-safe">
+  <div class="w-full max-w-[390px] bg-white rounded-3xl sm:rounded-[32px] sm:shadow-xl sm:border sm:border-slate-200 p-4 sm:p-6 flex flex-col my-auto overflow-hidden">
       
-      <div class="text-center mb-6">
-        <div class="w-16 h-16 rounded-2xl bg-emerald-600 flex items-center justify-center mx-auto mb-4 shadow-lg border-4 border-white">
-          <i class="fas fa-user-shield text-white text-2xl"></i>
+      <!-- Compact Header -->
+      <div class="flex items-center gap-3 pt-1 pb-3 border-b border-slate-100 mb-3">
+        <div class="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center shrink-0 shadow-sm border-2 border-white">
+          <i class="fas fa-user-shield text-white text-base"></i>
         </div>
-        <h1 class="text-2xl font-black text-slate-900 tracking-tight leading-none">Admin Portal</h1>
-        <p class="text-[11px] font-black text-slate-500 uppercase tracking-[0.1em] mt-2">Secure Management Access</p>
+        <div>
+          <h1 class="text-lg font-black text-slate-900 tracking-tight leading-tight">Admin Portal</h1>
+          <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Secure Management Access</p>
+        </div>
       </div>
 
       {% if error %}
-        <div class="mb-5 text-[11px] font-black uppercase text-rose-700 bg-rose-50 border-2 border-rose-200 rounded-xl px-4 py-3 flex items-center gap-3">
-          <i class="fas fa-circle-exclamation text-sm"></i>
+        <div class="mb-3 text-[11px] font-bold text-rose-700 bg-rose-50 border border-rose-200 rounded-xl px-3 py-2 flex items-center gap-2">
+          <i class="fas fa-circle-exclamation text-xs shrink-0"></i>
           <span>{{ error }}</span>
         </div>
       {% endif %}
 
-      <form method="post" id="admin-login-form" class="space-y-custom flex flex-col flex-1">
-        <div class="space-y-1.5">
-          <label class="block text-[11px] font-black uppercase tracking-wider text-slate-600 ml-1">Admin Email</label>
-          <div class="relative group">
-            <span class="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-500 group-focus-within:text-emerald-600 transition-colors">
+      <form method="post" id="admin-login-form" class="space-y-2.5 flex flex-col">
+        <div>
+          <span class="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1 ml-0.5">Admin Email</span>
+          <label for="admin-email" class="group flex items-center bg-slate-50 rounded-xl border border-slate-200 focus-within:border-emerald-600 focus-within:ring-2 focus-within:ring-emerald-500/10 focus-within:bg-white transition-all overflow-hidden h-11 sm:h-12 cursor-text">
+            <span class="w-10 flex items-center justify-center text-slate-400 group-focus-within:text-emerald-600 transition-colors shrink-0">
               <i class="fas fa-envelope text-xs"></i>
             </span>
             <input
               type="email"
+              id="admin-email"
               name="email"
               placeholder="admin@freshkart.com"
               required
-              class="w-full bg-white border-2 border-slate-300 text-slate-900 rounded-xl pl-11 pr-4 py-3 text-sm font-bold focus:outline-none focus:border-emerald-600 transition-all"
+              class="w-full h-full pr-3 bg-transparent border-none outline-none text-slate-900 text-sm font-bold placeholder:text-slate-400 placeholder:font-normal"
             >
-          </div>
+          </label>
         </div>
 
-        <div class="space-y-1.5">
-          <label class="block text-[11px] font-black uppercase tracking-wider text-slate-600 ml-1">Security Key</label>
-          <div class="relative group">
-            <span class="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-500 group-focus-within:text-emerald-600 transition-colors">
+        <div>
+          <span class="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1 ml-0.5">Security Key</span>
+          <label for="admin-password" class="group flex items-center bg-slate-50 rounded-xl border border-slate-200 focus-within:border-emerald-600 focus-within:ring-2 focus-within:ring-emerald-500/10 focus-within:bg-white transition-all overflow-hidden h-11 sm:h-12 cursor-text">
+            <span class="w-10 flex items-center justify-center text-slate-400 group-focus-within:text-emerald-600 transition-colors shrink-0">
               <i class="fas fa-lock text-xs"></i>
             </span>
             <input
@@ -65,39 +73,40 @@
               id="admin-password"
               placeholder="••••••••"
               required
-              class="w-full bg-white border-2 border-slate-300 text-slate-900 rounded-xl pl-11 pr-12 py-3 text-sm font-bold focus:outline-none focus:border-emerald-600 transition-all"
+              class="w-full h-full pr-10 bg-transparent border-none outline-none text-slate-900 text-sm font-bold placeholder:text-slate-400 placeholder:font-normal"
             >
             <button
               type="button"
               id="admin-toggle-password"
-              class="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-emerald-600"
+              class="px-3 flex items-center justify-center text-slate-400 hover:text-emerald-600 transition-colors"
             >
               <i class="fas fa-eye-slash text-xs"></i>
             </button>
-          </div>
+          </label>
         </div>
 
-        <div class="pt-1 space-y-3">
-          <div class="flex items-center justify-between">
-            <label class="text-[11px] font-black uppercase tracking-wider text-slate-600 ml-1">Human Verification</label>
-            <button type="button" id="admin-refresh-captcha" class="text-[10px] font-black text-emerald-700 hover:text-emerald-800 uppercase tracking-tighter">
-                <i class="fas fa-rotate mr-1"></i> New Code
+        <!-- Captcha Box (Compact) -->
+        <div class="pt-0.5 space-y-1">
+          <div class="flex items-center justify-between ml-0.5">
+            <span class="text-[10px] font-black uppercase tracking-wider text-slate-400">Human Verification</span>
+            <button type="button" id="admin-refresh-captcha" class="text-[9px] font-black text-emerald-700 hover:text-emerald-800 uppercase tracking-tight flex items-center gap-1">
+                <i class="fas fa-rotate text-[8px]"></i> New Code
             </button>
           </div>
 
-          <div class="captcha-dash rounded-2xl bg-slate-50 p-3 flex items-center justify-between gap-4">
-            <div id="admin-captcha-box" class="text-xl sm:text-2xl font-black text-slate-900 tracking-[0.2em] select-none flex-1 text-center">
+          <div class="captcha-dash rounded-xl bg-slate-50 p-2 flex items-center justify-between gap-2">
+            <div id="admin-captcha-box" class="text-base sm:text-lg font-black text-slate-900 tracking-[0.2em] select-none flex-1 text-center bg-white/70 py-1 rounded-lg border border-slate-200/50">
               {{ captcha_code }}
             </div>
             
-            <div class="flex items-center gap-1.5 sm:gap-2">
+            <div class="flex items-center gap-1">
               {% for i in range(1,5) %}
               <input
                 type="text"
                 inputmode="numeric"
                 maxlength="1"
                 name="captcha{{ i }}"
-                class="w-10 h-10 text-center text-lg font-black rounded-lg border-2 border-slate-400 bg-white text-slate-900 focus:outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-500/10 transition-all admin-captcha-input"
+                class="w-8 h-9 text-center text-base font-black rounded-lg border border-slate-300 bg-white text-slate-900 focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/10 transition-all admin-captcha-input"
               >
               {% endfor %}
             </div>
@@ -107,40 +116,44 @@
         <button
           type="submit"
           id="admin-login-submit"
-          class="w-full bg-slate-900 text-white py-4 rounded-xl text-sm font-black uppercase tracking-widest hover:bg-emerald-700 transition-all active:scale-[0.98] flex items-center justify-center gap-3 shadow-lg mt-auto sm:mt-6"
+          class="w-full h-11 sm:h-12 bg-slate-900 text-white rounded-xl text-sm font-black uppercase tracking-widest hover:bg-emerald-700 transition-all active:scale-[0.98] flex items-center justify-center gap-2 shadow-md mt-2"
         >
           <span id="admin-login-submit-text">Login to Dashboard</span>
-          <i class="fas fa-chevron-right text-xs"></i>
+          <i class="fas fa-chevron-right text-[10px]"></i>
         </button>
       </form>
 
-      <div class="mt-6 flex items-center justify-between text-xs text-slate-500 pt-4 border-t border-slate-100">
+      <!-- Quick Navigation Links (Compact) -->
+      <div class="mt-3 flex items-center justify-between text-[11px] text-slate-500 pt-2.5 border-t border-slate-100">
         <a href="{{ url_for('index') }}" class="hover:text-emerald-700 font-bold flex items-center gap-1.5 text-slate-700 transition-colors">
-          <i class="fas fa-house text-emerald-600 text-xs"></i> Home Store
+          <i class="fas fa-house text-emerald-600 text-[10px]"></i> Home Store
         </a>
         <a href="{{ url_for('login') }}" class="hover:text-emerald-700 font-bold flex items-center gap-1.5 text-emerald-700 transition-colors">
-          <i class="fas fa-user text-xs"></i> Customer Login
+          <i class="fas fa-user text-[10px]"></i> Customer Login
         </a>
       </div>
 
-      <div class="mt-3 flex items-center justify-center gap-3 text-[11px] text-slate-400">
+      <div class="mt-2 flex items-center justify-center gap-2.5 text-[10px] text-slate-400">
         <a href="{{ url_for('vendor_login') }}" class="hover:text-slate-600 font-semibold transition-colors">Vendor Portal</a>
         <span class="w-1 h-1 bg-slate-300 rounded-full"></span>
         <a href="{{ url_for('logistics_login') }}" class="hover:text-slate-600 font-semibold transition-colors">Logistics Portal</a>
       </div>
 
-      <div class="mt-5 text-center border-t border-slate-100 pt-4">
-        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center justify-center gap-2">
+      <div class="mt-2.5 text-center border-t border-slate-100 pt-2">
+        <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest flex items-center justify-center gap-1.5">
             <i class="fas fa-lock text-emerald-600"></i> Encrypted Session
         </p>
       </div>
-    </div>
   </div>
 
   <script>
-    window.addEventListener("DOMContentLoaded", () => {
-      const firstBox = document.querySelector(".admin-captcha-input");
-      if (firstBox) firstBox.focus();
+    // Auto scroll into view on keyboard focus
+    document.querySelectorAll('input').forEach(input => {
+      input.addEventListener('focus', () => {
+        setTimeout(() => {
+          input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 250);
+      });
     });
 
     const adminPassword = document.getElementById("admin-password");
