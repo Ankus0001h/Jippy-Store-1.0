@@ -56,10 +56,22 @@
           <a href="{{ url_for('register') }}" class="text-[#0C831F] font-bold ml-1">Sign up</a>
         </p>
 
-        <div class="flex items-center justify-center gap-4 mt-6 pt-4 border-t border-gray-100">
-          <a href="{{ url_for('admin_login') }}" class="text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-emerald-600 transition-colors">Admin Node</a>
-          <span class="w-1 h-1 bg-gray-200 rounded-full"></span>
-          <a href="{{ url_for('portal_login') }}" class="text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-blue-600 transition-colors">Logistics</a>
+        <div class="mt-6 pt-4 border-t border-gray-100">
+          <p class="text-center text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2.5">Portals</p>
+          <div class="flex items-center justify-center gap-2">
+            <a href="{{ url_for('vendor_login') }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-bold text-[11px] tracking-wide transition-colors">
+              <i class="fas fa-store text-[10px]"></i>
+              <span>Vendor</span>
+            </a>
+            <a href="{{ url_for('logistics_login') }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 font-bold text-[11px] tracking-wide transition-colors">
+              <i class="fas fa-motorcycle text-[10px]"></i>
+              <span>Logistics</span>
+            </a>
+            <a href="{{ url_for('admin_login') }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-50 text-slate-600 hover:bg-slate-100 font-bold text-[11px] tracking-wide transition-colors">
+              <i class="fas fa-shield-alt text-[10px]"></i>
+              <span>Admin</span>
+            </a>
+          </div>
         </div>
         </div>
       </div>
