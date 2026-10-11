@@ -9,59 +9,35 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   
   <style>
-    :root { --glass-bg: rgba(255, 255, 255, 0.7); }
-    body { font-family: 'Plus Jakarta Sans', sans-serif; -webkit-tap-highlight-color: transparent; scroll-behavior: smooth; }
-    
-    .glass-nav { 
-      background: var(--glass-bg); 
-      backdrop-filter: blur(20px) saturate(180%); 
-      -webkit-backdrop-filter: blur(20px) saturate(180%); 
+    body { 
+      font-family: 'Plus Jakarta Sans', sans-serif; 
+      -webkit-tap-highlight-color: transparent; 
+      scroll-behavior: smooth; 
+      background-color: #f1f3f6;
     }
     
-    .premium-shadow { box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.08); }
-    
-    .btn-premium { 
-      background: linear-gradient(135deg, #064e3b 0%, #059669 100%); 
-      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); 
-    }
-    .btn-premium:hover { transform: translateY(-2px); box-shadow: 0 10px 20px -5px rgba(5, 150, 105, 0.4); }
+    .page-fade-in { animation: fadeIn 0.3s ease-out forwards; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 
-    .page-fade-in { animation: fadeIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
-
-    .bg-blob { 
-      position: absolute; width: 500px; height: 500px; 
-      border-radius: 50%; z-index: -1; filter: blur(80px); 
-      animation: float 25s infinite alternate ease-in-out; 
-    }
-    @keyframes float { 
-      0% { transform: translate(-5%, -5%) scale(1); opacity: 0.6; } 
-      100% { transform: translate(15%, 15%) scale(1.1); opacity: 0.3; } 
-    }
-
-    /* Modern Scrollbar */
-    ::-webkit-scrollbar { width: 6px; }
+    /* Modern Flipkart Clean Scrollbar */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
     ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
-    ::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
+    ::-webkit-scrollbar-thumb { background: #c2c2c2; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #878787; }
   </style>
 </head>
 
-<body class="relative min-h-screen flex flex-col text-slate-900 bg-[#f8fafc] selection:bg-emerald-100 selection:text-emerald-900 overflow-x-hidden">
-
-  <div class="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
-    <div class="bg-blob top-[-150px] left-[-150px]" style="background: radial-gradient(circle, rgba(16, 185, 129, 0.15) 0%, transparent 70%);"></div>
-    <div class="bg-blob bottom-[-150px] right-[-150px]" style="animation-delay: -7s; background: radial-gradient(circle, rgba(56, 189, 248, 0.12) 0%, transparent 70%);"></div>
-  </div>
+<body class="relative min-h-screen flex flex-col text-[#212121] bg-[#f1f3f6] selection:bg-blue-100 selection:text-blue-900 overflow-x-hidden">
 
   {% block navbar %}
-  <nav class="sticky top-0 z-[60] bg-white/95 backdrop-blur-xl border-b border-slate-100 shadow-[0_4px_20px_-10px_rgba(0,0,0,0.05)]">
+  <!-- 🛍️ Flipkart Signature Blue Header (#2874f0) -->
+  <nav class="sticky top-0 z-[60] bg-[#2874f0] text-white shadow-md">
     <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
-      <div class="flex items-center justify-between h-14 sm:h-16">
+      <div class="flex items-center justify-between h-14 sm:h-15">
         
-        <!-- Left: Location Block -->
-        <a href="{{ url_for('index', force=1) }}" class="flex items-center gap-2.5 active:scale-95 transition-transform">
-          <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-[10px] overflow-hidden bg-slate-100 shrink-0 shadow-sm border border-slate-200/50">
+        <!-- Left: Location & Shop Block -->
+        <a href="{{ url_for('index', force=1) }}" class="flex items-center gap-2.5 active:scale-95 transition-transform text-white">
+          <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-sm overflow-hidden bg-white shrink-0 p-0.5 border border-white/20 shadow-2xs">
             {% if shop and shop.shop_image %}
               <img src="{{ shop.shop_image }}" alt="{{ shop.shop_name }}" class="w-full h-full object-cover">
             {% else %}
@@ -70,88 +46,83 @@
           </div>
           <div class="flex flex-col">
             <div class="flex items-center gap-1.5">
-              <span class="text-[14px] sm:text-[16px] font-extrabold text-slate-900 tracking-tight leading-none truncate max-w-[200px] sm:max-w-[300px] inline-block">
+              <span class="text-[13.5px] sm:text-[15px] font-bold text-white tracking-tight leading-none truncate max-w-[190px] sm:max-w-[300px] inline-block">
                 {{ (shop.shop_name or shop.name) if shop else session.get('user_address', "Jippy Delivery") }}
               </span>
-              <i class="fas fa-chevron-down text-[10px] text-emerald-600 mt-0.5"></i>
+              <i class="fas fa-chevron-down text-[9.5px] text-yellow-300 mt-0.5"></i>
             </div>
-            <span class="text-[10px] sm:text-[11px] font-bold text-slate-500 truncate w-[130px] sm:w-[200px] mt-0.5">Delivery in 10-15 mins</span>
+            <span class="text-[10px] sm:text-[11px] font-medium text-blue-100 truncate w-[130px] sm:w-[200px] mt-0.5">Delivery in 10-15 mins</span>
           </div>
         </a>
 
-        <!-- Right: Actions -->
-        <div class="flex items-center gap-2 sm:gap-4">
-          <!-- Desktop Basket (Hidden on Mobile) -->
-          <a href="{{ url_for('cart_page') }}" class="hidden md:flex relative items-center gap-2 bg-[#f8f9fa] hover:bg-slate-100 rounded-xl px-4 py-2 transition-all duration-300">
+        <!-- Right: Actions (Flipkart Style) -->
+        <div class="flex items-center gap-2 sm:gap-3">
+          <!-- Desktop Basket / Cart (Hidden on Mobile) -->
+          <a href="{{ url_for('cart_page') }}" class="hidden md:flex relative items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-sm px-3.5 py-1.5 transition-all text-white font-bold text-[12.5px] active:scale-95 shadow-2xs">
             <div class="relative">
-              <i class="fas fa-shopping-cart text-slate-700 group-hover:text-emerald-600 transition-colors text-lg"></i>
-              <span id="cart-count" class="absolute -top-4 -right-4 bg-slate-900 text-emerald-400 text-[10px] font-black px-2 py-0.5 rounded-full border-2 border-white scale-0 transition-transform duration-500">0</span>
+              <i class="fas fa-shopping-cart text-sm"></i>
+              <span id="cart-count" class="absolute -top-2.5 -right-2.5 bg-[#fb641b] text-white text-[9.5px] font-bold px-1.5 py-0.2 rounded-full border border-white scale-0 transition-transform duration-300">0</span>
             </div>
-            <span class="text-[11px] font-extrabold text-slate-800 tracking-wide">Basket</span>
+            <span>Cart</span>
           </a>
 
           {% if session.get('user_id') %}
+            <!-- User Menu -->
             <div class="relative user-menu">
-              <button onclick="toggleUserMenu()" class="flex items-center gap-2 bg-[#f8f9fa] border border-transparent rounded-xl p-1.5 pr-3 hover:border-slate-200 transition-all active:scale-95">
-                <div class="w-7 h-7 rounded-lg bg-emerald-600 flex items-center justify-center text-white text-xs font-black shadow-sm">
+              <button onclick="toggleUserMenu()" class="flex items-center gap-2 bg-white/15 hover:bg-white/25 border border-white/20 rounded-sm p-1.5 pr-2.5 transition-all active:scale-95">
+                <div class="w-6 h-6 rounded-xs bg-white text-[#2874f0] flex items-center justify-center font-bold text-xs shadow-2xs">
                   {{ session.get('user_name', 'U')[0] | upper }}
                 </div>
                 <div class="hidden sm:flex flex-col items-start text-left leading-none">
-                   <span class="text-[11px] font-extrabold text-slate-800 truncate max-w-[80px]">{{ session.get('user_name','User').split(' ')[0] }}</span>
+                   <span class="text-[11.5px] font-bold text-white truncate max-w-[85px]">{{ session.get('user_name','User').split(' ')[0] }}</span>
                 </div>
+                <i class="fas fa-chevron-down text-[8px] text-blue-200"></i>
               </button>
 
-              <div id="user-dropdown" class="hidden absolute right-0 mt-4 w-72 bg-white/95 border border-white rounded-[2rem] shadow-[0_30px_60px_-15px_rgba(0,0,0,0.15)] py-4 z-[70] overflow-hidden premium-shadow backdrop-blur-2xl">
-                <div class="px-6 py-4 border-b border-slate-50 mb-2">
-                  <p class="text-[9px] text-emerald-600 uppercase font-black tracking-[0.2em] mb-1">Premium Member</p>
-                  <p class="text-base font-extrabold truncate text-slate-900">{{ session.get('user_name') }}</p>
+              <!-- Flipkart Style Clean White Dropdown -->
+              <div id="user-dropdown" class="hidden absolute right-0 mt-2 w-64 bg-white border border-[#e0e0e0] rounded-sm shadow-xl py-1 z-[70] overflow-hidden text-[#212121]">
+                <div class="px-4 py-3 bg-[#f8f9fa] border-b border-[#f0f0f0]">
+                  <p class="text-[9.5px] text-[#2874f0] uppercase font-bold tracking-wider mb-0.5">Welcome</p>
+                  <p class="text-[14px] font-bold truncate text-[#212121]">{{ session.get('user_name') }}</p>
+                  {% if session.get('user_phone') %}
+                  <p class="text-[11px] text-[#878787] font-medium">{{ session.get('user_phone') }}</p>
+                  {% endif %}
                 </div>
                 
-                <div class="px-3 space-y-1">
-                  <a href="{{ url_for('my_orders') }}" class="flex items-center gap-4 px-4 py-3 rounded-2xl text-sm font-bold text-slate-600 hover:bg-emerald-50 hover:text-emerald-700 transition-all group">
-                    <div class="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-white group-hover:text-emerald-500 transition-all">
-                      <i class="fas fa-box-open"></i>
-                    </div>
-                    My Orders
+                <div class="py-1">
+                  <a href="{{ url_for('my_orders') }}" class="flex items-center gap-3 px-4 py-2.5 text-[13px] font-medium text-[#212121] hover:bg-blue-50 hover:text-[#2874f0] transition-colors">
+                    <i class="fas fa-box-open w-4 text-[#878787]"></i>
+                    <span>My Orders</span>
                   </a>
-                  <a href="{{ url_for('my_profile') }}" class="flex items-center gap-4 px-4 py-3 rounded-2xl text-sm font-bold text-slate-600 hover:bg-blue-50 hover:text-blue-700 transition-all group">
-                    <div class="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-white group-hover:text-blue-500 transition-all">
-                      <i class="fas fa-user-circle"></i>
-                    </div>
-                    Account Profile
+                  <a href="{{ url_for('my_profile') }}" class="flex items-center gap-3 px-4 py-2.5 text-[13px] font-medium text-[#212121] hover:bg-blue-50 hover:text-[#2874f0] transition-colors">
+                    <i class="fas fa-user-circle w-4 text-[#878787]"></i>
+                    <span>Account Profile</span>
                   </a>
-                  <a href="/support" class="flex items-center gap-4 px-4 py-3 rounded-2xl text-sm font-bold text-slate-600 hover:bg-amber-50 hover:text-amber-700 transition-all group">
-                    <div class="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-white group-hover:text-amber-500 transition-all">
-                      <i class="fas fa-headset"></i>
-                    </div>
-                    Customer Support
+                  <a href="/support" class="flex items-center gap-3 px-4 py-2.5 text-[13px] font-medium text-[#212121] hover:bg-blue-50 hover:text-[#2874f0] transition-colors">
+                    <i class="fas fa-headset w-4 text-[#878787]"></i>
+                    <span>Customer Support</span>
                   </a>
-                  <a href="{{ url_for('societies_page') }}" class="flex items-center gap-4 px-4 py-3 rounded-2xl text-sm font-bold text-slate-600 hover:bg-emerald-50 hover:text-emerald-700 transition-all group">
-                    <div class="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-white group-hover:text-emerald-500 transition-all">
-                      <i class="fas fa-building"></i>
-                    </div>
-                    Change Society
+                  <a href="{{ url_for('societies_page') }}" class="flex items-center gap-3 px-4 py-2.5 text-[13px] font-medium text-[#212121] hover:bg-blue-50 hover:text-[#2874f0] transition-colors">
+                    <i class="fas fa-building w-4 text-[#878787]"></i>
+                    <span>Change Society</span>
                   </a>
-                  <a href="{{ url_for('privacy') }}" class="flex items-center gap-4 px-4 py-3 rounded-2xl text-sm font-bold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all group">
-                    <div class="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-white group-hover:text-slate-600 transition-all">
-                      <i class="fas fa-fingerprint"></i>
-                    </div>
-                    Privacy Policy
+                  <a href="{{ url_for('privacy') }}" class="flex items-center gap-3 px-4 py-2.5 text-[13px] font-medium text-[#212121] hover:bg-blue-50 hover:text-[#2874f0] transition-colors">
+                    <i class="fas fa-shield-alt w-4 text-[#878787]"></i>
+                    <span>Privacy Policy</span>
                   </a>
                 </div>
 
-                <div class="mt-4 pt-2 px-3 border-t border-slate-50">
-                  <a href="{{ url_for('logout') }}" class="flex items-center gap-4 px-4 py-3 rounded-2xl text-sm font-bold text-rose-500 hover:bg-rose-50 transition-all group">
-                    <div class="w-10 h-10 rounded-xl bg-rose-50 flex items-center justify-center text-rose-400 group-hover:bg-white group-hover:text-rose-600 transition-all">
-                      <i class="fas fa-power-off"></i>
-                    </div>
-                    Sign Out
+                <div class="border-t border-[#f0f0f0] pt-1 mt-1">
+                  <a href="{{ url_for('logout') }}" class="flex items-center gap-3 px-4 py-2 text-[13px] font-bold text-rose-600 hover:bg-rose-50 transition-colors">
+                    <i class="fas fa-power-off w-4 text-rose-500"></i>
+                    <span>Sign Out</span>
                   </a>
                 </div>
               </div>
             </div>
           {% else %}
-            <a href="{{ url_for('login') }}" class="btn-premium text-white text-[11px] font-extrabold px-5 py-2.5 rounded-xl shadow-sm flex items-center gap-2 tracking-wide">
+            <!-- Flipkart Style White Login Button on Blue Header -->
+            <a href="{{ url_for('login') }}" class="bg-white hover:bg-blue-50 active:scale-95 text-[#2874f0] text-[12px] font-bold px-4 sm:px-5 py-1.5 rounded-sm shadow-xs flex items-center gap-1.5 uppercase tracking-wide transition-all">
               <span>Login</span>
             </a>
           {% endif %}
@@ -162,50 +133,61 @@
   {% endblock %}
 
   {% block full_content %}
-  <main class="flex-1 max-w-7xl mx-auto w-full px-1 sm:px-6 lg:px-8 py-4 sm:py-10 mb-0 page-fade-in">
+  <main class="flex-1 max-w-7xl mx-auto w-full px-1.5 sm:px-6 lg:px-8 py-3 sm:py-6 mb-0 page-fade-in">
     {% block content %}{% endblock %}
   </main>
   {% endblock %}
 
-  <!-- Mobile Bottom Navigation (Floating Zepto Style) -->
+  <!-- 📱 Mobile Bottom Navigation (Flipkart Style Attached Bottom Bar) -->
   {% block mobile_nav %}
-  <div class="fixed bottom-6 sm:bottom-8 left-0 right-0 z-50 flex justify-center lg:hidden pointer-events-none pb-[env(safe-area-inset-bottom)]">
-    <div class="pointer-events-auto w-[95%] max-w-md mx-auto bg-white/95 backdrop-blur-xl border border-slate-100 rounded-[2rem] shadow-[0_10px_40px_-10px_rgba(0,0,0,0.2)]">
-      <div class="flex items-center justify-around py-2 px-1.5">
+  <div class="fixed bottom-0 left-0 right-0 z-50 lg:hidden bg-white border-t border-[#e0e0e0] shadow-[0_-2px_10px_rgba(0,0,0,0.06)] pb-[env(safe-area-inset-bottom)]">
+    <div class="flex items-center justify-around py-1.5 px-1 max-w-md mx-auto">
       {% set home_target = url_for('shop_home', shop_id=session.get('current_shop_id')) if session.get('current_shop_id') else (url_for('society_shops', society_id=session.get('current_society_id')) if session.get('current_society_id') else url_for('index')) %}
-      <a href="{{ home_target }}" class="flex flex-col items-center gap-0.5 min-w-[54px] transition-colors {{ 'text-emerald-600' if request.endpoint in ['index', 'shop_home'] else 'text-slate-400 hover:text-emerald-600' }}">
-        <i class="fas fa-store text-lg sm:text-xl"></i>
-        <span class="text-[9px] font-black tracking-wide">HOME</span>
+      
+      <!-- Home -->
+      <a href="{{ home_target }}" class="flex flex-col items-center gap-0.5 min-w-[54px] py-1 transition-colors {{ 'text-[#2874f0]' if request.endpoint in ['index', 'shop_home'] else 'text-[#878787] hover:text-[#2874f0]' }}">
+        <i class="fas fa-store text-base"></i>
+        <span class="text-[9.5px] font-bold tracking-tight">Home</span>
       </a>
-      <a href="{{ url_for('category_page', name='categories') }}" class="flex flex-col items-center gap-0.5 min-w-[54px] transition-colors {{ 'text-emerald-600' if request.endpoint == 'category_page' else 'text-slate-400 hover:text-emerald-600' }}">
-        <i class="fas fa-border-all text-lg sm:text-xl"></i>
-        <span class="text-[9px] font-black tracking-wide">CATEGORIES</span>
+
+      <!-- Categories -->
+      <a href="{{ url_for('category_page', name='categories') }}" class="flex flex-col items-center gap-0.5 min-w-[54px] py-1 transition-colors {{ 'text-[#2874f0]' if request.endpoint == 'category_page' else 'text-[#878787] hover:text-[#2874f0]' }}">
+        <i class="fas fa-border-all text-base"></i>
+        <span class="text-[9.5px] font-bold tracking-tight">Categories</span>
       </a>
-      <a href="{{ url_for('my_orders') }}" class="flex flex-col items-center gap-0.5 min-w-[54px] transition-colors {{ 'text-emerald-600' if request.endpoint in ['my_orders', 'order_confirmation'] else 'text-slate-400 hover:text-emerald-600' }}">
-        <i class="fas fa-box-open text-lg sm:text-xl"></i>
-        <span class="text-[9px] font-black tracking-wide">ORDERS</span>
+
+      <!-- Orders -->
+      <a href="{{ url_for('my_orders') }}" class="flex flex-col items-center gap-0.5 min-w-[54px] py-1 transition-colors {{ 'text-[#2874f0]' if request.endpoint in ['my_orders', 'order_detail', 'order_confirmation'] else 'text-[#878787] hover:text-[#2874f0]' }}">
+        <i class="fas fa-box-open text-base"></i>
+        <span class="text-[9.5px] font-bold tracking-tight">Orders</span>
       </a>
-      <a href="{{ url_for('societies_page') }}" class="flex flex-col items-center gap-0.5 min-w-[54px] transition-colors {{ 'text-emerald-600' if request.endpoint in ['societies_page', 'society_shops'] else 'text-slate-400 hover:text-emerald-600' }}">
-        <i class="fas fa-building text-lg sm:text-xl"></i>
-        <span class="text-[9px] font-black tracking-wide">SOCIETY</span>
+
+      <!-- Society -->
+      <a href="{{ url_for('societies_page') }}" class="flex flex-col items-center gap-0.5 min-w-[54px] py-1 transition-colors {{ 'text-[#2874f0]' if request.endpoint in ['societies_page', 'society_shops'] else 'text-[#878787] hover:text-[#2874f0]' }}">
+        <i class="fas fa-building text-base"></i>
+        <span class="text-[9.5px] font-bold tracking-tight">Society</span>
       </a>
-      <a href="{{ url_for('cart_page') }}" class="flex flex-col items-center gap-0.5 min-w-[54px] transition-colors relative {{ 'text-emerald-600' if request.endpoint == 'cart_page' else 'text-slate-400 hover:text-emerald-600' }}">
-        <i class="fas fa-shopping-bag text-lg sm:text-xl"></i>
-        <span class="text-[9px] font-black tracking-wide">CART</span>
-        <span class="mobile-badge absolute -top-1.5 right-1 bg-rose-500 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center scale-0 transition-transform duration-300">0</span>
+
+      <!-- Cart -->
+      <a href="{{ url_for('cart_page') }}" class="flex flex-col items-center gap-0.5 min-w-[54px] py-1 transition-colors relative {{ 'text-[#2874f0]' if request.endpoint == 'cart_page' else 'text-[#878787] hover:text-[#2874f0]' }}">
+        <i class="fas fa-shopping-cart text-base"></i>
+        <span class="text-[9.5px] font-bold tracking-tight">Cart</span>
+        <span class="mobile-badge absolute top-0.5 right-2 bg-[#fb641b] text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center scale-0 transition-transform duration-300">0</span>
       </a>
     </div>
   </div>
-</div>
   {% endblock %}
 
   {% block footer %}
-  <footer class="w-full bg-transparent py-8 pb-28 lg:pb-8 mb-0">
-    <div class="max-w-7xl mx-auto px-6 flex flex-col items-center gap-4">
-      <div class="flex items-center gap-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
-        <a href="{{ url_for('privacy') }}" class="hover:text-slate-900 transition-colors">Privacy</a>
+  <!-- 🛡️ Flipkart Style Footer -->
+  <footer class="w-full bg-white border-t border-[#e0e0e0] py-6 pb-20 lg:pb-6 mt-auto">
+    <div class="max-w-7xl mx-auto px-4 flex flex-col items-center gap-2.5">
+      <div class="flex items-center gap-5 text-[11.5px] font-semibold text-[#878787]">
+        <a href="{{ url_for('privacy') }}" class="hover:text-[#2874f0] transition-colors">Privacy Policy</a>
+        <span class="text-[#e0e0e0]">•</span>
+        <a href="/support" class="hover:text-[#2874f0] transition-colors">Help & Support</a>
       </div>
-      <p class="text-[10px] font-bold text-slate-300 tracking-tighter uppercase">Jippy Systems © 2026. All rights reserved.</p>
+      <p class="text-[11px] font-medium text-[#878787]">Jippy Store © 2026. All rights reserved.</p>
     </div>
   </footer>
   {% endblock %}
