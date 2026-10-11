@@ -1,89 +1,112 @@
 {% extends "base.html" %}
 {% block full_content %}
-<div id="main-location-container" class="relative min-h-[100dvh] w-full bg-slate-50 flex flex-col font-['Plus_Jakarta_Sans'] overflow-y-auto overflow-x-hidden antialiased" style="padding-top: max(env(safe-area-inset-top, 0px), 16px); padding-bottom: max(env(safe-area-inset-bottom, 0px), 16px);">
+<!-- 🛍️ Flipkart Style Container & Background (#f1f3f6) -->
+<div id="main-location-container" class="min-h-[100dvh] w-full bg-[#f1f3f6] flex flex-col font-['Plus_Jakarta_Sans'] overflow-y-auto antialiased">
 
-  <!-- Map Background Simulation -->
-  <div class="absolute inset-0 z-0 pointer-events-none">
-    <div class="absolute inset-0 opacity-40" style="background-image: radial-gradient(circle at 2px 2px, #10b981 1.5px, transparent 0); background-size: 32px 32px;"></div>
-    <div class="absolute inset-0 bg-gradient-to-b from-emerald-100/60 via-slate-50/20 to-slate-100"></div>
-  </div>
+  <!-- 🛍️ Flipkart Signature Royal Blue Header (#2874f0) -->
+  <header class="sticky top-0 z-50 bg-[#2874f0] text-white px-3.5 sm:px-6 py-3 flex items-center justify-between shadow-md">
+    <div class="flex items-center gap-3 max-w-[540px] mx-auto w-full">
+      <a href="{{ url_for('index') }}" class="w-8 h-8 flex items-center justify-center text-white hover:bg-white/15 rounded-full transition-all" title="Back to Home">
+        <i class="fas fa-arrow-left text-sm"></i>
+      </a>
+      <div class="min-w-0 flex-1">
+        <h1 class="text-[15px] sm:text-[16px] font-bold text-white leading-tight truncate">Select Delivery Location</h1>
+        <p class="text-[10.5px] text-blue-100 font-medium truncate">Jippy Instant Grocery Delivery</p>
+      </div>
+      <div class="flex items-center gap-1.5 px-2 py-0.5 bg-white/15 rounded-sm text-[10px] font-bold text-white shrink-0 uppercase tracking-wide">
+        <i class="fas fa-bolt text-yellow-300"></i>
+        <span>10 Mins</span>
+      </div>
+    </div>
+  </header>
 
-  <!-- Top Content (Safe from Keyboard) -->
-  <div class="relative z-20 w-full px-4 sm:px-6 pt-4 flex-none">
-    <div class="w-full max-w-[460px] mx-auto bg-white rounded-[2.25rem] shadow-[0_20px_60px_rgba(0,0,0,0.12)] border border-slate-100 overflow-hidden">
+  <!-- Main Card Container -->
+  <div class="flex-1 flex flex-col items-center justify-start sm:justify-center p-2.5 sm:p-6 py-4 sm:py-10">
+    <div class="w-full max-w-[540px] bg-white rounded-none sm:rounded-sm border border-[#e0e0e0] shadow-xs overflow-hidden">
       
-      <div class="px-6 sm:px-8 pt-6 md:pt-7 pb-7 relative">
-        <!-- Header -->
-        <div class="text-left mb-6">
+      <div class="p-4 sm:p-6 space-y-5">
+        <!-- Title & Subtitle -->
+        <div class="border-b border-[#f0f0f0] pb-3">
           <div class="flex items-center gap-2">
-            <h2 class="text-2xl font-black text-slate-900 tracking-tight">Select Location</h2>
-            <span class="text-xs bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-md">Fastest</span>
+            <h2 class="text-[18px] sm:text-[20px] font-bold text-[#212121] tracking-tight">Choose Your Location</h2>
+            <span class="text-[10.5px] font-bold text-[#388e3c] bg-green-50 px-2 py-0.5 rounded-sm border border-green-200 uppercase tracking-wide">
+              Fastest Delivery
+            </span>
           </div>
-          <p class="mt-1.5 text-xs text-slate-500 font-medium">To see available products and delivery speeds near you</p>
+          <p class="text-[12px] text-[#878787] font-medium mt-1 leading-snug">
+            Select your address or area to check live stores, stock and 10-minute delivery speeds.
+          </p>
         </div>
 
-        <!-- Loading State -->
-        <div id="loading-state" class="hidden flex-col items-center justify-center py-6 space-y-3">
-          <div class="relative w-12 h-12 flex items-center justify-center">
-            <div class="absolute inset-0 border-4 border-emerald-100 rounded-full"></div>
-            <div class="absolute inset-0 border-4 border-emerald-500 rounded-full border-t-transparent animate-spin"></div>
-            <i class="fas fa-location-crosshairs text-emerald-600 text-xs"></i>
-          </div>
-          <p id="loading-text" class="text-xs font-bold text-slate-600 tracking-wide">Automatically detecting location...</p>
-          <button type="button" onclick="cancelDetection()" class="mt-2 text-xs font-bold text-slate-400 hover:text-slate-600 underline underline-offset-2 transition-colors">Enter manually instead</button>
+        <!-- Loading State (Flipkart Blue Spinner) -->
+        <div id="loading-state" class="hidden flex-col items-center justify-center py-7 space-y-3">
+          <div class="w-10 h-10 border-3 border-blue-100 border-t-[#2874f0] rounded-full animate-spin"></div>
+          <p id="loading-text" class="text-[13px] font-bold text-[#212121] tracking-wide">Automatically detecting location...</p>
+          <button type="button" onclick="cancelDetection()" class="text-[11.5px] font-bold text-[#2874f0] hover:underline cursor-pointer">
+            Enter manually instead
+          </button>
         </div>
 
         <!-- Actions Container -->
-        <div id="actions-container" class="space-y-5">
-          <!-- Primary Action Button -->
-          <button id="fetch-location-btn" type="button"
-            class="w-full h-15 py-4 bg-emerald-500 hover:bg-emerald-600 active:scale-[0.98] text-white font-extrabold rounded-2xl flex items-center justify-center gap-2.5 shadow-lg shadow-emerald-500/25 transition-all text-sm sm:text-base">
-            <i id="fetch-icon" class="fas fa-crosshairs text-lg"></i>
-            <span id="fetch-text">Use Current Location</span>
+        <div id="actions-container" class="space-y-4">
+          <!-- Primary Action Button: Flipkart Signature Orange (#fb641b) -->
+          <button
+            id="fetch-location-btn"
+            type="button"
+            class="w-full h-12 bg-[#fb641b] hover:bg-[#e85a15] active:scale-[0.98] text-white font-bold text-[14px] uppercase tracking-wider rounded-sm shadow-xs transition-all flex items-center justify-center gap-2.5 cursor-pointer"
+          >
+            <i id="fetch-icon" class="fas fa-crosshairs text-base"></i>
+            <span id="fetch-text">USE CURRENT LOCATION</span>
           </button>
 
-          <!-- Divider -->
-          <div class="flex items-center gap-3 py-1">
-            <div class="h-[1px] bg-slate-100 flex-1"></div>
-            <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">or search manually</span>
-            <div class="h-[1px] bg-slate-100 flex-1"></div>
+          <!-- Flipkart Style Or Divider -->
+          <div class="flex items-center gap-3 py-0.5">
+            <div class="h-px bg-[#e0e0e0] flex-1"></div>
+            <span class="text-[10.5px] font-bold text-[#878787] uppercase tracking-wider">or search manually</span>
+            <div class="h-px bg-[#e0e0e0] flex-1"></div>
           </div>
 
           <!-- Fixed Search Form -->
-          <form id="search-location-form" class="relative">
-            <div class="relative flex items-center w-full">
-              <div class="absolute left-4 top-1/2 -translate-y-1/2 flex items-center pointer-events-none text-slate-400">
-                <i class="fas fa-magnifying-glass text-base"></i>
+          <form id="search-location-form" class="space-y-1">
+            <label for="search-location-input" class="block text-[11px] font-bold uppercase tracking-wider text-[#878787]">
+              Search Area / Society / Street
+            </label>
+            <div class="relative flex items-center w-full border border-[#c2c2c2] focus-within:border-[#2874f0] focus-within:ring-1 focus-within:ring-[#2874f0] rounded-sm transition-all overflow-hidden bg-white h-12">
+              <div class="pl-3.5 pr-2 flex items-center pointer-events-none text-[#878787]">
+                <i class="fas fa-magnifying-glass text-sm"></i>
               </div>
-              <input type="text" id="search-location-input" placeholder="Search area, street, or pincode..."
-                class="w-full pl-12 pr-24 h-16 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-900 placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all">
-              <button type="submit"
-                class="absolute right-2 top-1/2 -translate-y-1/2 bg-slate-900 hover:bg-slate-800 text-white px-4 h-12 rounded-xl text-xs font-extrabold transition-all active:scale-95 shadow-md">
+              <input
+                type="text"
+                id="search-location-input"
+                placeholder="Search area, street, society or pincode..."
+                class="w-full h-full px-2 text-[#212121] text-[13.5px] font-bold border-none outline-none focus:outline-none focus:ring-0 placeholder:text-[#878787] placeholder:font-normal"
+              />
+              <button
+                type="submit"
+                class="h-full px-4 bg-[#2874f0] hover:bg-blue-600 active:scale-[0.98] text-white text-[12px] font-bold uppercase tracking-wider transition-all shrink-0 cursor-pointer flex items-center justify-center"
+              >
                 Search
               </button>
             </div>
           </form>
         </div>
+
+        <!-- Flipkart Trust & Express Delivery Banner -->
+        <div class="pt-3 border-t border-[#f0f0f0] flex items-center justify-between text-[#878787] text-[11px] font-medium">
+          <div class="flex items-center gap-1.5 text-[#388e3c] font-bold">
+            <i class="fas fa-shield-halved"></i>
+            <span>100% Safe Delivery</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <i class="fas fa-clock text-amber-500"></i>
+            <span>Instant Dispatch in 10-15 Mins</span>
+          </div>
+        </div>
+
       </div>
     </div>
   </div>
 
-  <!-- Map Pin Decorative Graphic (Sits below card, covered by keyboard naturally) -->
-  <div class="relative z-10 flex-1 flex flex-col items-center justify-center mt-8 pb-16">
-    <div class="mb-5 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-900 text-white shadow-xl shadow-slate-900/10 border border-slate-800">
-      <div class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></div>
-      <i class="fas fa-bolt text-amber-400 text-xs"></i>
-      <span class="text-xs font-extrabold tracking-wide uppercase">Delivering in <span class="text-emerald-400">10 Mins</span></span>
-    </div>
-    <div class="relative flex items-center justify-center">
-      <div class="absolute w-36 h-36 bg-emerald-500/20 rounded-full animate-ping pointer-events-none" style="animation-duration: 3s;"></div>
-      <div class="absolute w-24 h-24 bg-emerald-500/25 rounded-full blur-sm"></div>
-      <div class="relative w-16 h-16 bg-emerald-500 rounded-2xl shadow-[0_15px_30px_rgba(16,185,129,0.4)] flex items-center justify-center border-4 border-white transform transition-transform duration-300 hover:scale-105 cursor-pointer">
-        <i class="fas fa-location-dot text-2xl text-white"></i>
-      </div>
-    </div>
-    <div class="w-10 h-2 bg-slate-900/10 rounded-[100%] blur-[2px] mt-2"></div>
-  </div>
 </div>
 
 <script>
@@ -141,7 +164,6 @@
         }
       },
       (err) => {
-        // Handle error silently if auto-detect fails, or alert if manually clicked
         if (!isAuto) {
           let errorMsg = "Could not get location. Please enable location services.";
           if (err.code === 1) errorMsg = "Location access denied. Please allow access in browser settings or search manually.";
@@ -170,7 +192,7 @@
   searchInput.addEventListener('focus', () => {
     setTimeout(() => {
       searchForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, 400); // delay allows virtual keyboard to fully open before scrolling
+    }, 400);
   });
 
   // WebView Keyboard Fix: Force container height to match visual viewport
@@ -184,12 +206,6 @@
     }
     window.visualViewport.addEventListener('resize', updateHeight);
     updateHeight();
-  }
-
-  // Quick Chip Selector
-  function selectQuickLocation(label) {
-    searchInput.value = label;
-    searchInput.focus();
   }
 
   // Track if geolocation is currently running so we can cancel
@@ -207,7 +223,6 @@
   // Cancel auto-detection (called from loading cancel button)
   function cancelDetection() {
     isDetecting = false;
-    // Mark that user cancelled, don't auto-fetch again
     sessionStorage.setItem('location_auto_tried', 'true');
     resetUI();
   }
@@ -216,12 +231,11 @@
   window.addEventListener('DOMContentLoaded', () => {
     const alreadyTried = sessionStorage.getItem('location_auto_tried');
     if (!alreadyTried) {
-      // First visit — try auto-detect once
       sessionStorage.setItem('location_auto_tried', 'true');
       detectLocation(true);
     }
-    // If already tried (back button / revisit), show manual controls directly
   });
+
   // Handle back button caching (bfcache)
   window.addEventListener('pageshow', function(event) {
     if (event.persisted) {
