@@ -114,7 +114,22 @@
         </button>
       </form>
 
-      <div class="mt-8 text-center border-t border-slate-100 pt-6 sm:mt-8">
+      <div class="mt-6 flex items-center justify-between text-xs text-slate-500 pt-4 border-t border-slate-100">
+        <a href="{{ url_for('index') }}" class="hover:text-emerald-700 font-bold flex items-center gap-1.5 text-slate-700 transition-colors">
+          <i class="fas fa-house text-emerald-600 text-xs"></i> Home Store
+        </a>
+        <a href="{{ url_for('login') }}" class="hover:text-emerald-700 font-bold flex items-center gap-1.5 text-emerald-700 transition-colors">
+          <i class="fas fa-user text-xs"></i> Customer Login
+        </a>
+      </div>
+
+      <div class="mt-3 flex items-center justify-center gap-3 text-[11px] text-slate-400">
+        <a href="{{ url_for('vendor_login') }}" class="hover:text-slate-600 font-semibold transition-colors">Vendor Portal</a>
+        <span class="w-1 h-1 bg-slate-300 rounded-full"></span>
+        <a href="{{ url_for('logistics_login') }}" class="hover:text-slate-600 font-semibold transition-colors">Logistics Portal</a>
+      </div>
+
+      <div class="mt-5 text-center border-t border-slate-100 pt-4">
         <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center justify-center gap-2">
             <i class="fas fa-lock text-emerald-600"></i> Encrypted Session
         </p>
