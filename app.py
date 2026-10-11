@@ -263,12 +263,6 @@ def category_page(name):
         # Step 1: Clean the name
         original_category = clean_cat_name(name)
         
-        # Step 2: Database Query (Cached)
-        items = get_cached_category_items(original_category)
-        
-        items = list(items)  # Copy to avoid mutating the cached list
-        random.shuffle(items)
-        
         # Categories fetch (Cached)
         categories = get_cached_categories()
         
@@ -276,7 +270,23 @@ def category_page(name):
         shop = None
         shop_id = session.get("current_shop_id")
         if shop_id:
-            shop = users.find_one({"_id": ObjectId(shop_id), "role": "vendor"})
+            try:
+                shop = users.find_one({"_id": ObjectId(shop_id), "role": "vendor"})
+            except Exception:
+                shop = None
+
+        # If user selected 'categories' or 'all', display categories overview
+        if original_category.lower() in ["categories", "all"]:
+            return render_template("products.html",
+                                 page_type="categories",
+                                 categories=categories,
+                                 shop=shop)
+
+        # Step 2: Database Query (Cached)
+        items = get_cached_category_items(original_category)
+        
+        items = list(items)  # Copy to avoid mutating the cached list
+        random.shuffle(items)
 
         print(f"✅ VERCEL FIX: Category='{original_category}', Found {len(items)} items")
 
@@ -294,9 +304,38 @@ def category_page(name):
 @app.route("/")
 def index():
     force = request.args.get("force")
-    if not force and session.get("user_lat") and session.get("user_lng"):
+    if force:
+        session.pop("current_shop_id", None)
+        session.pop("current_society_id", None)
+        session.pop("current_shop_name", None)
+        session.pop("current_society_name", None)
+        return render_template("location.html")
+
+    # 1. If user is already inside a store/shop, stay in their store home!
+    shop_id = session.get("current_shop_id")
+    if shop_id:
+        try:
+            shop = users.find_one({"_id": ObjectId(shop_id), "role": "vendor"})
+            if shop:
+                return redirect(url_for("shop_home", shop_id=str(shop_id)))
+        except Exception:
+            pass
+
+    # 2. If user already chose a society, show that society's shops
+    society_id = session.get("current_society_id")
+    if society_id:
+        try:
+            society = societies.find_one({"_id": ObjectId(society_id)})
+            if society:
+                return redirect(url_for("society_shops", society_id=str(society_id)))
+        except Exception:
+            pass
+
+    # 3. If user has location coordinates, show nearby societies
+    if session.get("user_lat") and session.get("user_lng"):
         return redirect(url_for("societies_page"))
-    # Show the location fetcher page
+
+    # 4. Otherwise, show location fetcher page
     return render_template("location.html")
 
 @app.route("/set-location", methods=["POST"])
@@ -305,6 +344,10 @@ def set_location():
     session["user_lat"] = data.get("lat")
     session["user_lng"] = data.get("lng")
     session["user_address"] = data.get("address")
+    session.pop("current_society_id", None)
+    session.pop("current_society_name", None)
+    session.pop("current_shop_id", None)
+    session.pop("current_shop_name", None)
     return jsonify({"status": "success"})
 
 @app.route("/societies")
@@ -364,19 +407,31 @@ def societies_page():
 
 @app.route("/society/<society_id>/shops")
 def society_shops(society_id):
-    # Find society
-    society = societies.find_one({"_id": ObjectId(society_id)})
-    if not society:
-        return "Society not found", 404
+    try:
+        # Find society
+        society = societies.find_one({"_id": ObjectId(society_id)})
+        if not society:
+            return "Society not found", 404
+            
+        session["current_society_id"] = str(society_id)
+        session["current_society_name"] = society.get("name")
+            
+        # Find vendors that serve this society
+        # Vendors should have society_id string in their serviceable_societies list
+        shops = list(users.find({
+            "role": "vendor",
+            "serviceable_societies": str(society_id)
+        }))
         
-    # Find vendors that serve this society
-    # Vendors should have society_id string in their serviceable_societies list
-    shops = list(users.find({
-        "role": "vendor",
-        "serviceable_societies": str(society_id)
-    }))
-    
-    return render_template("shops.html", society=society, shops=shops)
+        current_shop_id = session.get("current_shop_id")
+        if current_shop_id and not any(str(s["_id"]) == str(current_shop_id) for s in shops):
+            session.pop("current_shop_id", None)
+            session.pop("current_shop_name", None)
+
+        return render_template("shops.html", society=society, shops=shops)
+    except Exception as e:
+        print(f"Error in society_shops: {e}")
+        return redirect(url_for("societies_page"))
 
 @app.route("/shop/<shop_id>")
 def shop_home(shop_id):
@@ -386,7 +441,7 @@ def shop_home(shop_id):
         if not shop:
             return "Shop not found", 404
             
-        session["current_shop_id"] = shop_id
+        session["current_shop_id"] = str(shop_id)
         session["current_shop_name"] = shop.get("shop_name", "Local Shop")
         
         categories = get_cached_categories()
