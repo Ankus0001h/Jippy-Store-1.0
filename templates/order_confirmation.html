@@ -206,11 +206,19 @@
             <p class="font-bold text-[#212121]">{{ addr.line1 or '' }}</p>
             {% if addr.line2 %}<p class="text-[#878787]">{{ addr.line2 }}</p>{% endif %}
             <p class="text-[#878787]">{{ addr.city or '' }}{% if addr.pincode %} - {{ addr.pincode }}{% endif %}</p>
-            {% if addr.alt_phone %}
-            <p class="text-[11px] text-[#878787] mt-1"><i class="fas fa-phone-alt text-[9px] mr-1"></i> Alternate: {{ addr.alt_phone }}</p>
-            {% endif %}
+            <div class="mt-2 pt-1.5 border-t border-[#f0f0f0] flex flex-wrap items-center gap-x-3 gap-y-1 text-[11.5px] text-[#878787]">
+              {% if order.get('user_phone') or order.user_phone %}
+              <p><i class="fas fa-phone text-[9px] mr-1 text-[#2874f0]"></i> Phone: <b class="text-[#212121] font-semibold">{{ order.get('user_phone') or order.user_phone }}</b></p>
+              {% endif %}
+              {% if addr.alt_phone %}
+              <p><i class="fas fa-phone-alt text-[9px] mr-1 text-slate-400"></i> Alternate: <span class="text-[#212121] font-medium">{{ addr.alt_phone }}</span></p>
+              {% endif %}
+            </div>
           {% else %}
             <p class="font-bold text-[#212121]">{{ addr }}</p>
+            {% if order.get('user_phone') or order.user_phone %}
+            <p class="text-[11.5px] text-[#878787] mt-1.5 pt-1.5 border-t border-[#f0f0f0]"><i class="fas fa-phone text-[9px] mr-1 text-[#2874f0]"></i> Phone: <b class="text-[#212121] font-semibold">{{ order.get('user_phone') or order.user_phone }}</b></p>
+            {% endif %}
           {% endif %}
         </div>
       </div>
