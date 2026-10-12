@@ -1,200 +1,767 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>jippy_invoice_{{ order.order_id[-6:] }}</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>jippy_invoice_{{ (order.order_id|string)[-6:] if order.order_id else 'INV' }}</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
-        
-        :root {
-            --primary-color: #10b981; /* Emerald 500 */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
 
-        body { 
-            font-family: 'Plus Jakarta Sans', sans-serif; 
-            background-color: #f1f5f9; 
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #f1f3f6;
+            color: #212121;
             -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
         }
 
-        /* A4 Page Formatting */
         @page {
             size: A4;
             margin: 0;
         }
 
         @media print {
-            .no-print { display: none !important; }
-            body { background-color: white !important; padding: 0 !important; }
-            .invoice-container { 
-                box-shadow: none !important; 
-                border: none !important; 
-                width: 210mm; /* A4 Width */
-                height: 297mm; /* A4 Height */
-                margin: 0 !important; 
+            .no-print {
+                display: none !important;
+            }
+
+            body {
+                background: white !important;
+                padding: 0 !important;
+            }
+
+            .invoice-page {
+                box-shadow: none !important;
+                margin: 0 !important;
                 border-radius: 0 !important;
             }
         }
 
-        .invoice-container {
-            width: 210mm;
-            min-height: 297mm;
-            margin: 0 auto;
-            background: white;
+        /* ── Toolbar ── */
+        .toolbar {
+            max-width: 800px;
+            margin: 20px auto 16px;
+            padding: 0 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
-        .dotted-divider { border-top: 2px dashed #e2e8f0; }
+        .toolbar a {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #878787;
+            font-weight: 700;
+            font-size: 13px;
+            text-decoration: none;
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            padding: 8px 16px;
+            border-radius: 4px;
+            transition: all 0.15s;
+        }
+
+        .toolbar a:hover {
+            color: #212121;
+            border-color: #212121;
+        }
+
+        .toolbar button {
+            background: #2874f0;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            padding: 10px 24px;
+            border-radius: 4px;
+            font-weight: 700;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: background 0.15s;
+        }
+
+        .toolbar button:hover {
+            background: #1a5dc8;
+        }
+
+        /* ── Invoice Page ── */
+        .invoice-page {
+            max-width: 800px;
+            margin: 0 auto 40px;
+            background: #fff;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+        }
+
+        /* ── Blue Header Strip ── */
+        .inv-header {
+            background: #2874f0;
+            color: #fff;
+            padding: 28px 36px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .inv-header .brand {
+            font-size: 28px;
+            font-weight: 900;
+            letter-spacing: -0.5px;
+            line-height: 1;
+        }
+
+        .inv-header .brand span {
+            color: #ffe500;
+        }
+
+        .inv-header .doc-type {
+            text-align: right;
+        }
+
+        .inv-header .doc-type h2 {
+            font-size: 22px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 4px;
+        }
+
+        .inv-header .doc-type p {
+            font-size: 11px;
+            font-weight: 500;
+            opacity: 0.85;
+        }
+
+        /* ── Order Meta Row ── */
+        .order-meta {
+            background: #f8f9fc;
+            border-bottom: 1px solid #e0e0e0;
+            padding: 16px 36px;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .meta-item {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .meta-label {
+            font-size: 10px;
+            font-weight: 700;
+            color: #878787;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+
+        .meta-value {
+            font-size: 13px;
+            font-weight: 700;
+            color: #212121;
+        }
+
+        /* ── Address Section ── */
+        .address-section {
+            padding: 24px 36px;
+            border-bottom: 1px solid #f0f0f0;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 32px;
+        }
+
+        .addr-block .addr-title {
+            font-size: 11px;
+            font-weight: 800;
+            color: #878787;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-bottom: 10px;
+            padding-bottom: 6px;
+            border-bottom: 2px solid #2874f0;
+            display: inline-block;
+        }
+
+        .addr-block .addr-name {
+            font-size: 15px;
+            font-weight: 800;
+            color: #212121;
+            margin-bottom: 4px;
+        }
+
+        .addr-block .addr-detail {
+            font-size: 12.5px;
+            font-weight: 500;
+            color: #666;
+            line-height: 1.7;
+        }
+
+        .addr-block .addr-phone {
+            font-size: 12px;
+            font-weight: 600;
+            color: #878787;
+            margin-top: 6px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .addr-block .addr-phone i {
+            font-size: 10px;
+            color: #2874f0;
+        }
+
+        /* ── Items Table ── */
+        .items-section {
+            padding: 0 36px;
+        }
+
+        .items-section .section-title {
+            font-size: 12px;
+            font-weight: 800;
+            color: #212121;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 20px 0 12px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .items-table thead th {
+            padding: 12px 0;
+            font-size: 10px;
+            font-weight: 700;
+            color: #878787;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            border-bottom: 1px solid #e0e0e0;
+            text-align: left;
+        }
+
+        .items-table thead th:nth-child(2),
+        .items-table thead th:nth-child(3) {
+            text-align: center;
+        }
+
+        .items-table thead th:last-child {
+            text-align: right;
+        }
+
+        .items-table tbody tr {
+            border-bottom: 1px solid #f5f5f5;
+        }
+
+        .items-table tbody tr:nth-child(even) {
+            background: #fafbfc;
+        }
+
+        .items-table tbody td {
+            padding: 14px 0;
+            font-size: 13px;
+        }
+
+        .items-table tbody td:nth-child(2),
+        .items-table tbody td:nth-child(3) {
+            text-align: center;
+        }
+
+        .items-table tbody td:last-child {
+            text-align: right;
+        }
+
+        .item-name {
+            font-weight: 700;
+            color: #212121;
+            display: block;
+        }
+
+        .item-unit {
+            font-size: 10.5px;
+            font-weight: 600;
+            color: #878787;
+            margin-top: 2px;
+        }
+
+        .item-qty {
+            font-weight: 700;
+            color: #212121;
+            background: #f1f3f6;
+            display: inline-block;
+            padding: 3px 12px;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+
+        .item-price {
+            font-weight: 600;
+            color: #666;
+            font-size: 12.5px;
+        }
+
+        .item-total {
+            font-weight: 800;
+            color: #212121;
+            font-size: 13px;
+        }
+
+        /* ── Summary Section ── */
+        .summary-section {
+            padding: 20px 36px 28px;
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .summary-box {
+            width: 320px;
+        }
+
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 7px 0;
+            font-size: 12.5px;
+        }
+
+        .summary-row .s-label {
+            font-weight: 600;
+            color: #666;
+        }
+
+        .summary-row .s-value {
+            font-weight: 700;
+            color: #212121;
+        }
+
+        .summary-row.discount .s-label,
+        .summary-row.discount .s-value {
+            color: #388e3c;
+        }
+
+        .summary-row.surge {
+            background: #fff3e0;
+            margin: 4px -8px;
+            padding: 7px 8px;
+            border-radius: 4px;
+        }
+
+        .summary-row.surge .s-label,
+        .summary-row.surge .s-value {
+            color: #e65100;
+            font-weight: 700;
+        }
+
+        .summary-divider {
+            border: none;
+            border-top: 1.5px dashed #e0e0e0;
+            margin: 8px 0;
+        }
+
+        .summary-total {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0 4px;
+        }
+
+        .summary-total .t-label {
+            font-size: 14px;
+            font-weight: 800;
+            color: #212121;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .summary-total .t-value {
+            font-size: 22px;
+            font-weight: 900;
+            color: #2874f0;
+            letter-spacing: -0.5px;
+        }
+
+        /* ── Payment Badge ── */
+        .payment-badge {
+            margin-top: 12px;
+            background: #212121;
+            color: #fff;
+            border-radius: 6px;
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .payment-badge .pb-label {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            opacity: 0.7;
+        }
+
+        .payment-badge .pb-method {
+            font-size: 13px;
+            font-weight: 800;
+            color: #ffe500;
+        }
+
+        /* ── Footer ── */
+        .inv-footer {
+            background: #f8f9fc;
+            border-top: 1px solid #e0e0e0;
+            padding: 20px 36px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .inv-footer .note {
+            font-size: 10px;
+            font-weight: 500;
+            color: #999;
+            line-height: 1.6;
+            max-width: 400px;
+        }
+
+        .inv-footer .brand-footer {
+            text-align: right;
+        }
+
+        .inv-footer .brand-footer .bf-name {
+            font-size: 16px;
+            font-weight: 900;
+            color: #212121;
+        }
+
+        .inv-footer .brand-footer .bf-name span {
+            color: #2874f0;
+        }
+
+        .inv-footer .brand-footer .bf-tag {
+            font-size: 10px;
+            font-weight: 600;
+            color: #878787;
+            margin-top: 2px;
+        }
+
+        /* ── Stamp Watermark ── */
+        .stamp-delivered {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-18deg);
+            font-size: 72px;
+            font-weight: 900;
+            color: rgba(40, 116, 240, 0.04);
+            text-transform: uppercase;
+            letter-spacing: 12px;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+
+        /* ── Mobile Responsive ── */
+        @media (max-width: 640px) {
+            .inv-header {
+                padding: 20px 20px;
+            }
+
+            .inv-header .brand {
+                font-size: 22px;
+            }
+
+            .inv-header .doc-type h2 {
+                font-size: 16px;
+            }
+
+            .order-meta {
+                padding: 12px 20px;
+            }
+
+            .address-section {
+                padding: 20px;
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .items-section {
+                padding: 0 16px;
+            }
+
+            .summary-section {
+                padding: 16px 20px;
+            }
+
+            .summary-box {
+                width: 100%;
+            }
+
+            .inv-footer {
+                padding: 16px 20px;
+                flex-direction: column;
+                gap: 12px;
+                text-align: center;
+            }
+
+            .inv-footer .note {
+                max-width: 100%;
+                text-align: center;
+            }
+
+            .inv-footer .brand-footer {
+                text-align: center;
+            }
+
+            .toolbar {
+                margin: 12px auto;
+                padding: 0 12px;
+            }
+
+            .stamp-delivered {
+                font-size: 40px;
+            }
+        }
     </style>
 </head>
-<body class="py-10 px-4">
 
-    <div class="max-w-[210mm] mx-auto mb-6 flex justify-between items-center no-print">
-        <a href="{{ url_for('my_orders') }}" class="flex items-center gap-2 text-slate-500 font-bold hover:text-slate-900 transition-all bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm">
-            <i class="fas fa-arrow-left text-xs"></i> Back
+<body>
+    <!-- ── Toolbar (No Print) ── -->
+    <div class="toolbar no-print">
+        <a href="{{ url_for('my_orders') }}">
+            <i class="fas fa-arrow-left" style="font-size:11px"></i> Back
         </a>
-        <button onclick="window.print()" class="bg-slate-900 text-white px-8 py-3 rounded-2xl font-extrabold text-xs uppercase tracking-widest shadow-2xl hover:bg-emerald-600 transition-all flex items-center gap-3">
-            <i class="fas fa-cloud-arrow-down"></i> Print / Save PDF
+        <button onclick="window.print()">
+            <i class="fas fa-cloud-arrow-down"></i> Download Invoice
         </button>
     </div>
 
-    <div class="invoice-container shadow-2xl overflow-hidden invoice-shell relative flex flex-col">
-        
-        <div class="p-12 border-b-8 border-emerald-500">
-            <div class="flex justify-between items-start">
-                <div>
-                    <h1 class="text-5xl font-[800] tracking-tighter text-slate-900 mb-2">jippy<span class="text-emerald-500">.</span>store</h1>
-                    <div class="flex items-center gap-3">
-                        <span class="bg-slate-100 text-slate-600 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border border-slate-200">Official Receipt</span>
-                        <p class="text-[11px] font-bold text-slate-400">Order #{{ order.order_id|upper }}</p>
-                    </div>
-                </div>
-                <div class="text-right">
-                    <h2 class="text-4xl font-black uppercase text-slate-200 leading-none mb-4">INVOICE</h2>
-                    <div class="space-y-1">
-                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Date of Issue</p>
-                        <p class="text-sm font-extrabold text-slate-900">{{ order.created_at.strftime('%d %B, %Y') if order.created_at else '' }}</p>
-                    </div>
-                </div>
-            </div>
-        </div>
+    <!-- ── Invoice Page ── -->
+    <div class="invoice-page" style="position:relative;">
+        <!-- Watermark -->
+        <div class="stamp-delivered">DELIVERED</div>
 
-        <div class="p-12 flex-grow">
-            <div class="grid grid-cols-2 gap-20 mb-16">
-                <div>
-                    <h4 class="text-[10px] font-black text-emerald-500 uppercase tracking-[0.2em] mb-4 border-b border-emerald-100 pb-2">Billed To</h4>
-                    <p class="text-xl font-extrabold text-slate-900 mb-2">{{ order.user_name|default('Valued Customer') }}</p>
-                    <div class="text-sm font-bold text-slate-500 leading-relaxed">
-                        {% if order.address %}
-                            {{ order.address.line1 }},<br>
-                            {{ order.address.city }} - {{ order.address.pincode }}<br>
-                            <span class="text-slate-400 font-medium">Mob: {{ order.user_phone }}</span>
-                        {% endif %}
-                    </div>
-                </div>
-                <div>
-                    <h4 class="text-[10px] font-black text-emerald-500 uppercase tracking-[0.2em] mb-4 border-b border-emerald-100 pb-2">Shipped From</h4>
-                    <p class="text-xl font-extrabold text-slate-900 mb-1 text-right">jippy.store</p>
-                    <p class="text-sm font-bold text-slate-500 text-right">Central Warehouse Hub</p>
-                    <p class="text-[11px] font-black text-emerald-600 text-right mt-2 uppercase">Lightning Fast Logistics</p>
-                </div>
-            </div>
-
-            <div class="mb-12">
-                <table class="w-full">
-                    <thead>
-                        <tr class="bg-slate-900 text-white">
-                            <th class="py-4 px-6 text-left text-[10px] font-black uppercase tracking-widest rounded-l-xl">Item Description</th>
-                            <th class="py-4 px-4 text-center text-[10px] font-black uppercase tracking-widest">Qty</th>
-                            <th class="py-4 px-4 text-center text-[10px] font-black uppercase tracking-widest">Unit Price</th>
-                            <th class="py-4 px-6 text-right text-[10px] font-black uppercase tracking-widest rounded-r-xl">Total</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-100">
-                        {% for item in order['items'] %}
-                        <tr>
-                            <td class="py-6 px-6">
-                                <span class="text-sm font-extrabold text-slate-900 block">{{ item.name }}</span>
-                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">{{ item.unit }}</span>
-                            </td>
-                            <td class="py-6 px-4 text-center">
-                                <span class="text-sm font-bold text-slate-700">{{ item.qty }}</span>
-                            </td>
-                            <td class="py-6 px-4 text-center text-sm font-bold text-slate-500">
-                                ₹{{ "%.2f"|format(item.price|default(0)) }}
-                            </td>
-                            <td class="py-6 px-6 text-right text-sm font-black text-slate-900">
-                                ₹{{ "%.2f"|format((item.price|default(0)) * (item.qty|default(1))) }}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-
-            <div class="flex justify-end mt-12">
-                <div class="w-80 space-y-3">
-                    <div class="flex justify-between text-xs font-bold text-slate-500">
-                        <span>Items Subtotal</span>
-                        <span class="text-slate-900 font-black">₹{{ "%.2f"|format(order.subtotal|default(0)) }}</span>
-                    </div>
-                    
-                    <div class="flex justify-between text-xs font-bold text-slate-500">
-                        <span>Delivery Fee</span>
-                        <span class="{{ 'text-emerald-500' if order.delivery_fee == 0 else 'text-slate-900' }} font-black">
-                            {{ 'FREE' if order.delivery_fee == 0 else '₹' ~ "%.2f"|format(order.delivery_fee|default(0)) }}
-                        </span>
-                    </div>
-
-                    <div class="flex justify-between text-xs font-bold text-slate-500">
-                        <span>Handling Fee</span>
-                        <span class="text-slate-900 font-black">₹{{ "%.2f"|format(order.handling_fee|default(0)) }}</span>
-                    </div>
-
-                    {% if order.surge_charge and order.surge_charge > 0 %}
-                    <div class="flex justify-between text-xs font-bold text-rose-500 bg-rose-50 px-2 py-1 rounded-lg">
-                        <span class="flex items-center gap-1"><i class="fas fa-bolt text-[10px]"></i> Surge Charge</span>
-                        <span class="font-black">₹{{ "%.2f"|format(order.surge_charge) }}</span>
-                    </div>
-                    {% endif %}
-
-                    <div class="flex justify-between text-xs font-bold text-slate-500">
-                        <span>Platform Fee</span>
-                        <span class="text-slate-900 font-black">₹{{ "%.2f"|format(order.platform_fee|default(0)) }}</span>
-                    </div>
-                    
-                    <div class="dotted-divider pt-6 mt-4 flex justify-between items-center">
-                        <span class="text-sm font-black text-slate-900 uppercase tracking-widest">Total Payable</span>
-                        <span class="text-3xl font-[800] text-emerald-500 tracking-tighter">₹{{ "%.2f"|format(order.total|default(0)) }}</span>
-                    </div>
-
-                    <div class="pt-6">
-                        <div class="bg-slate-900 text-white rounded-2xl p-4 text-center shadow-lg">
-                            <p class="text-[10px] font-black uppercase tracking-widest">Payment Status</p>
-                            <p class="text-sm font-extrabold text-emerald-400 mt-1">Cash on Delivery</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="p-12 bg-slate-50 mt-auto grid grid-cols-2 gap-8 items-center border-t border-slate-100">
+        <!-- ── Blue Header ── -->
+        <div class="inv-header">
             <div>
-                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Important Note</p>
-                <p class="text-[9px] text-slate-400 leading-tight">This is a computer-generated invoice. For any queries regarding this order, please contact our support team at jippy.store/support.</p>
+                <div class="brand">jippy<span>.</span>store</div>
+                <p style="font-size:11px; font-weight:500; opacity:0.8; margin-top:4px;">
+                    Your Neighbourhood, Delivered Fast
+                </p>
             </div>
-            <div class="text-right">
-                <p class="text-lg font-black text-slate-900">jippy.store</p>
-                <p class="text-[10px] font-bold text-slate-400">Thank you for being awesome!</p>
+            <div class="doc-type">
+                <h2>Tax Invoice</h2>
+                <p>Original for Recipient</p>
+            </div>
+        </div>
+
+        <!-- ── Order Meta Row ── -->
+        <div class="order-meta">
+            <div class="meta-item">
+                <span class="meta-label">Order ID</span>
+                <span class="meta-value">{{ order.order_id|upper }}</span>
+            </div>
+            <div class="meta-item">
+                <span class="meta-label">Order Date</span>
+                <span class="meta-value">{{ order.created_at.strftime('%d %b %Y, %I:%M %p') if (order.created_at and
+                    order.created_at.strftime) else (order.created_at or 'N/A') }}</span>
+            </div>
+            <div class="meta-item">
+                <span class="meta-label">Invoice Date</span>
+                <span class="meta-value">{{ order.created_at.strftime('%d %b %Y') if (order.created_at and
+                    order.created_at.strftime) else (order.created_at or 'N/A') }}</span>
+            </div>
+            <div class="meta-item">
+                <span class="meta-label">Payment</span>
+                <span class="meta-value">{{ order.payment_method|default('COD') }}</span>
+            </div>
+        </div>
+
+        <!-- ── Address Section ── -->
+        <div class="address-section">
+            <div class="addr-block">
+                <div class="addr-title">Billing & Shipping Address</div>
+                <p class="addr-name">{{ order.user_name|default('Valued Customer') }}</p>
+                <div class="addr-detail">
+                    {% if order.address %}
+                    {{ order.address.line1 }}<br>
+                    {% if order.address.line2 %}{{ order.address.line2 }}<br>{% endif %}
+                    {{ order.address.city }} — {{ order.address.pincode }}
+                    {% endif %}
+                </div>
+                {% if order.user_phone and order.user_phone != 'guest' %}
+                <div class="addr-phone">
+                    <i class="fas fa-phone-alt"></i>
+                    {{ order.user_phone }}
+                </div>
+                {% endif %}
+                {% if order.address and order.address.alt_phone %}
+                <div class="addr-phone">
+                    <i class="fas fa-phone-alt"></i>
+                    {{ order.address.alt_phone }} (Alt)
+                </div>
+                {% endif %}
+            </div>
+            <div class="addr-block" style="text-align:right;">
+                <div class="addr-title">Sold By</div>
+                <p class="addr-name">Jippy Store</p>
+                <div class="addr-detail">
+                    Hyperlocal Delivery Service<br>
+                    {{ order.address.city if order.address else 'Ghaziabad' }}, India
+                </div>
+                <div class="addr-phone" style="justify-content:flex-end;">
+                    <i class="fas fa-globe" style="color:#2874f0;"></i>
+                    jippy.store
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Items Table ── -->
+        <div class="items-section">
+            <div class="section-title">
+                <i class="fas fa-box" style="color:#2874f0; margin-right:6px; font-size:11px;"></i>
+                Order Items ({{ (order['items'] or [])|length }})
+            </div>
+            <table class="items-table">
+                <thead>
+                    <tr>
+                        <th style="width:5%;">#</th>
+                        <th style="width:45%;">Product</th>
+                        <th style="width:15%;">Qty</th>
+                        <th style="width:15%;">Unit Price</th>
+                        <th style="width:20%;">Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in (order['items'] or []) %}
+                    <tr>
+                        <td style="font-size:11px; font-weight:600; color:#999;">{{ loop.index }}</td>
+                        <td>
+                            <span class="item-name">{{ item.name }}</span>
+                            {% if item.unit %}
+                            <span class="item-unit">{{ item.unit }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="item-qty">{{ item.qty }}</span>
+                        </td>
+                        <td>
+                            <span class="item-price">₹{{ "%.2f"|format(item.price|default(0)) }}</span>
+                        </td>
+                        <td>
+                            <span class="item-total">₹{{ "%.2f"|format((item.price|default(0)) * (item.qty|default(1)))
+                                }}</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- ── Summary Section ── -->
+        <div class="summary-section">
+            <div class="summary-box">
+                <div class="summary-row">
+                    <span class="s-label">Items Subtotal ({{ (order['items'] or [])|length }} items)</span>
+                    <span class="s-value">₹{{ "%.2f"|format(order.subtotal|default(0)) }}</span>
+                </div>
+
+                <div class="summary-row">
+                    <span class="s-label">Delivery Charges</span>
+                    {% if order.delivery_fee == 0 %}
+                    <span class="s-value" style="color:#388e3c; font-weight:800;">FREE</span>
+                    {% else %}
+                    <span class="s-value">₹{{ "%.2f"|format(order.delivery_fee|default(0)) }}</span>
+                    {% endif %}
+                </div>
+
+                <div class="summary-row">
+                    <span class="s-label">Handling Fee</span>
+                    <span class="s-value">₹{{ "%.2f"|format(order.handling_fee|default(0)) }}</span>
+                </div>
+
+                {% if order.surge_charge and order.surge_charge > 0 %}
+                <div class="summary-row surge">
+                    <span class="s-label"><i class="fas fa-bolt" style="font-size:10px; margin-right:4px;"></i> Surge
+                        Charge</span>
+                    <span class="s-value">₹{{ "%.2f"|format(order.surge_charge) }}</span>
+                </div>
+                {% endif %}
+
+                <div class="summary-row">
+                    <span class="s-label">Platform Fee</span>
+                    <span class="s-value">₹{{ "%.2f"|format(order.platform_fee|default(0)) }}</span>
+                </div>
+
+                <hr class="summary-divider">
+
+                <div class="summary-total">
+                    <span class="t-label">Grand Total</span>
+                    <span class="t-value">₹{{ "%.2f"|format(order.total|default(0)) }}</span>
+                </div>
+
+                <!-- Payment Badge -->
+                <div class="payment-badge">
+                    <div>
+                        <div class="pb-label">Payment Method</div>
+                        <div class="pb-method">{{ order.payment_method|default('Cash on Delivery') }}</div>
+                    </div>
+                    <i class="fas fa-check-circle" style="font-size:22px; color:#ffe500;"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Notes Section ── -->
+        {% if order.notes %}
+        <div style="padding:0 36px 20px;">
+            <div
+                style="background:#fff8e1; border:1px solid #ffe082; border-radius:6px; padding:12px 16px; display:flex; align-items:flex-start; gap:10px;">
+                <i class="fas fa-sticky-note" style="color:#f9a825; font-size:12px; margin-top:2px;"></i>
+                <div>
+                    <div
+                        style="font-size:10px; font-weight:700; color:#f9a825; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px;">
+                        Customer Note</div>
+                    <div style="font-size:12px; font-weight:500; color:#666; line-height:1.5;">{{ order.notes }}</div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- ── Footer ── -->
+        <div class="inv-footer">
+            <div class="note">
+                <strong style="color:#666;">Note:</strong> This is a computer-generated invoice and does not require a
+                physical signature.
+                For support, visit <strong>jippy.store/support</strong>.
+            </div>
+            <div class="brand-footer">
+                <div class="bf-name">jippy<span>.</span>store</div>
+                <div class="bf-tag">Thank you for shopping with us! 💛</div>
             </div>
         </div>
     </div>
 
     <script>
         // Set dynamic title for PDF saving
-        const orderId = "{{ order.order_id[-6:] }}";
+        const orderId = "{{ (order.order_id|string)[-6:] if order.order_id else 'INV' }}";
         document.title = `Jippy_Invoice_${orderId}`;
     </script>
 </body>
+
 </html>
