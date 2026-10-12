@@ -58,20 +58,25 @@
 
       <!-- 📍 Deliver To Address Card (Flipkart Style) -->
       <div
-        class="bg-white rounded-none sm:rounded-sm p-3 sm:p-3.5 border border-[#e0e0e0] shadow-2xs flex items-center justify-between">
-        <div class="min-w-0 pr-2">
-          <div class="flex items-center gap-1.5 text-[11.5px] text-[#878787] font-semibold mb-0.5">
-            <span>Deliver to:</span>
-            <span class="font-bold text-[#212121] truncate">{{ session.get('user_name', 'Customer') }}</span>
+        class="bg-white rounded-none sm:rounded-sm p-3 sm:p-3.5 border border-[#e0e0e0] shadow-2xs flex items-center justify-between gap-3">
+        <div class="flex items-center gap-3 min-w-0">
+          <div class="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center justify-center shrink-0">
+            <i class="fas fa-location-dot text-sm"></i>
           </div>
-          <p class="text-[12.5px] font-medium text-[#212121] truncate">
-            {{ session.get('current_society_name', session.get('user_address', 'Your Doorstep')) }}
-          </p>
+          <div class="min-w-0">
+            <div class="flex items-center gap-1.5 text-[11.5px] text-[#878787] font-semibold">
+              <span>Delivering to:</span>
+              <span class="font-bold text-[#212121] truncate">{{ session.get('user_name', 'Customer') }}</span>
+            </div>
+            <p class="text-[13px] font-bold text-[#212121] truncate mt-0.5">
+              {{ session.get('current_society_name', 'Amarpali Empire') }}
+            </p>
+          </div>
         </div>
-        <a href="{{ url_for('address_page') if is_logged_in else url_for('login') }}"
-          class="text-[12px] font-bold text-[#2874f0] border border-[#e0e0e0] px-3.5 py-1.5 rounded-sm shrink-0 hover:bg-blue-50/50 active:scale-95 transition-all uppercase tracking-wider">
-          Change
-        </a>
+        <span class="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-sm text-[10.5px] font-bold uppercase tracking-wider shrink-0 shadow-2xs">
+          <i class="fas fa-bolt text-amber-500 text-[9.5px]"></i>
+          <span>10-15 Mins</span>
+        </span>
       </div>
 
       <!-- ⚡ Free Delivery Goal & 10 Min ETA (Flipkart Style) -->
@@ -117,41 +122,61 @@
       <!-- Cart Items List Container -->
       <div id="cart-items" class="space-y-2"></div>
 
-      <!-- 📝 SPECIAL REQUEST / MISSING ITEMS CARD (Flipkart Style) -->
+      <!-- 📝 SPECIAL REQUEST / MISSING ITEMS CARD (High Visibility Highlighted) -->
       <div id="special-request-section" class="transition-all duration-300">
-        <!-- 1. EMPTY STATE (When no items added yet) -->
+        <!-- 1. EMPTY STATE (When no items added yet - Prominent Eye-Catching Banner) -->
         <div id="special-request-empty-card" onclick="openRequestDrawer()"
-          class="bg-white border border-[#e0e0e0] hover:border-[#2874f0] rounded-none sm:rounded-sm p-3 sm:p-3.5 shadow-2xs flex items-center justify-between gap-3 cursor-pointer transition-colors active:bg-slate-50">
-          <div class="flex items-center gap-2.5 min-w-0">
-            <div
-              class="w-8 h-8 rounded-sm bg-amber-50 text-amber-600 flex items-center justify-center text-xs shrink-0 font-bold border border-amber-200">
-              <i class="fas fa-clipboard-list"></i>
-            </div>
-            <div class="min-w-0">
-              <p class="text-[12.5px] font-bold text-[#212121] leading-tight">Missing items not listed in store?</p>
-              <p class="text-[11px] font-medium text-[#878787] truncate mt-0.5">Add Dhaniya, Mirchi, Bread, etc. point-wise</p>
-            </div>
+          class="relative overflow-hidden bg-gradient-to-r from-[#fffbeb] via-[#fef3c7] to-[#fff7ed] border-2 border-dashed border-[#f59e0b] hover:border-[#d97706] rounded-none sm:rounded-md p-3.5 sm:p-4 shadow-xs hover:shadow-md cursor-pointer transition-all duration-300 group">
+          
+          <!-- Top Tag Bar -->
+          <div class="flex items-center justify-between mb-2">
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#f59e0b] text-white text-[9.5px] sm:text-[10px] font-black uppercase tracking-wider shadow-2xs">
+              <i class="fas fa-sparkles text-[9px]"></i>
+              <span>Missing Something?</span>
+            </span>
+            <span class="text-[10px] sm:text-[11px] font-extrabold text-[#b45309] flex items-center gap-1">
+              <span>Vendor Custom Packing</span>
+              <i class="fas fa-bolt text-amber-500 text-[10px]"></i>
+            </span>
           </div>
-          <button type="button" onclick="event.stopPropagation(); openRequestDrawer()"
-            class="px-3.5 py-1.5 bg-[#2874f0] hover:bg-blue-700 active:scale-95 text-white text-[11px] font-bold rounded-sm shadow-2xs transition-all flex items-center gap-1 shrink-0 uppercase tracking-wider">
-            <i class="fas fa-plus text-[9px]"></i>
-            <span>Add</span>
-          </button>
+
+          <div class="flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3 min-w-0">
+              <div
+                class="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-[#f59e0b] to-[#d97706] text-white flex items-center justify-center text-lg sm:text-xl shrink-0 font-bold shadow-sm ring-4 ring-amber-200/60 group-hover:scale-105 transition-transform">
+                <i class="fas fa-clipboard-list"></i>
+              </div>
+              <div class="min-w-0">
+                <p class="text-[13.5px] sm:text-[14.5px] font-black text-[#1c1917] leading-tight">
+                  Items not listed in store? Add here!
+                </p>
+                <p class="text-[11.5px] font-semibold text-[#78350f] mt-1 leading-snug line-clamp-1">
+                  Dhaniya, Mirchi, Bread, Eggs, Ice, Milk etc. — vendor will pack for you
+                </p>
+              </div>
+            </div>
+
+            <!-- Prominent CTA Button -->
+            <button type="button" onclick="event.stopPropagation(); openRequestDrawer()"
+              class="px-4 py-2 bg-gradient-to-r from-[#fb641b] to-orange-500 hover:from-orange-600 hover:to-orange-700 active:scale-95 text-white text-[12px] font-black uppercase tracking-wider rounded-sm shadow-md transition-all flex items-center gap-1.5 shrink-0 cursor-pointer">
+              <i class="fas fa-plus text-xs"></i>
+              <span>Add Items</span>
+            </button>
+          </div>
         </div>
 
         <!-- 2. SUMMARY STATE (When points are added - Sleek Chips View) -->
         <div id="special-request-summary-card"
-          class="hidden bg-white border border-[#e0e0e0] rounded-none sm:rounded-sm p-3 sm:p-3.5 shadow-2xs space-y-2.5 relative overflow-hidden">
+          class="hidden bg-gradient-to-r from-emerald-50/90 via-teal-50/70 to-emerald-50/90 border-2 border-emerald-400 rounded-none sm:rounded-md p-3.5 sm:p-4 shadow-xs space-y-2.5 relative overflow-hidden">
           <div class="flex items-center justify-between gap-2">
             <div class="flex items-center gap-2">
               <span
-                class="w-5 h-5 rounded-sm bg-amber-500 text-white flex items-center justify-center text-[9px] font-black shrink-0">
+                class="w-6 h-6 rounded-full bg-[#16a34a] text-white flex items-center justify-center text-[10px] font-black shrink-0 shadow-2xs">
                 <i class="fas fa-check"></i>
               </span>
-              <h4 class="text-[12.5px] font-bold text-[#212121] leading-tight">Special Request Items</h4>
+              <h4 class="text-[13px] sm:text-[13.5px] font-extrabold text-[#1c1917] leading-tight">Special Request Items Added</h4>
               <span id="summary-items-count-badge"
-                class="text-[10px] font-bold bg-amber-50 text-amber-800 px-2 py-0.5 rounded border border-amber-200">0
-                Items</span>
+                class="text-[10.5px] font-black bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full border border-emerald-300">0 Items</span>
             </div>
             <div class="flex items-center gap-1.5 shrink-0">
               <button type="button" onclick="openRequestDrawer()"
@@ -171,20 +196,20 @@
 
           <!-- Remark box if provided -->
           <div id="summary-remark-box"
-            class="hidden bg-slate-50 border border-[#e0e0e0] rounded-sm p-2 text-[11px] font-medium text-slate-700 flex items-start gap-2">
-            <i class="fas fa-comment-dots text-amber-600 text-xs mt-0.5 shrink-0"></i>
+            class="hidden bg-white/90 border border-emerald-200 rounded-sm p-2 text-[11px] font-medium text-slate-700 flex items-start gap-2 shadow-2xs">
+            <i class="fas fa-comment-dots text-emerald-600 text-xs mt-0.5 shrink-0"></i>
             <div class="flex-1 min-w-0">
-              <span class="text-[9.5px] font-bold text-[#878787] uppercase tracking-wider block">Customer Note</span>
+              <span class="text-[9.5px] font-bold text-slate-500 uppercase tracking-wider block">Customer Note</span>
               <span id="summary-remark-content" class="text-[#212121] italic break-words"></span>
             </div>
           </div>
 
           <div
-            class="flex items-center justify-between text-[10.5px] font-medium text-[#878787] pt-1 border-t border-[#f0f0f0]">
-            <span class="flex items-center gap-1 text-amber-700">
+            class="flex items-center justify-between text-[11px] font-medium text-emerald-900 pt-1.5 border-t border-emerald-200/70">
+            <span class="flex items-center gap-1.5 font-bold">
               <i class="fas fa-coins text-amber-600"></i> Extra item cost settled at doorstep
             </span>
-            <button type="button" onclick="openRequestDrawer()" class="text-[#2874f0] hover:underline font-bold">
+            <button type="button" onclick="openRequestDrawer()" class="text-[#2874f0] hover:underline font-extrabold text-[11.5px]">
               + Add / Edit items
             </button>
           </div>
@@ -898,11 +923,11 @@
       if (hasItems) {
         specialItems.forEach((item, idx) => {
           const chip = document.createElement("div");
-          chip.className = "inline-flex items-center gap-1.5 bg-white border border-[#e0e0e0] rounded-sm px-2.5 py-1 shadow-2xs text-[11px] font-bold text-[#212121]";
+          chip.className = "inline-flex items-center gap-1.5 bg-white border border-emerald-200 rounded-sm px-2.5 py-1 shadow-2xs text-[11.5px] font-bold text-[#1c1917]";
           chip.innerHTML = `
-            <span class="text-[#2874f0] font-bold text-[10px]">${idx + 1}.</span>
+            <span class="text-[#16a34a] font-black text-[10.5px]">${idx + 1}.</span>
             <span class="truncate max-w-[150px] sm:max-w-[200px]">${item.name}</span>
-            <span class="text-[9.5px] font-bold text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded-sm">${item.qty}</span>
+            <span class="text-[9.5px] font-black text-emerald-800 bg-emerald-100 px-1.5 py-0.5 rounded-sm">${item.qty}</span>
             <button type="button" onclick="quickRemoveSpecialItem(${idx})" class="w-4 h-4 flex items-center justify-center text-slate-400 hover:text-rose-500 active:scale-90 transition-all ml-0.5" title="Remove item">
               <i class="fas fa-times text-[9px]"></i>
             </button>
