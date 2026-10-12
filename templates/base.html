@@ -80,13 +80,13 @@
             <div class="flex items-center gap-1.5">
               <span
                 class="text-[13.5px] sm:text-[15px] font-bold text-[#212121] tracking-tight leading-none truncate max-w-[190px] sm:max-w-[300px] inline-block">
-                {{ (shop.shop_name or shop.name) if shop else (session.get('current_shop_name') or session.get('current_society_name') or session.get('user_address', "Jippy Delivery")) }}
+                {{ (shop.shop_name or shop.name) if shop else (session.get('current_shop_name') or session.get('current_society_name') or "Amarpali Empire") }}
               </span>
               <i class="fas fa-chevron-down text-[9.5px] text-[#878787] mt-0.5"></i>
             </div>
             <span
               class="text-[10px] sm:text-[11px] font-semibold text-[#16a34a] truncate w-[130px] sm:w-[200px] mt-0.5 flex items-center gap-1">
-              <i class="fas fa-bolt text-[9.5px] text-amber-500"></i> 10-15 mins delivery
+              <i class="fas fa-bolt text-[9.5px] text-amber-500"></i> {{ session.get('current_society_city', 'Ghaziabad') }} • 10-15 mins
             </span>
           </div>
         </a>
@@ -190,47 +190,49 @@
   <!-- 📱 Mobile Bottom Navigation (Clean, Balanced Navigation) -->
   {% block mobile_nav %}
   <div
-    class="fixed bottom-0 left-0 right-0 z-50 lg:hidden bg-white border-t border-[#e0e0e0] shadow-[0_-2px_10px_rgba(0,0,0,0.06)] pb-[env(safe-area-inset-bottom)]">
-    <div class="flex items-center justify-around py-1.5 px-1 max-w-md mx-auto">
+    class="fixed bottom-0 left-0 right-0 z-50 lg:hidden bg-white border-t border-[#e0e0e0] shadow-[0_-2px_12px_rgba(0,0,0,0.08)] pb-[env(safe-area-inset-bottom)]">
+    <div class="flex items-center justify-around py-2 px-1 max-w-md mx-auto">
       {% set home_target = url_for('shop_home', shop_id=session.get('current_shop_id')) if
       session.get('current_shop_id') else (url_for('society_shops', society_id=session.get('current_society_id')) if
       session.get('current_society_id') else url_for('index')) %}
 
       <!-- Home -->
       <a href="{{ home_target }}"
-        class="flex flex-col items-center gap-0.5 min-w-[54px] py-1 transition-colors {{ 'text-slate-900 font-extrabold' if request.endpoint in ['index', 'shop_home'] else 'text-slate-500 hover:text-slate-900' }}">
-        <i class="fas fa-store text-base"></i>
-        <span class="text-[9.5px] font-bold tracking-tight">Home</span>
+        class="flex flex-col items-center gap-1 min-w-[56px] py-0.5 transition-colors {{ 'text-slate-900 font-extrabold' if request.endpoint in ['index', 'shop_home'] else 'text-slate-500 hover:text-slate-900' }}">
+        <i class="fas fa-store text-[21px]"></i>
+        <span class="text-[10px] font-bold tracking-tight">Home</span>
       </a>
 
       <!-- Categories -->
       <a href="{{ url_for('category_page', name='categories') }}"
-        class="flex flex-col items-center gap-0.5 min-w-[54px] py-1 transition-colors {{ 'text-slate-900 font-extrabold' if request.endpoint == 'category_page' else 'text-slate-500 hover:text-slate-900' }}">
-        <i class="fas fa-border-all text-base"></i>
-        <span class="text-[9.5px] font-bold tracking-tight">Categories</span>
+        class="flex flex-col items-center gap-1 min-w-[56px] py-0.5 transition-colors {{ 'text-slate-900 font-extrabold' if request.endpoint == 'category_page' else 'text-slate-500 hover:text-slate-900' }}">
+        <i class="fas fa-border-all text-[21px]"></i>
+        <span class="text-[10px] font-bold tracking-tight">Categories</span>
       </a>
 
       <!-- Orders -->
       <a href="{{ url_for('my_orders') }}"
-        class="flex flex-col items-center gap-0.5 min-w-[54px] py-1 transition-colors {{ 'text-slate-900 font-extrabold' if request.endpoint in ['my_orders', 'order_detail', 'order_confirmation'] else 'text-slate-500 hover:text-slate-900' }}">
-        <i class="fas fa-box-open text-base"></i>
-        <span class="text-[9.5px] font-bold tracking-tight">Orders</span>
+        class="flex flex-col items-center gap-1 min-w-[56px] py-0.5 transition-colors {{ 'text-slate-900 font-extrabold' if request.endpoint in ['my_orders', 'order_detail', 'order_confirmation'] else 'text-slate-500 hover:text-slate-900' }}">
+        <i class="fas fa-box-open text-[21px]"></i>
+        <span class="text-[10px] font-bold tracking-tight">Orders</span>
       </a>
 
       <!-- Society -->
       <a href="{{ url_for('societies_page') }}"
-        class="flex flex-col items-center gap-0.5 min-w-[54px] py-1 transition-colors {{ 'text-slate-900 font-extrabold' if request.endpoint in ['societies_page', 'society_shops'] else 'text-slate-500 hover:text-slate-900' }}">
-        <i class="fas fa-building text-base"></i>
-        <span class="text-[9.5px] font-bold tracking-tight">Society</span>
+        class="flex flex-col items-center gap-1 min-w-[56px] py-0.5 transition-colors {{ 'text-slate-900 font-extrabold' if request.endpoint in ['societies_page', 'society_shops'] else 'text-slate-500 hover:text-slate-900' }}">
+        <i class="fas fa-building text-[21px]"></i>
+        <span class="text-[10px] font-bold tracking-tight">Society</span>
       </a>
 
       <!-- Cart -->
       <a href="{{ url_for('cart_page') }}"
-        class="flex flex-col items-center gap-0.5 min-w-[54px] py-1 transition-colors relative {{ 'text-slate-900 font-extrabold' if request.endpoint == 'cart_page' else 'text-slate-500 hover:text-slate-900' }}">
-        <i class="fas fa-shopping-cart text-base"></i>
-        <span class="text-[9.5px] font-bold tracking-tight">Cart</span>
-        <span
-          class="mobile-badge absolute top-0.5 right-2 bg-[#fb641b] text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center scale-0 transition-transform duration-300">0</span>
+        class="flex flex-col items-center gap-1 min-w-[56px] py-0.5 transition-colors {{ 'text-slate-900 font-extrabold' if request.endpoint == 'cart_page' else 'text-slate-500 hover:text-slate-900' }}">
+        <div class="relative">
+          <i class="fas fa-shopping-cart text-[21px]"></i>
+          <span
+            class="mobile-badge absolute -top-1.5 -right-2.5 bg-[#fb641b] text-white text-[9.5px] font-bold w-[17px] h-[17px] rounded-full flex items-center justify-center scale-0 transition-transform duration-300 shadow-2xs">0</span>
+        </div>
+        <span class="text-[10px] font-bold tracking-tight">Cart</span>
       </a>
     </div>
   </div>
