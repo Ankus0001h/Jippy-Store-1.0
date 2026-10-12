@@ -61,7 +61,15 @@ BASE_URL = os.getenv("BASE_URL", "")
 
 # ---------- MongoDB ----------
 MONGO_URI = os.getenv("MONGO_URI")
-mongo_client = MongoClient(MONGO_URI)
+mongo_client = MongoClient(
+    MONGO_URI,
+    maxPoolSize=15,
+    minPoolSize=1,
+    maxIdleTimeMS=30000,
+    connectTimeoutMS=5000,
+    socketTimeoutMS=10000,
+    serverSelectionTimeoutMS=5000,
+)
 db = mongo_client["grocery_app"]
 
 # ---------- Firebase Admin ----------
@@ -84,6 +92,17 @@ products = db["products"]
 orders = db["orders"]
 settings = db["settings"]
 societies = db["societies"]
+
+# High concurrency background indexing
+try:
+    products.create_index([("category", 1), ("is_active", 1)], background=True)
+    products.create_index([("is_active", 1)], background=True)
+    orders.create_index([("user_id", 1), ("created_at", -1)], background=True)
+    orders.create_index([("status", 1)], background=True)
+    users.create_index([("phone", 1)], background=True)
+    societies.create_index([("name", 1)], background=True)
+except Exception as _idx_err:
+    print("MongoDB index init warning:", _idx_err)
 
 
 # ---------- Cloudinary ----------
@@ -401,6 +420,12 @@ def index():
         except Exception:
             pass
 
+    # If only 1 society exists in DB, auto-direct to that society's store!
+    if societies.count_documents({}) == 1:
+        single_soc = societies.find_one()
+        if single_soc:
+            return redirect(url_for("society_shops", society_id=str(single_soc["_id"])))
+
     # 3. If user has location coordinates, show nearby societies
     if session.get("user_lat") and session.get("user_lng"):
         return redirect(url_for("societies_page"))
@@ -447,6 +472,7 @@ def societies_page():
             })
         top_societies = results
         user_address = f"Search: {query}"
+        return render_template("societies.html", societies=top_societies, user_address=user_address)
     else:
         # GPS Search
         user_lat = session.get("user_lat")
@@ -466,14 +492,25 @@ def societies_page():
                     "id": str(soc["_id"]),
                     "name": soc.get("name"),
                     "city": soc.get("city"),
+                    "pincode": soc.get("pincode"),
                     "distance": round(dist, 1)
                 })
                 
         # Sort by distance
         results.sort(key=lambda x: x["distance"])
-        top_societies = results[:1]
-    
-    return render_template("societies.html", societies=top_societies, user_address=user_address)
+        
+        # Max service radius check (5 km limit for delivery zone)
+        MAX_SERVICE_RADIUS_KM = 5.0
+        in_range_societies = [s for s in results if s["distance"] is not None and s["distance"] <= MAX_SERVICE_RADIUS_KM]
+        nearest_soc = results[0] if results else None
+        
+        return render_template(
+            "societies.html",
+            societies=in_range_societies[:1] if in_range_societies else [],
+            nearest_society=nearest_soc,
+            user_address=user_address,
+            max_radius=MAX_SERVICE_RADIUS_KM
+        )
 
 @app.route("/society/<society_id>/shops")
 def society_shops(society_id):
@@ -485,6 +522,11 @@ def society_shops(society_id):
             
         session["current_society_id"] = str(society_id)
         session["current_society_name"] = society.get("name")
+        session["current_society_city"] = society.get("city")
+        session["current_society_pincode"] = society.get("pincode")
+        sloc = society.get("location", {})
+        session["current_society_lat"] = sloc.get("lat")
+        session["current_society_lng"] = sloc.get("lng")
             
         # Find vendors that serve this society
         # Vendors should have society_id string in their serviceable_societies list
@@ -1730,6 +1772,25 @@ def checkout():
     if not address:
         return jsonify({"error": "Address is required"}), 400
 
+    # ---- Society Address Validation: Check delivery address is for active society ----
+    current_society_id = session.get("current_society_id")
+    soc_doc = None
+    if current_society_id:
+        try:
+            soc_doc = societies.find_one({"_id": ObjectId(current_society_id)})
+        except Exception:
+            pass
+    if not soc_doc:
+        soc_doc = societies.find_one()
+
+    if soc_doc:
+        expected_pin = str(soc_doc.get("pincode", "")).strip()
+        actual_pin = str(address.get("pincode", "")).strip()
+        if expected_pin and actual_pin and actual_pin != expected_pin:
+            return jsonify({
+                "error": f"Delivery is only available in {soc_doc.get('name', 'our society')} (PIN: {expected_pin}). Please deliver to your society address."
+            }), 400
+
     # ---- lat / lng normalize ----
     raw_lat = address.get("lat")
     raw_lng = address.get("lng")
@@ -1911,7 +1972,17 @@ def address_page():
     user_doc = users.find_one({"_id": ObjectId(user_id), "role": "customer"})
     saved_addresses = user_doc.get("addresses", []) if user_doc else []
 
-    return render_template("address.html", saved_addresses=saved_addresses)
+    society = None
+    current_society_id = session.get("current_society_id")
+    if current_society_id:
+        try:
+            society = societies.find_one({"_id": ObjectId(current_society_id)})
+        except Exception:
+            pass
+    if not society:
+        society = societies.find_one()
+
+    return render_template("address.html", saved_addresses=saved_addresses, society=society)
 
 
 @app.route("/my-orders")
