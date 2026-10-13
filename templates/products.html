@@ -5,21 +5,24 @@
 
   <!-- 🔍 Search Bar (Shown on products listing page) -->
   {% if page_type != "categories" %}
-  <div class="relative w-full px-2 sm:px-0 mt-1 sm:mt-2">
+  <div class="sticky top-[56px] sm:top-[60px] z-40 bg-[#f1f3f6]/95 backdrop-blur-md pb-1.5 pt-1.5">
+  <div class="relative w-full px-2 sm:px-0">
     <div
       class="relative flex items-center bg-white rounded-sm border border-[#e0e0e0] shadow-2xs focus-within:border-[#2874f0] focus-within:ring-2 focus-within:ring-blue-100 transition-all">
       <i class="fas fa-search ml-3.5 text-[#2874f0] text-sm"></i>
       <input type="text" id="product-search" placeholder="Search for products, groceries & more..."
+        value="{{ search_query or '' }}"
         class="w-full pl-3 pr-10 py-3 bg-transparent text-[#212121] text-[13.5px] sm:text-sm font-medium outline-none placeholder:text-[#878787] placeholder:font-normal"
         autocomplete="off">
-      <button id="clear-search" class="absolute right-3.5 text-[#878787] hover:text-rose-600 hidden transition-colors"
+      <button type="button" id="clear-search" class="absolute right-2.5 p-1 text-[#878787] hover:text-rose-600 {{ '' if search_query else 'hidden' }} transition-colors"
         title="Clear search">
-        <i class="fas fa-times-circle text-sm"></i>
+        <i class="fas fa-times-circle text-base"></i>
       </button>
     </div>
     <div id="product-suggestions"
-      class="absolute left-2 right-2 sm:left-0 sm:right-0 mt-1.5 bg-white rounded-sm shadow-xl border border-[#e0e0e0] max-h-80 overflow-y-auto hidden z-[100]">
+      class="absolute left-2 right-2 sm:left-0 sm:right-0 mt-1.5 bg-white rounded-sm shadow-xl border border-[#e0e0e0] max-h-[70vh] overflow-y-auto hidden z-[100]">
     </div>
+  </div>
   </div>
 
   <!-- 🛍️ Category Highlight Promo Banners (Connected to Top Categories) -->
@@ -127,21 +130,24 @@
     </div>
 
     <!-- 2. Search Bar (Same to Same as Product Page) -->
+    <div class="sticky top-[56px] sm:top-[60px] z-40 bg-[#f1f3f6]/95 backdrop-blur-md -mx-2 sm:-mx-0 px-2 sm:px-0 pb-1.5 pt-1.5">
     <div class="relative w-full">
       <div
         class="relative flex items-center bg-white rounded-sm border border-[#e0e0e0] shadow-2xs focus-within:border-[#2874f0] focus-within:ring-2 focus-within:ring-blue-100 transition-all">
         <i class="fas fa-search ml-3.5 text-[#2874f0] text-sm"></i>
         <input type="text" id="product-search" placeholder="Search for products, groceries & more..."
+          value="{{ search_query or '' }}"
           class="w-full pl-3 pr-10 py-3 bg-transparent text-[#212121] text-[13.5px] sm:text-sm font-medium outline-none placeholder:text-[#878787] placeholder:font-normal"
           autocomplete="off">
-        <button id="clear-search" class="absolute right-3.5 text-[#878787] hover:text-rose-600 hidden transition-colors"
+        <button type="button" id="clear-search" class="absolute right-2.5 p-1 text-[#878787] hover:text-rose-600 {{ '' if search_query else 'hidden' }} transition-colors"
           title="Clear search">
-          <i class="fas fa-times-circle text-sm"></i>
+          <i class="fas fa-times-circle text-base"></i>
         </button>
       </div>
       <div id="product-suggestions"
-        class="absolute left-0 right-0 mt-1.5 bg-white rounded-sm shadow-xl border border-[#e0e0e0] max-h-80 overflow-y-auto hidden z-[100]">
+        class="absolute left-0 right-0 mt-1.5 bg-white rounded-sm shadow-xl border border-[#e0e0e0] max-h-[70vh] overflow-y-auto hidden z-[100]">
       </div>
+    </div>
     </div>
 
     <!-- 3. Category Grid Container -->
@@ -404,406 +410,628 @@
 <script type="application/json" id="categories-json">{{ (categories if categories else []) | tojson }}</script>
 
 <script>
-  const IS_CATEGORY_PAGE = document.getElementById("category-grid") !== null;
-  let ALL_CATEGORIES = [];
-  try {
-    const catScript = document.getElementById("categories-json");
-    if (catScript) {
-      ALL_CATEGORIES = JSON.parse(catScript.textContent || "[]");
+  (function() {
+    // Global references cache
+    window.suggestionsCache = window.suggestionsCache || new Map();
+    let activeAbortController = null;
+    let debounceTimer = null;
+
+    // ───────── Recent Searches ─────────
+    function getRecentSearches() {
+      try { return JSON.parse(localStorage.getItem('recentSearches') || '[]').slice(0, 5); } catch(e) { return []; }
     }
-  } catch (e) {
-    ALL_CATEGORIES = [];
-  }
-
-  const searchInput = document.getElementById("product-search");
-  const suggestBox = document.getElementById("product-suggestions");
-  const clearBtn = document.getElementById("clear-search");
-
-  // In-memory instant suggestions cache
-  const suggestionsCache = new Map();
-  let activeAbortController = null;
-
-  function clearSearchState() {
-    localStorage.removeItem('lastSearch');
-    sessionStorage.removeItem('lastSearch');
-    if (searchInput) {
-      searchInput.value = "";
-      toggleClearButton("");
-      filterOnScreenItems("");
+    function saveRecentSearch(q) {
+      if (!q || q.length < 2) return;
+      let arr = getRecentSearches();
+      arr = arr.filter(s => s.toLowerCase() !== q.toLowerCase());
+      arr.unshift(q);
+      localStorage.setItem('recentSearches', JSON.stringify(arr.slice(0, 5)));
     }
-    if (suggestBox) {
-      suggestBox.classList.add("hidden");
-      suggestBox.innerHTML = "";
+
+    // ───────── Highlight Match ─────────
+    function highlightMatch(text, query) {
+      if (!query || !text) return text || '';
+      const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      return text.replace(new RegExp(`(${escaped})`, 'gi'), '<mark class="bg-yellow-200/80 text-[#212121] rounded-xs px-0.5 font-semibold">$1</mark>');
     }
-    const noCatEl = document.getElementById("no-category-found");
-    if (noCatEl) noCatEl.classList.add("hidden");
-  }
 
-  // Handle Back Button Cache Reset across all browsers, bfcache & mobile WebViews
-  window.addEventListener("pageshow", (event) => {
-    const navEntries = performance.getEntriesByType && performance.getEntriesByType("navigation");
-    const isBackForward = (navEntries && navEntries.length > 0 && navEntries[0].type === "back_forward") ||
-                          (window.performance && window.performance.navigation && window.performance.navigation.type === 2);
-    if (event.persisted || isBackForward || IS_CATEGORY_PAGE) {
-      clearSearchState();
-    }
-  });
-
-  window.addEventListener("popstate", () => {
-    clearSearchState();
-  });
-
-  document.addEventListener("DOMContentLoaded", () => {
-    // 1. Shuffle Categories (kept for freshness)
-    const categoryGrid = document.getElementById("category-grid");
-    if (categoryGrid) {
-      const cards = Array.from(categoryGrid.children);
-      for (let i = cards.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        categoryGrid.appendChild(cards[j]);
+    window.clearSearchState = function() {
+      localStorage.removeItem('lastSearch');
+      sessionStorage.removeItem('lastSearch');
+      const searchInput = document.getElementById("product-search");
+      const suggestBox = document.getElementById("product-suggestions");
+      const noCatEl = document.getElementById("no-category-found");
+      if (searchInput) {
+        searchInput.value = "";
+        window.toggleClearButton("");
+        window.filterOnScreenItems("");
       }
-    }
-
-    syncVariantSelectsWithCart();
-    updateCartButtons();
-
-    // Auto-scroll active category pill into center on mobile
-    const slider = document.getElementById('mobile-category-slider');
-    if (slider) {
-      const activePill = slider.querySelector('.bg-\\[\\#2874f0\\]');
-      if (activePill) {
-        setTimeout(() => {
-          activePill.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-        }, 120);
+      if (suggestBox) {
+        suggestBox.classList.add("hidden");
+        suggestBox.innerHTML = "";
       }
-    }
+      if (noCatEl) noCatEl.classList.add("hidden");
+    };
 
-    // Category page always starts fresh and cleared
-    if (IS_CATEGORY_PAGE) {
-      clearSearchState();
-    } else {
-      // Check URL search param first, then localStorage
-      const urlParams = new URLSearchParams(window.location.search);
-      const searchParam = urlParams.get('search');
-      if (searchParam && searchInput) {
-        searchInput.value = searchParam;
-        toggleClearButton(searchParam);
-        filterOnScreenItems(searchParam.toLowerCase());
-      } else {
-        const savedSearch = localStorage.getItem('lastSearch');
-        if (savedSearch && searchInput) {
-          searchInput.value = savedSearch;
-          toggleClearButton(savedSearch);
-          filterOnScreenItems(savedSearch.toLowerCase());
+    window.toggleClearButton = function(val) {
+      const clearBtn = document.getElementById("clear-search");
+      if (val && val.length > 0) clearBtn?.classList.remove("hidden");
+      else clearBtn?.classList.add("hidden");
+    };
+
+    window.filterOnScreenItems = function(query) {
+      const catCards = document.querySelectorAll('.category-card');
+      const prodCards = document.querySelectorAll('.product-card');
+      const noCatEl = document.getElementById("no-category-found");
+      const suggestBox = document.getElementById("product-suggestions");
+
+      if (catCards.length > 0) {
+        let visibleCount = 0;
+        catCards.forEach(card => {
+          const name = card.getAttribute('data-name') || '';
+          const match = (name.includes(query) || query === "");
+          card.style.display = match ? "" : "none";
+          if (match) visibleCount++;
+        });
+        if (noCatEl) {
+          if (visibleCount === 0 && query.length > 0 && (!suggestBox || suggestBox.classList.contains("hidden"))) {
+            noCatEl.classList.remove("hidden");
+          } else {
+            noCatEl.classList.add("hidden");
+          }
         }
       }
+      if (prodCards.length > 0) {
+        prodCards.forEach(card => {
+          const name = card.getAttribute('data-name') || '';
+          card.style.display = (name.includes(query) || query === "") ? "" : "none";
+        });
+      }
+    };
+
+    window.getLocalInstantSuggestions = function(q) {
+      if (!q) return [];
+      const matches = [];
+      const allCats = window.ALL_CATEGORIES || [];
+      if (Array.isArray(allCats)) {
+        allCats.forEach(c => {
+          if (c.toLowerCase().includes(q)) {
+            matches.push({ name: c, type: 'category', url: `/category/${encodeURIComponent(c)}` });
+          }
+        });
+      }
+      const cards = document.querySelectorAll('.product-card');
+      cards.forEach(card => {
+        const name = card.getAttribute('data-name');
+        if (name && name.toLowerCase().includes(q)) {
+          if (!matches.some(m => m.name.toLowerCase() === name.toLowerCase())) {
+            matches.push({ name, type: 'product', url: `/category/all?search=${encodeURIComponent(name)}` });
+          }
+        }
+      });
+      return matches.slice(0, 8);
+    };
+
+    // ───────── Show Recent & Trending (on empty focus) ─────────
+    function showRecentAndTrending() {
+      const suggestBox = document.getElementById("product-suggestions");
+      if (!suggestBox) return;
+
+      const recents = getRecentSearches();
+      const trending = ["Milk", "Amul Butter", "Maggi", "Cold Drinks", "Aata", "Chips", "Bread", "Dahi", "Biscuits"];
+      let html = '';
+
+      // Recent Searches section
+      if (recents.length > 0) {
+        html += `<div class="px-3.5 py-2 bg-[#fafafa] border-b border-[#f0f0f0]">
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-[#878787]"><i class="fas fa-clock-rotate-left text-[9px] mr-1.5"></i>Recent Searches</span>
+            <button onclick="localStorage.removeItem('recentSearches');document.getElementById('product-suggestions').classList.add('hidden')" class="text-[10px] text-rose-500 font-bold hover:text-rose-700 transition-colors">Clear</button>
+          </div>
+        </div>`;
+        recents.forEach(s => {
+          const safe = s.replace(/'/g, "\\'");
+          html += `<div onclick="window.executeSearch('${safe}')" class="px-3.5 py-2.5 hover:bg-blue-50/80 cursor-pointer border-b border-[#f0f0f0] flex items-center gap-2.5 group transition-colors">
+            <i class="fas fa-clock-rotate-left text-[#c2c2c2] text-xs group-hover:text-[#2874f0] shrink-0"></i>
+            <span class="text-[13px] font-medium text-[#212121] capitalize truncate">${s}</span>
+            <i class="fas fa-arrow-up-left text-[#c2c2c2] text-[10px] ml-auto group-hover:text-[#2874f0] shrink-0"></i>
+          </div>`;
+        });
+      }
+
+      // Trending section
+      html += `<div class="px-3.5 py-2 bg-[#fafafa] border-b border-[#f0f0f0] ${recents.length > 0 ? 'border-t' : ''}">
+        <span class="text-[10px] font-bold uppercase tracking-wider text-[#878787]"><i class="fas fa-fire text-[9px] mr-1.5 text-orange-400"></i>Trending Now</span>
+      </div>
+      <div class="flex flex-wrap gap-1.5 px-3.5 py-2.5">`;
+      trending.forEach(t => {
+        const safe = t.replace(/'/g, "\\'");
+        html += `<button onclick="window.executeSearch('${safe}')" class="inline-flex items-center gap-1 px-2.5 py-1.5 bg-[#f1f3f6] hover:bg-blue-50 border border-[#e0e0e0] hover:border-[#2874f0] rounded-sm text-[11.5px] font-semibold text-[#212121] hover:text-[#2874f0] transition-all active:scale-95">
+          <i class="fas fa-arrow-trend-up text-[8px] text-orange-400"></i>${t}
+        </button>`;
+      });
+      html += `</div>`;
+
+      suggestBox.innerHTML = html;
+      suggestBox.classList.remove("hidden");
     }
 
-    searchInput?.addEventListener("input", (e) => {
-      const q = e.target.value.toLowerCase().trim();
-      toggleClearButton(e.target.value);
-      if (!IS_CATEGORY_PAGE) {
-        localStorage.setItem('lastSearch', e.target.value);
+    // ───────── Rich Suggestions Renderer ─────────
+    window.renderSuggestionsList = function(data, query) {
+      const suggestBox = document.getElementById("product-suggestions");
+      if (!suggestBox) return;
+
+      query = (query || '').toLowerCase().trim();
+
+      // Support old flat array format and new structured format
+      let categories = [], prods = [], trendingItems = [];
+      if (Array.isArray(data)) {
+        // Old format: flat array of {name, type, url, ...}
+        data.forEach(item => {
+          if (item.type === 'category') categories.push(item);
+          else if (item.type === 'trending') trendingItems.push(item);
+          else prods.push(item);
+        });
+      } else if (data && typeof data === 'object') {
+        categories = data.categories || [];
+        prods = data.products || [];
+        trendingItems = (data.trending || []).map(t => ({
+          name: typeof t === 'string' ? t : t.name,
+          type: 'trending',
+          url: `/category/all?search=${encodeURIComponent(typeof t === 'string' ? t : t.name)}`
+        }));
       }
-      filterOnScreenItems(q);
-      if (q.length === 0) {
-        suggestBox?.classList.add("hidden");
-        localStorage.removeItem('lastSearch');
-        const noCatEl = document.getElementById("no-category-found");
-        if (noCatEl) noCatEl.classList.add("hidden");
+
+      if (!categories.length && !prods.length && !trendingItems.length) {
+        // No results found
+        suggestBox.innerHTML = `<div class="px-4 py-6 text-center">
+          <i class="fas fa-search text-[#e0e0e0] text-2xl mb-2"></i>
+          <p class="text-[13px] text-[#878787] font-medium">No results for "<span class="text-[#212121] font-bold">${query}</span>"</p>
+          <p class="text-[11px] text-[#c2c2c2] mt-0.5">Try a different keyword</p>
+        </div>`;
+        suggestBox.classList.remove("hidden");
         return;
       }
-      fetchSuggestions(q);
-    });
 
-    // Enter key support to trigger top suggestion
-    searchInput?.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        const firstSuggestion = suggestBox?.querySelector("div");
-        if (firstSuggestion && !suggestBox.classList.contains("hidden")) {
-          firstSuggestion.click();
+      let html = '';
+
+      // Categories section
+      if (categories.length > 0) {
+        html += `<div class="px-3.5 py-1.5 bg-[#fafafa] border-b border-[#f0f0f0]">
+          <span class="text-[9.5px] font-bold uppercase tracking-wider text-[#878787]">Categories</span>
+        </div>`;
+        categories.forEach(c => {
+          const safeName = (c.name || '').replace(/'/g, "\\'");
+          const safeUrl = (c.url || '').replace(/'/g, "\\'");
+          html += `<div onclick="window.handleSuggestionClick('${safeName}', 'category', '${safeUrl}')"
+            class="px-3.5 py-2.5 hover:bg-blue-50/80 cursor-pointer border-b border-[#f0f0f0] last:border-0 flex items-center justify-between group transition-colors">
+            <div class="flex items-center gap-2.5 min-w-0">
+              <div class="w-7 h-7 rounded-sm bg-emerald-50 border border-emerald-200 flex items-center justify-center shrink-0">
+                <i class="fas fa-th-large text-emerald-500 text-[10px]"></i>
+              </div>
+              <span class="text-[13px] font-medium text-[#212121] capitalize truncate">${highlightMatch(c.name || '', query)}</span>
+            </div>
+            <span class="text-[9px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-sm uppercase tracking-wider shrink-0">Category</span>
+          </div>`;
+        });
+      }
+
+      // Products section
+      if (prods.length > 0) {
+        html += `<div class="px-3.5 py-1.5 bg-[#fafafa] border-b border-[#f0f0f0]">
+          <span class="text-[9.5px] font-bold uppercase tracking-wider text-[#878787]">Products</span>
+        </div>`;
+        prods.forEach(p => {
+          const safeName = (p.name || '').replace(/'/g, "\\'");
+          const safeUrl = (p.url || '').replace(/'/g, "\\'");
+          const price = p.price ? `₹${parseFloat(p.price).toFixed(0)}` : '';
+          const origPrice = p.orig_price && p.orig_price > p.price ? `<span class="line-through text-[10px] text-[#878787] ml-1">₹${parseFloat(p.orig_price).toFixed(0)}</span>` : '';
+          const unit = p.unit ? `<span class="text-[10px] text-[#878787]">/ ${p.unit}</span>` : '';
+          const catBadge = p.category ? `<span class="text-[9px] text-[#878787] bg-[#f1f3f6] px-1.5 py-0.5 rounded-xs border border-[#e0e0e0]">${p.category}</span>` : '';
+          const imgHtml = p.image
+            ? `<img src="${p.image}" class="w-9 h-9 object-contain rounded-sm border border-[#f0f0f0] bg-white" onerror="this.parentElement.innerHTML='<div class=\\'w-9 h-9 rounded-sm bg-[#f1f3f6] flex items-center justify-center\\'><i class=\\'fas fa-box text-[#c2c2c2] text-xs\\'></i></div>'">`
+            : `<div class="w-9 h-9 rounded-sm bg-[#f1f3f6] flex items-center justify-center shrink-0"><i class="fas fa-box text-[#c2c2c2] text-xs"></i></div>`;
+          const oosTag = p.out_of_stock ? `<span class="text-[8px] font-bold text-rose-600 bg-rose-50 border border-rose-200 px-1.5 py-0.5 rounded-xs uppercase">Out of Stock</span>` : '';
+
+          html += `<div onclick="window.handleSuggestionClick('${safeName}', 'product', '${safeUrl}')"
+            class="px-3.5 py-2 hover:bg-blue-50/80 cursor-pointer border-b border-[#f0f0f0] last:border-0 flex items-center gap-3 group transition-colors ${p.out_of_stock ? 'opacity-60' : ''}">
+            <div class="shrink-0">${imgHtml}</div>
+            <div class="flex-1 min-w-0">
+              <div class="text-[12.5px] font-medium text-[#212121] truncate leading-tight">${highlightMatch(p.name || '', query)}</div>
+              <div class="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                ${price ? `<span class="text-[12px] font-bold text-[#212121]">${price}</span>` : ''}
+                ${origPrice}
+                ${unit}
+                ${catBadge}
+                ${oosTag}
+              </div>
+            </div>
+            <i class="fas fa-chevron-right text-[9px] text-[#c2c2c2] group-hover:text-[#2874f0] shrink-0"></i>
+          </div>`;
+        });
+      }
+
+      // Trending section (if returned from API with no query)
+      if (trendingItems.length > 0 && !categories.length && !prods.length) {
+        html += `<div class="px-3.5 py-2 bg-[#fafafa] border-b border-[#f0f0f0]">
+          <span class="text-[10px] font-bold uppercase tracking-wider text-[#878787]"><i class="fas fa-fire text-[9px] mr-1.5 text-orange-400"></i>Trending</span>
+        </div>`;
+        trendingItems.forEach(t => {
+          const safe = (t.name || '').replace(/'/g, "\\'");
+          const safeUrl = (t.url || '').replace(/'/g, "\\'");
+          html += `<div onclick="window.handleSuggestionClick('${safe}', 'trending', '${safeUrl}')"
+            class="px-3.5 py-2.5 hover:bg-blue-50/80 cursor-pointer border-b border-[#f0f0f0] last:border-0 flex items-center gap-2.5 group transition-colors">
+            <i class="fas fa-arrow-trend-up text-orange-400 text-xs shrink-0"></i>
+            <span class="text-[13px] font-medium text-[#212121] capitalize truncate">${t.name}</span>
+          </div>`;
+        });
+      }
+
+      suggestBox.innerHTML = html;
+      suggestBox.classList.remove("hidden");
+    };
+
+    // ───────── Fetch Suggestions (with debounce) ─────────
+    window.fetchSuggestions = function(q) {
+      const searchInput = document.getElementById("product-search");
+      // Instant local matches
+      const localMatches = window.getLocalInstantSuggestions(q);
+      if (localMatches.length > 0) {
+        window.renderSuggestionsList(localMatches, q);
+      }
+      // Check cache
+      if (window.suggestionsCache.has(q)) {
+        window.renderSuggestionsList(window.suggestionsCache.get(q), q);
+        return;
+      }
+      // Debounced API call
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(async () => {
+        if (activeAbortController) activeAbortController.abort();
+        activeAbortController = new AbortController();
+        try {
+          const resp = await fetch(`/api/suggestions?q=${encodeURIComponent(q)}`, {
+            signal: activeAbortController.signal
+          });
+          if (!resp.ok) return;
+          const suggestions = await resp.json();
+          window.suggestionsCache.set(q, suggestions);
+          if (searchInput && searchInput.value.toLowerCase().trim() === q) {
+            window.renderSuggestionsList(suggestions, q);
+          }
+        } catch (err) {
+          if (err.name !== 'AbortError') console.error(err);
+        }
+      }, 200);
+    };
+
+    // ───────── Execute Search (used by trending/recent chips) ─────────
+    window.executeSearch = function(query) {
+      if (!query) return;
+      saveRecentSearch(query);
+      const searchInput = document.getElementById("product-search");
+      if (searchInput) {
+        searchInput.value = query;
+        window.toggleClearButton(query);
+      }
+      const suggestBox = document.getElementById("product-suggestions");
+      suggestBox?.classList.add("hidden");
+      const url = `/category/all?search=${encodeURIComponent(query)}`;
+      if (typeof window.jippyNavigate === 'function') {
+        window.jippyNavigate(url, true);
+      } else {
+        window.location.href = url;
+      }
+    };
+
+    window.handleSuggestionClick = function(name, type, url) {
+      const suggestBox = document.getElementById("product-suggestions");
+      suggestBox?.classList.add("hidden");
+      saveRecentSearch(name);
+
+      const searchInput = document.getElementById("product-search");
+      if (type === 'product' || type === 'trending') {
+        if (searchInput) {
+          searchInput.value = name;
+          window.toggleClearButton(name);
+        }
+      } else {
+        if (searchInput) {
+          searchInput.value = "";
+          window.toggleClearButton("");
         }
       }
-    });
 
-    // Clear Search Logic
-    clearBtn?.addEventListener("click", () => {
-      clearSearchState();
-      searchInput?.focus();
-    });
+      if (typeof window.jippyNavigate === 'function' && (url.startsWith('/category/') || url.startsWith('/shop/'))) {
+        window.jippyNavigate(url, true);
+      } else {
+        window.location.href = url;
+      }
+    };
 
+    // 🛍️ Flipkart Style Buttons in JS
+    window.updateCartButtons = function() {
+      const cart = JSON.parse(localStorage.getItem("cart") || "[]");
+      document.querySelectorAll(".cart-btn-wrapper").forEach(wrapper => {
+        const { id, slug, oos } = wrapper.dataset;
+        if (oos === "true") {
+          wrapper.innerHTML = `<button disabled class="w-full py-1.5 rounded-sm text-[10px] font-bold bg-[#f1f3f6] text-[#878787] border border-[#e0e0e0] cursor-not-allowed uppercase tracking-wide">Out of Stock</button>`;
+          return;
+        }
+        const item = cart.find(i => (id && i.id === id) || (i.slug && i.slug === slug));
+        if (!item) {
+          wrapper.innerHTML = `<button class="w-full py-1.5 rounded-sm text-[12px] font-bold border border-[#2874f0] bg-white text-[#2874f0] hover:bg-blue-50 active:scale-95 transition-all uppercase tracking-wide flex items-center justify-center gap-1 shadow-2xs" onclick="window.handleCartClick(this.parentElement)"><i class="fas fa-plus text-[9px]"></i> Add</button>`;
+        } else {
+          const itemKey = id || slug;
+          wrapper.innerHTML = `
+            <div class="flex items-center justify-between bg-[#2874f0] text-white p-0.5 rounded-sm shadow-2xs w-full">
+              <button onclick="window.changeQty('${itemKey}', -1, event)" class="w-7 h-7 flex items-center justify-center rounded-sm hover:bg-white/20 text-white transition-colors active:scale-90"><i class="fas fa-minus text-[9px]"></i></button>
+              <span class="text-white font-bold text-xs tabular-nums">${item.qty}</span>
+              <button onclick="window.changeQty('${itemKey}', 1, event)" class="w-7 h-7 flex items-center justify-center rounded-sm hover:bg-white/20 text-white transition-colors active:scale-90"><i class="fas fa-plus text-[9px]"></i></button>
+            </div>`;
+        }
+      });
+    };
+
+    window.handleCartClick = function(wrapper) {
+      const { id, slug, name, price, image, unit } = wrapper.dataset;
+      let cart = JSON.parse(localStorage.getItem("cart") || "[]");
+      const itemKey = id || slug;
+      const index = cart.findIndex(item => (item.id && item.id === itemKey) || item.slug === itemKey);
+      if (index === -1) cart.push({ id: itemKey, slug, name, price: parseFloat(price), image, unit, qty: 1 });
+      else cart[index].qty++;
+      localStorage.setItem("cart", JSON.stringify(cart));
+      window.updateCartButtons();
+      window.dispatchEvent(new Event('cartUpdated'));
+    };
+
+    window.changeQty = function(key, delta, event) {
+      if (event) event.stopPropagation();
+      let cart = JSON.parse(localStorage.getItem("cart") || "[]");
+      const index = cart.findIndex(item => (item.id && item.id === key) || item.slug === key);
+      if (index === -1) return;
+      cart[index].qty += delta;
+      if (cart[index].qty <= 0) cart.splice(index, 1);
+      localStorage.setItem("cart", JSON.stringify(cart));
+      window.updateCartButtons();
+      window.dispatchEvent(new Event('cartUpdated'));
+    };
+
+    window.handleVariantChange = function(selectEl) {
+      const card = selectEl.closest('.product-card');
+      const opt = selectEl.options[selectEl.selectedIndex];
+      if (!card || !opt) return;
+
+      const id = opt.dataset.id;
+      const slug = opt.dataset.slug;
+      const price = opt.dataset.price;
+      const origPrice = opt.dataset.origPrice;
+      const unit = opt.dataset.unit;
+      const hasDiscount = opt.dataset.hasDiscount === 'true';
+      const discPercent = opt.dataset.discPercent;
+      const isOos = opt.dataset.oos === 'true';
+
+      const strikeEl = card.querySelector('.price-strike');
+      const finalPriceEl = card.querySelector('.price-final');
+      if (finalPriceEl) finalPriceEl.textContent = `₹${price}`;
+      if (strikeEl) {
+        if (hasDiscount) {
+          strikeEl.textContent = `₹${origPrice}`;
+          strikeEl.classList.remove('hidden');
+        } else {
+          strikeEl.classList.add('hidden');
+        }
+      }
+
+      const discTag = card.querySelector('.discount-tag');
+      const discVal = card.querySelector('.discount-val');
+      if (discTag) {
+        if (hasDiscount && !isOos) {
+          if (discVal) discVal.textContent = `${discPercent}% OFF`;
+          discTag.classList.remove('hidden');
+        } else {
+          discTag.classList.add('hidden');
+        }
+      }
+
+      const oosOverlay = card.querySelector('.oos-overlay');
+      const imgEl = card.querySelector('.product-img');
+      if (oosOverlay) {
+        if (isOos) oosOverlay.classList.remove('hidden');
+        else oosOverlay.classList.add('hidden');
+      }
+      if (imgEl) {
+        if (isOos) imgEl.classList.add('opacity-60', 'grayscale-[50%]');
+        else imgEl.classList.remove('opacity-60', 'grayscale-[50%]');
+      }
+
+      const wrapper = card.querySelector('.cart-btn-wrapper');
+      if (wrapper) {
+        wrapper.dataset.id = id;
+        wrapper.dataset.slug = slug;
+        wrapper.dataset.price = price;
+        wrapper.dataset.unit = unit;
+        wrapper.dataset.oos = isOos ? 'true' : 'false';
+        window.updateCartButtons();
+      }
+    };
+
+    window.syncVariantSelectsWithCart = function() {
+      const cart = JSON.parse(localStorage.getItem("cart") || "[]");
+      if (!cart.length) return;
+      document.querySelectorAll(".product-card").forEach(card => {
+        const select = card.querySelector(".variant-select");
+        if (!select) return;
+        const currentOpt = select.options[select.selectedIndex];
+        const currentInCart = cart.some(i => (i.id && i.id === currentOpt?.dataset.id) || (i.slug && i.slug === currentOpt?.dataset.slug));
+        if (!currentInCart) {
+          for (let i = 0; i < select.options.length; i++) {
+            const opt = select.options[i];
+            if (cart.some(it => (it.id && it.id === opt.dataset.id) || (it.slug && it.slug === opt.dataset.slug))) {
+              select.selectedIndex = i;
+              window.handleVariantChange(select);
+              break;
+            }
+          }
+        }
+      });
+    };
+
+    // 🚀 Master Controller for Products & Category Page
+    window.initProductsPage = function() {
+      const categoryGrid = document.getElementById("category-grid");
+      const isCatPage = categoryGrid !== null;
+
+      try {
+        const catScript = document.getElementById("categories-json");
+        if (catScript) {
+          window.ALL_CATEGORIES = JSON.parse(catScript.textContent || "[]");
+        }
+      } catch (e) {
+        window.ALL_CATEGORIES = [];
+      }
+
+      const searchInput = document.getElementById("product-search");
+      const suggestBox = document.getElementById("product-suggestions");
+      const clearBtn = document.getElementById("clear-search");
+
+      // 1. Shuffle Categories if on Categories grid
+      if (categoryGrid) {
+        const cards = Array.from(categoryGrid.children);
+        for (let i = cards.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          categoryGrid.appendChild(cards[j]);
+        }
+      }
+
+      // 2. Sync Variant Selects & Cart Buttons
+      window.syncVariantSelectsWithCart();
+      window.updateCartButtons();
+
+      // 3. Scroll active category pill to center
+      const slider = document.getElementById('mobile-category-slider');
+      if (slider) {
+        const activePill = slider.querySelector('.bg-\\[\\#2874f0\\]');
+        if (activePill) {
+          setTimeout(() => {
+            activePill.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+          }, 80);
+        }
+      }
+
+      // 4. Handle Search State (Purge sticky lastSearch so previous query never haunts)
+      try { localStorage.removeItem('lastSearch'); } catch(e){}
+      try { sessionStorage.removeItem('lastSearch'); } catch(e){}
+
+      if (isCatPage) {
+        window.clearSearchState();
+      } else {
+        const urlParams = new URLSearchParams(window.location.search);
+        const searchParam = urlParams.get('search');
+        if (searchParam && searchInput) {
+          searchInput.value = searchParam;
+          window.toggleClearButton(searchParam);
+          window.filterOnScreenItems(searchParam.toLowerCase());
+        } else if (searchInput) {
+          // If no search in URL, keep search box completely clean!
+          searchInput.value = "";
+          window.toggleClearButton("");
+          window.filterOnScreenItems("");
+        }
+      }
+
+      // 5. Setup Search Listeners
+      if (searchInput) {
+        // Focus: show recent/trending when empty, or auto-select text so typing immediately replaces old search
+        let selectOnFocus = true;
+
+        searchInput.onfocus = () => {
+          const q = searchInput.value.trim();
+          if (!q) {
+            showRecentAndTrending();
+          } else {
+            // Auto-select text so typing any new character immediately overwrites previous search!
+            if (selectOnFocus) {
+              setTimeout(() => {
+                try { searchInput.select(); } catch(e){}
+              }, 30);
+            }
+            window.fetchSuggestions(q.toLowerCase());
+          }
+        };
+
+        searchInput.onmouseup = (e) => {
+          if (selectOnFocus && searchInput.value.length > 0) {
+            e.preventDefault();
+            selectOnFocus = false;
+          }
+        };
+
+        searchInput.onblur = () => {
+          selectOnFocus = true;
+        };
+
+        searchInput.oninput = (e) => {
+          selectOnFocus = false;
+          const q = e.target.value.toLowerCase().trim();
+          window.toggleClearButton(e.target.value);
+          window.filterOnScreenItems(q);
+          if (q.length === 0) {
+            const noCatEl = document.getElementById("no-category-found");
+            if (noCatEl) noCatEl.classList.add("hidden");
+            showRecentAndTrending();
+            return;
+          }
+          window.fetchSuggestions(q);
+        };
+
+        searchInput.onkeydown = (e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            const q = searchInput.value.trim();
+            if (!q) return;
+            // If suggestions visible, click first one
+            if (suggestBox && !suggestBox.classList.contains("hidden")) {
+              const firstClickable = suggestBox.querySelector("[onclick]");
+              if (firstClickable) {
+                firstClickable.click();
+                return;
+              }
+            }
+            // Otherwise execute search directly
+            window.executeSearch(q);
+          }
+        };
+      }
+
+      if (clearBtn) {
+        clearBtn.onclick = (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          window.clearSearchState();
+          searchInput?.focus();
+          showRecentAndTrending();
+        };
+      }
+    };
+
+    // Run automatically on first load
+    if (document.readyState === 'loading') {
+      document.addEventListener("DOMContentLoaded", window.initProductsPage);
+    } else {
+      window.initProductsPage();
+    }
+
+    // Dismiss suggestions on outside click
     document.addEventListener("click", (e) => {
+      const searchInput = document.getElementById("product-search");
+      const suggestBox = document.getElementById("product-suggestions");
+      const clearBtn = document.getElementById("clear-search");
       if (!searchInput?.contains(e.target) && !suggestBox?.contains(e.target) && !clearBtn?.contains(e.target)) {
         suggestBox?.classList.add("hidden");
       }
     });
-  });
-
-  function toggleClearButton(val) {
-    if (val.length > 0) clearBtn?.classList.remove("hidden");
-    else clearBtn?.classList.add("hidden");
-  }
-
-  function renderSuggestionsList(items) {
-    if (!suggestBox) return;
-    if (!items || items.length === 0) {
-      suggestBox.classList.add("hidden");
-      return;
-    }
-    suggestBox.classList.remove("hidden");
-    suggestBox.innerHTML = items.map(item => {
-      const isCat = item.type === 'category';
-      const safeName = (item.name || '').replace(/'/g, "\\'");
-      const safeUrl = (item.url || '').replace(/'/g, "\\'");
-      return `
-        <div onclick="handleSuggestionClick('${safeName}', '${item.type}', '${safeUrl}')" 
-             class="px-3.5 py-2.5 hover:bg-blue-50/80 cursor-pointer border-b border-[#f0f0f0] last:border-0 flex items-center justify-between group transition-colors">
-          <div class="flex items-center gap-2.5 min-w-0">
-            <i class="fas ${isCat ? 'fa-th-large text-emerald-500' : 'fa-search text-[#878787]'} group-hover:text-[#2874f0] text-xs shrink-0"></i>
-            <span class="text-[13px] font-medium text-[#212121] capitalize truncate">${item.name}</span>
-          </div>
-          <span class="text-[9.5px] font-bold ${isCat ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : 'text-[#2874f0] bg-blue-50 border-blue-200'} border px-2 py-0.5 rounded-sm uppercase tracking-wider shrink-0">${item.type}</span>
-        </div>`;
-    }).join('');
-  }
-
-  function getLocalInstantSuggestions(q) {
-    if (!q) return [];
-    const matches = [];
-    // 1. Instant Category matches from memory (0ms lag)
-    if (Array.isArray(ALL_CATEGORIES)) {
-      ALL_CATEGORIES.forEach(c => {
-        if (c.toLowerCase().includes(q)) {
-          matches.push({
-            name: c,
-            type: 'category',
-            url: `/category/${encodeURIComponent(c)}`
-          });
-        }
-      });
-    }
-    // 2. On products page, match on-screen product cards too (0ms lag)
-    const cards = document.querySelectorAll('.product-card');
-    cards.forEach(card => {
-      const name = card.getAttribute('data-name');
-      if (name && name.toLowerCase().includes(q)) {
-        if (!matches.some(m => m.name.toLowerCase() === name.toLowerCase())) {
-          matches.push({
-            name: name,
-            type: 'product',
-            url: window.location.pathname + `?search=${encodeURIComponent(name)}`
-          });
-        }
-      }
-    });
-    return matches.slice(0, 8);
-  }
-
-  async function fetchSuggestions(q) {
-    // 1. Instantly render local memory suggestions (0ms lag)
-    const localMatches = getLocalInstantSuggestions(q);
-    if (localMatches.length > 0) {
-      renderSuggestionsList(localMatches);
-    }
-
-    // 2. Return cached response if available (0ms lag)
-    if (suggestionsCache.has(q)) {
-      renderSuggestionsList(suggestionsCache.get(q));
-      return;
-    }
-
-    // 3. Abort previous in-flight request
-    if (activeAbortController) {
-      activeAbortController.abort();
-    }
-    activeAbortController = new AbortController();
-
-    try {
-      const resp = await fetch(`/api/suggestions?q=${encodeURIComponent(q)}`, {
-        signal: activeAbortController.signal
-      });
-      if (!resp.ok) return;
-      const suggestions = await resp.json();
-      suggestionsCache.set(q, suggestions);
-      // Ensure input hasn't changed while request was in-flight
-      if (searchInput && searchInput.value.toLowerCase().trim() === q) {
-        renderSuggestionsList(suggestions);
-      }
-    } catch (err) {
-      if (err.name !== 'AbortError') {
-        console.error(err);
-      }
-    }
-  }
-
-  function handleSuggestionClick(name, type, url) {
-    suggestBox?.classList.add("hidden");
-    clearSearchState();
-    window.location.href = url;
-  }
-
-  function filterOnScreenItems(query) {
-    const catCards = document.querySelectorAll('.category-card');
-    const prodCards = document.querySelectorAll('.product-card');
-    const noCatEl = document.getElementById("no-category-found");
-
-    if (catCards.length > 0) {
-      let visibleCount = 0;
-      catCards.forEach(card => {
-        const name = card.getAttribute('data-name') || '';
-        const match = (name.includes(query) || query === "");
-        card.style.display = match ? "" : "none";
-        if (match) visibleCount++;
-      });
-      if (noCatEl) {
-        if (visibleCount === 0 && query.length > 0 && (!suggestBox || suggestBox.classList.contains("hidden"))) {
-          noCatEl.classList.remove("hidden");
-        } else {
-          noCatEl.classList.add("hidden");
-        }
-      }
-    }
-
-    if (prodCards.length > 0) {
-      prodCards.forEach(card => {
-        const name = card.getAttribute('data-name') || '';
-        card.style.display = (name.includes(query) || query === "") ? "" : "none";
-      });
-    }
-  }
-
-  // 🛍️ Flipkart Style Buttons in JS
-  function updateCartButtons() {
-    const cart = JSON.parse(localStorage.getItem("cart") || "[]");
-    document.querySelectorAll(".cart-btn-wrapper").forEach(wrapper => {
-      const { id, slug, oos } = wrapper.dataset;
-      if (oos === "true") {
-        wrapper.innerHTML = `<button disabled class="w-full py-1.5 rounded-sm text-[10px] font-bold bg-[#f1f3f6] text-[#878787] border border-[#e0e0e0] cursor-not-allowed uppercase tracking-wide">Out of Stock</button>`;
-        return;
-      }
-      const item = cart.find(i => (id && i.id === id) || (i.slug && i.slug === slug));
-      if (!item) {
-        wrapper.innerHTML = `<button class="w-full py-1.5 rounded-sm text-[12px] font-bold border border-[#2874f0] bg-white text-[#2874f0] hover:bg-blue-50 active:scale-95 transition-all uppercase tracking-wide flex items-center justify-center gap-1 shadow-2xs" onclick="handleCartClick(this.parentElement)"><i class="fas fa-plus text-[9px]"></i> Add</button>`;
-      } else {
-        const itemKey = id || slug;
-        wrapper.innerHTML = `
-          <div class="flex items-center justify-between bg-[#2874f0] text-white p-0.5 rounded-sm shadow-2xs w-full">
-            <button onclick="changeQty('${itemKey}', -1, event)" class="w-7 h-7 flex items-center justify-center rounded-sm hover:bg-white/20 text-white transition-colors active:scale-90"><i class="fas fa-minus text-[9px]"></i></button>
-            <span class="text-white font-bold text-xs tabular-nums">${item.qty}</span>
-            <button onclick="changeQty('${itemKey}', 1, event)" class="w-7 h-7 flex items-center justify-center rounded-sm hover:bg-white/20 text-white transition-colors active:scale-90"><i class="fas fa-plus text-[9px]"></i></button>
-          </div>`;
-      }
-    });
-  }
-
-  function handleCartClick(wrapper) {
-    const { id, slug, name, price, image, unit } = wrapper.dataset;
-    let cart = JSON.parse(localStorage.getItem("cart") || "[]");
-    const itemKey = id || slug;
-    const index = cart.findIndex(item => (item.id && item.id === itemKey) || item.slug === itemKey);
-    if (index === -1) cart.push({ id: itemKey, slug, name, price: parseFloat(price), image, unit, qty: 1 });
-    else cart[index].qty++;
-    localStorage.setItem("cart", JSON.stringify(cart));
-    updateCartButtons();
-    window.dispatchEvent(new Event('cartUpdated'));
-  }
-
-  function changeQty(key, delta, event) {
-    if (event) event.stopPropagation();
-    let cart = JSON.parse(localStorage.getItem("cart") || "[]");
-    const index = cart.findIndex(item => (item.id && item.id === key) || item.slug === key);
-    if (index === -1) return;
-    cart[index].qty += delta;
-    if (cart[index].qty <= 0) cart.splice(index, 1);
-    localStorage.setItem("cart", JSON.stringify(cart));
-    updateCartButtons();
-    window.dispatchEvent(new Event('cartUpdated'));
-  }
-
-  function handleVariantChange(selectEl) {
-    const card = selectEl.closest('.product-card');
-    const opt = selectEl.options[selectEl.selectedIndex];
-    if (!card || !opt) return;
-
-    const id = opt.dataset.id;
-    const slug = opt.dataset.slug;
-    const price = opt.dataset.price;
-    const origPrice = opt.dataset.origPrice;
-    const unit = opt.dataset.unit;
-    const hasDiscount = opt.dataset.hasDiscount === 'true';
-    const discPercent = opt.dataset.discPercent;
-    const isOos = opt.dataset.oos === 'true';
-
-    // 1. Update Price & Strikethrough
-    const strikeEl = card.querySelector('.price-strike');
-    const finalPriceEl = card.querySelector('.price-final');
-    if (finalPriceEl) finalPriceEl.textContent = `₹${price}`;
-    if (strikeEl) {
-      if (hasDiscount) {
-        strikeEl.textContent = `₹${origPrice}`;
-        strikeEl.classList.remove('hidden');
-      } else {
-        strikeEl.classList.add('hidden');
-      }
-    }
-
-    // 2. Update Discount badge on image
-    const discTag = card.querySelector('.discount-tag');
-    const discVal = card.querySelector('.discount-val');
-    if (discTag) {
-      if (hasDiscount && !isOos) {
-        if (discVal) discVal.textContent = `${discPercent}% OFF`;
-        discTag.classList.remove('hidden');
-      } else {
-        discTag.classList.add('hidden');
-      }
-    }
-
-    // 3. Update Sold Out overlay & image style
-    const oosOverlay = card.querySelector('.oos-overlay');
-    const imgEl = card.querySelector('.product-img');
-    if (oosOverlay) {
-      if (isOos) oosOverlay.classList.remove('hidden');
-      else oosOverlay.classList.add('hidden');
-    }
-    if (imgEl) {
-      if (isOos) imgEl.classList.add('opacity-60', 'grayscale-[50%]');
-      else imgEl.classList.remove('opacity-60', 'grayscale-[50%]');
-    }
-
-    // 4. Update Cart Button wrapper dataset and re-render button
-    const wrapper = card.querySelector('.cart-btn-wrapper');
-    if (wrapper) {
-      wrapper.dataset.id = id;
-      wrapper.dataset.slug = slug;
-      wrapper.dataset.price = price;
-      wrapper.dataset.unit = unit;
-      wrapper.dataset.oos = isOos ? 'true' : 'false';
-      updateCartButtons();
-    }
-  }
-
-  function syncVariantSelectsWithCart() {
-    const cart = JSON.parse(localStorage.getItem("cart") || "[]");
-    if (!cart.length) return;
-    document.querySelectorAll(".product-card").forEach(card => {
-      const select = card.querySelector(".variant-select");
-      if (!select) return;
-      const currentOpt = select.options[select.selectedIndex];
-      const currentInCart = cart.some(i => (i.id && i.id === currentOpt?.dataset.id) || (i.slug && i.slug === currentOpt?.dataset.slug));
-      if (!currentInCart) {
-        for (let i = 0; i < select.options.length; i++) {
-          const opt = select.options[i];
-          if (cart.some(it => (it.id && it.id === opt.dataset.id) || (it.slug && it.slug === opt.dataset.slug))) {
-            select.selectedIndex = i;
-            handleVariantChange(select);
-            break;
-          }
-        }
-      }
-    });
-  }
+  })();
 </script>
 
 <style>
