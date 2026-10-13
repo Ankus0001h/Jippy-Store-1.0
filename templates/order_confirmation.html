@@ -247,8 +247,7 @@
 </div>
 
 <script>
-  document.addEventListener('DOMContentLoaded', () => {
-    // Confetti celebration (Flipkart signature colors)
+  function fireConfettiCelebration() {
     if (typeof confetti === 'function') {
       confetti({
         particleCount: 100,
@@ -273,7 +272,13 @@
         });
       }, 350);
     }
-  });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', fireConfettiCelebration);
+  } else {
+    fireConfettiCelebration();
+  }
 </script>
 {% endblock %}
 
