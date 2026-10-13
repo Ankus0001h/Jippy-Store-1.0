@@ -400,6 +400,12 @@
 
         try {
           let htmlText = pageCache.get(targetUrl);
+          // Always fetch fresh for cart page (fees/settings can change server-side)
+          const parsedTarget = new URL(targetUrl);
+          if (parsedTarget.pathname === '/cart' || parsedTarget.pathname === '/address') {
+            pageCache.delete(targetUrl);
+            htmlText = null;
+          }
           if (!htmlText) {
             const resp = await fetch(targetUrl);
             if (!resp.ok) throw new Error('HTTP ' + resp.status);
