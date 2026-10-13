@@ -60,6 +60,13 @@ TW_PROXY_NUM = os.getenv("TWILIO_PROXY_NUMBER")
 BASE_URL = os.getenv("BASE_URL", "")
 
 # ---------- MongoDB ----------
+try:
+    import dns.resolver
+    dns.resolver.default_resolver = dns.resolver.Resolver(configure=False)
+    dns.resolver.default_resolver.nameservers = ['8.8.8.8', '1.1.1.1', '8.8.4.4']
+except Exception:
+    pass
+
 MONGO_URI = os.getenv("MONGO_URI")
 mongo_client = MongoClient(
     MONGO_URI,
@@ -364,11 +371,46 @@ def category_page(name):
             except Exception:
                 shop = None
 
-        # If user selected 'categories' or 'all', display categories overview
+        # Check for search query parameter
+        search_query = request.args.get("search", "").strip()
+
+        # If search query is present
+        if search_query:
+            regex_q = {"$regex": re.escape(search_query), "$options": "i"}
+            matched_items = []
+            # If user was inside a specific category, check that category first
+            if original_category.lower() not in ["categories", "all"]:
+                matched_items = list(products.find({
+                    "category": {"$regex": f"^{re.escape(original_category)}$", "$options": "i"},
+                    "name": regex_q
+                }).limit(60))
+            
+            # If nothing found in category or user searched globally
+            if not matched_items:
+                matched_items = list(products.find({
+                    "$or": [{"name": regex_q}, {"category": regex_q}]
+                }).limit(60))
+
+            for it in matched_items:
+                it["_id"] = str(it["_id"])
+                it["display_price"] = it.get("discount_price") or it.get("price", 0)
+            items = sort_available_first(matched_items)
+
+            return render_template("products.html",
+                                 page_type="products",
+                                 categories=categories,
+                                 items=items,
+                                 selected_category=f"Results for '{search_query}'",
+                                 item_count=len(items),
+                                 search_query=search_query,
+                                 shop=shop)
+
+        # If user selected 'categories' or 'all' with no search, display categories overview
         if original_category.lower() in ["categories", "all"]:
             return render_template("products.html",
                                  page_type="categories",
                                  categories=categories,
+                                 search_query="",
                                  shop=shop)
 
         # Step 2: Database Query (Cached)
@@ -385,10 +427,12 @@ def category_page(name):
                              items=items,
                              selected_category=original_category,
                              item_count=len(items),
+                             search_query="",
                              shop=shop)
     except Exception as e:
         print(f"[ERROR] Category error: {str(e)}")
-        return render_template("products.html", items=[], categories=[], item_count=0, shop=None)
+        return render_template("products.html", items=[], categories=[], item_count=0, search_query="", shop=None)
+
 
 @app.route("/")
 def index():
@@ -631,7 +675,109 @@ def api_shop_category_products(shop_id, category_name):
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
-    
+# Common Hindi & English Grocery Synonyms for Smart Search
+GROCERY_SYNONYMS = {
+    "dahi": ["curd", "dahi", "yogurt"],
+    "curd": ["dahi", "curd"],
+    "doodh": ["milk", "doodh"],
+    "milk": ["milk", "doodh", "dairy"],
+    "makhan": ["butter", "makhan", "amul"],
+    "butter": ["butter", "makhan", "amul"],
+    "aata": ["aata", "atta", "wheat", "flour"],
+    "atta": ["aata", "atta", "wheat", "flour"],
+    "chawal": ["rice", "chawal"],
+    "rice": ["rice", "chawal"],
+    "cheeni": ["sugar", "cheeni"],
+    "sugar": ["sugar", "cheeni"],
+    "tel": ["oil", "mustard", "refined"],
+    "oil": ["oil", "refined", "mustard"],
+    "chai": ["tea", "chai"],
+    "tea": ["tea", "chai"],
+    "biscuit": ["biscuit", "cookie", "parle", "britannia"],
+    "biscuits": ["biscuit", "cookie"],
+    "maggi": ["maggi", "noodle", "instant food"],
+    "noodles": ["noodle", "maggi"],
+    "cold drink": ["soft drinks", "coke", "pepsi", "sprite", "juice"],
+    "cold drinks": ["soft drinks", "coke", "pepsi", "sprite", "juice"],
+    "soda": ["soda", "drink"],
+    "sabzi": ["vegetable", "sabzi"],
+    "namkeen": ["namkeen", "snack", "chips", "bhujia"],
+    "chips": ["chips", "lays", "kurkure", "snack"],
+    "surf": ["detergent", "surf", "washing powder"],
+    "soap": ["soap", "bath", "dettol", "lifebuoy"]
+}
+
+@app.route("/search")
+def search_page():
+    q = request.args.get("q", "").strip()
+    if not q:
+        return redirect(url_for("category_page", name="categories"))
+    return redirect(url_for("category_page", name="all", search=q))
+
+@app.route("/api/suggestions")
+def api_suggestions():
+    q = request.args.get("q", "").strip()
+    if not q:
+        trending = ["Milk", "Amul Butter", "Maggi", "Cold Drinks", "Aata", "Chips", "Bread", "Dahi", "Biscuits"]
+        return jsonify([{"name": t, "type": "trending", "url": f"/category/all?search={urllib.parse.quote(t)}"} for t in trending])
+
+    q_lower = q.lower()
+    results = []
+    seen = set()
+
+    search_terms = [q]
+    if q_lower in GROCERY_SYNONYMS:
+        search_terms.extend(GROCERY_SYNONYMS[q_lower])
+
+    # 1. Match Categories (e.g., Soft Drinks, Dairy Products)
+    try:
+        all_cats = get_cached_categories()
+        for cat in all_cats:
+            cat_l = cat.lower()
+            if any(term.lower() in cat_l for term in search_terms):
+                if cat_l not in seen:
+                    seen.add(cat_l)
+                    results.append({
+                        "name": cat,
+                        "type": "category",
+                        "url": f"/category/{urllib.parse.quote(cat)}"
+                    })
+    except Exception:
+        pass
+
+    # 2. Match Products across database with price and image
+    try:
+        regex_patterns = []
+        for term in search_terms:
+            reg = {"$regex": re.escape(term), "$options": "i"}
+            regex_patterns.append({"name": reg})
+            regex_patterns.append({"category": reg})
+            
+        matched_products = list(products.find({"$or": regex_patterns}).limit(20))
+        for p in matched_products:
+            p_name = p.get("name", "").strip()
+            p_name_l = p_name.lower()
+            if p_name_l and p_name_l not in seen:
+                seen.add(p_name_l)
+                p_cat = p.get("category", "")
+                p_price = p.get("discount_price") or p.get("price", 0)
+                p_img = p.get("image", "")
+                results.append({
+                    "name": p_name,
+                    "type": "product",
+                    "category": p_cat,
+                    "price": p_price,
+                    "unit": p.get("unit", ""),
+                    "image": p_img,
+                    "url": f"/category/all?search={urllib.parse.quote(p_name)}"
+                })
+                if len(results) >= 10:
+                    break
+    except Exception as e:
+        print(f"Suggestions API error: {e}")
+
+    return jsonify(results[:10])
+
 # ================================
 # ADMIN: AUTH & DASHBOARD
 # ================================
@@ -2841,8 +2987,8 @@ def download_invoice(order_id):
             return "Invoice is only available for delivered orders.", 403
 
         # 3. Invoice template render karein
-        # Note: 'invoice.html' wahi file hai jo maine pichle message mein di thi
-        return render_template("invoice.html", order=order)
+        order_items = order.get('items', []) if isinstance(order, dict) else getattr(order, 'items', [])
+        return render_template("invoice.html", order=order, items=order_items)
 
     except Exception as e:
         print(f"❌ Invoice Error: {e}")
