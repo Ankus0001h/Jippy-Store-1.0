@@ -995,16 +995,35 @@
   }
 
   function initCartPage() {
+    // Ensure critical DOM elements are ready (SPA navigation can delay DOM paint)
+    const criticalEl = document.getElementById("cart-empty") || document.getElementById("cart-container");
+    if (!criticalEl) {
+      // DOM not ready yet — retry after next frame (fixes SPA blank cart issue)
+      if (!window._cartRetryCount) window._cartRetryCount = 0;
+      if (window._cartRetryCount < 10) {
+        window._cartRetryCount++;
+        requestAnimationFrame(() => setTimeout(initCartPage, 50));
+        return;
+      }
+    }
+    window._cartRetryCount = 0;
     renderCartPage();
     initRemarkCounter();
   }
 
+  // Robust initialization: works for both direct page load and SPA navigation
   if (document.readyState === 'loading') {
     document.addEventListener("DOMContentLoaded", initCartPage);
   } else {
-    initCartPage();
+    // Use rAF to ensure DOM paint is complete (critical for SPA-injected scripts)
+    requestAnimationFrame(() => initCartPage());
   }
-  window.addEventListener('cartUpdated', renderCartPage);
+  window.addEventListener('cartUpdated', () => {
+    // Only re-render if cart DOM elements exist (prevents errors on other pages)
+    if (document.getElementById("cart-empty") || document.getElementById("cart-container")) {
+      renderCartPage();
+    }
+  });
 </script>
 {% endblock %}
 
