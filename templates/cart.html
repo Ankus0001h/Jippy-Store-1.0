@@ -986,13 +986,24 @@
       window.location.href = "{{ url_for('login') }}?redirect=cart";
       return;
     }
-    window.location.href = "{{ url_for('address_page') }}";
+    const targetAddr = "{{ url_for('address_page') }}";
+    if (typeof window.jippyNavigate === 'function') {
+      window.jippyNavigate(targetAddr, true);
+    } else {
+      window.location.href = targetAddr;
+    }
   }
 
-  document.addEventListener("DOMContentLoaded", () => {
+  function initCartPage() {
     renderCartPage();
     initRemarkCounter();
-  });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener("DOMContentLoaded", initCartPage);
+  } else {
+    initCartPage();
+  }
   window.addEventListener('cartUpdated', renderCartPage);
 </script>
 {% endblock %}
