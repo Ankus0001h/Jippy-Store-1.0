@@ -297,7 +297,7 @@
   }
 
   // Auto-init on page load: enforce society-locked fields
-  document.addEventListener("DOMContentLoaded", () => {
+  function initAddressPage() {
     const areaInput = document.getElementById("addr-line2");
     const cityInput = document.getElementById("addr-city");
     const pinInput = document.getElementById("addr-pincode");
@@ -307,9 +307,13 @@
     if (pinInput) pinInput.value = fallbackPin;
 
     showAutoFetchSuccess(fallbackSociety);
-  });
+  }
 
-
+  if (document.readyState === 'loading') {
+    document.addEventListener("DOMContentLoaded", initAddressPage);
+  } else {
+    initAddressPage();
+  }
 
   const alertBox = document.getElementById("addr-alert");
   const submitBtn = document.getElementById("place-order-btn");
@@ -318,13 +322,14 @@
   const submitIcon = document.getElementById("place-order-icon");
 
   function showAlert(msg) {
-    if (!alertBox) return;
-    alertBox.textContent = msg;
-    alertBox.classList.remove("hidden");
+    const box = document.getElementById("addr-alert");
+    if (!box) return;
+    box.textContent = msg;
+    box.classList.remove("hidden");
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  function fillAddressFromSaved(addr) {
+  window.fillAddressFromSaved = function(addr) {
     const l1 = document.getElementById("addr-line1");
     const l2 = document.getElementById("addr-line2");
     const city = document.getElementById("addr-city");
@@ -340,18 +345,19 @@
     if (alt) { alt.value = (addr.alt_phone || "").replace("+91", ""); }
 
     showAutoFetchSuccess(addr.label || "Saved Address");
-    if (alertBox) alertBox.classList.add("hidden");
-  }
+    const box = document.getElementById("addr-alert");
+    if (box) box.classList.add("hidden");
+  };
 
   let isSubmitting = false;
 
-  submitBtn.addEventListener("click", async (e) => {
+  submitBtn?.addEventListener("click", async (e) => {
     e.preventDefault();
     if (isSubmitting) return;
 
     // Validate form natively
     const addressForm = document.getElementById("address-form");
-    if (!addressForm.checkValidity()) {
+    if (addressForm && !addressForm.checkValidity()) {
       addressForm.reportValidity();
       return;
     }
@@ -409,7 +415,12 @@
         localStorage.removeItem("cartSpecialItems");
         localStorage.removeItem("cartSpecialRemark");
         window.dispatchEvent(new Event('cartUpdated'));
-        window.location.href = `/order-confirmation?order_id=${resData.order_id}`;
+        const targetUrl = `/order-confirmation?order_id=${resData.order_id}`;
+        if (typeof window.jippyNavigate === 'function') {
+          window.jippyNavigate(targetUrl, true);
+        } else {
+          window.location.href = targetUrl;
+        }
       } else {
         showAlert(resData.error || "Failed to place order.");
         resetBtn();
@@ -422,10 +433,10 @@
 
   function resetBtn() {
     isSubmitting = false;
-    submitBtn.disabled = false;
-    submitText.textContent = "Place Order";
-    submitSpinner.classList.add("hidden");
-    submitIcon.classList.remove("hidden");
+    if (submitBtn) submitBtn.disabled = false;
+    if (submitText) submitText.textContent = "Place Order";
+    if (submitSpinner) submitSpinner.classList.add("hidden");
+    if (submitIcon) submitIcon.classList.remove("hidden");
   }
 </script>
 {% endblock %}
