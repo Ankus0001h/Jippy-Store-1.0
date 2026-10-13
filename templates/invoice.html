@@ -3,764 +3,1028 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>jippy_invoice_{{ (order.order_id|string)[-6:] if order.order_id else 'INV' }}</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Jippy_Invoice_{{ (order.order_id|string)[-8:]|upper if order.order_id else 'INV' }}</title>
+    
+    <!-- Google Fonts & Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <!-- html2pdf.js for 100% Reliable Client-Side PDF Generation in Mobile Apps & WebViews -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
+    <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html, body {
+            overflow-x: hidden;
+            width: 100%;
         }
 
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background: #f1f3f6;
             color: #212121;
+            padding-bottom: 30px;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
         }
 
-        @page {
-            size: A4;
-            margin: 0;
+        /* ── Top Action Bar (Flipkart Style Sticky Bar) ── */
+        .top-toolbar {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: #ffffff;
+            border-bottom: 1px solid #e0e0e0;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+            padding: 10px 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            max-width: 820px;
+            margin: 0 auto 14px;
+            width: 100%;
         }
 
+        .btn-back {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #f8f9fa;
+            border: 1px solid #d1d5db;
+            color: #374151;
+            font-size: 12px;
+            font-weight: 700;
+            padding: 7px 12px;
+            border-radius: 4px;
+            text-decoration: none;
+            transition: all 0.15s;
+            white-space: nowrap;
+        }
+
+        .btn-back:hover {
+            background: #e5e7eb;
+            color: #111827;
+        }
+
+        .actions-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-download {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #2874f0;
+            border: 1px solid #1d4ed8;
+            color: #ffffff;
+            font-size: 12px;
+            font-weight: 700;
+            padding: 7px 14px;
+            border-radius: 4px;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            box-shadow: 0 1px 4px rgba(40, 116, 240, 0.25);
+            transition: all 0.15s;
+            white-space: nowrap;
+        }
+
+        .btn-download:hover {
+            background: #1a5dc8;
+        }
+
+        .btn-download:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+
+        .btn-print {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            background: #ffffff;
+            border: 1px solid #d1d5db;
+            color: #374151;
+            font-size: 12px;
+            font-weight: 700;
+            padding: 7px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.15s;
+            white-space: nowrap;
+        }
+
+        .btn-print:hover {
+            background: #f3f4f6;
+            color: #111827;
+        }
+
+        /* ── Flipkart Invoice Paper Document ── */
+        .invoice-paper {
+            width: 100%;
+            max-width: 820px;
+            margin: 0 auto;
+            background: #ffffff;
+            border: 1px solid #d1d5db;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+            padding: 24px 28px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* ── Header: Logo & Title ── */
+        .inv-head-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 2px solid #2874f0;
+            padding-bottom: 12px;
+            margin-bottom: 12px;
+            gap: 12px;
+        }
+
+        .brand-logo-text {
+            font-size: 24px;
+            font-weight: 900;
+            color: #2874f0;
+            letter-spacing: -0.5px;
+            line-height: 1;
+            display: flex;
+            align-items: baseline;
+            gap: 2px;
+        }
+
+        .brand-logo-text .dot {
+            color: #fb641b;
+            font-size: 28px;
+            line-height: 0;
+        }
+
+        .brand-sub {
+            font-size: 10px;
+            font-weight: 700;
+            color: #878787;
+            font-style: italic;
+            margin-top: 4px;
+            letter-spacing: 0.2px;
+        }
+
+        .brand-sub span {
+            color: #fb641b;
+            font-weight: 800;
+        }
+
+        .tax-title-box {
+            text-align: right;
+        }
+
+        .tax-title-box h1 {
+            font-size: 14px;
+            font-weight: 900;
+            color: #212121;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            line-height: 1.2;
+        }
+
+        .tax-title-box .original-badge {
+            font-size: 10px;
+            color: #878787;
+            font-weight: 600;
+            margin-top: 2px;
+        }
+
+        /* ── Metadata Responsive CSS Grid (Replaces rigid table) ── */
+        .meta-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            border: 1px solid #e5e7eb;
+            margin-bottom: 12px;
+            background: #fafafa;
+        }
+
+        .meta-cell {
+            padding: 7px 10px;
+            border-right: 1px solid #e5e7eb;
+            font-size: 11px;
+        }
+
+        .meta-cell:last-child {
+            border-right: none;
+        }
+
+        .meta-label {
+            font-weight: 700;
+            color: #6b7280;
+            text-transform: uppercase;
+            font-size: 9.5px;
+            display: block;
+            margin-bottom: 2px;
+        }
+
+        .meta-val {
+            font-weight: 800;
+            color: #111827;
+            font-size: 11.5px;
+            word-break: break-all;
+        }
+
+        /* ── Address 2-Column Section ── */
+        .addr-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .addr-card {
+            border: 1px solid #e5e7eb;
+            padding: 10px 12px;
+            background: #fafafa;
+            font-size: 11px;
+            line-height: 1.5;
+        }
+
+        .addr-header {
+            font-size: 10px;
+            font-weight: 800;
+            color: #2874f0;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid #e5e7eb;
+            padding-bottom: 4px;
+            margin-bottom: 6px;
+        }
+
+        .addr-name {
+            font-size: 12.5px;
+            font-weight: 800;
+            color: #111827;
+            margin-bottom: 2px;
+        }
+
+        .addr-text {
+            color: #4b5563;
+            font-weight: 500;
+        }
+
+        .addr-phone {
+            margin-top: 5px;
+            font-weight: 700;
+            color: #1f2937;
+        }
+
+        /* ── Product Items Table (Responsive Wrapper) ── */
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            margin-bottom: 12px;
+            border: 1px solid #e5e7eb;
+            border-radius: 2px;
+        }
+
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+        }
+
+        .items-table th {
+            background: #f3f4f6;
+            color: #374151;
+            font-weight: 800;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            padding: 7px 8px;
+            border-bottom: 1px solid #e5e7eb;
+            text-align: left;
+            white-space: nowrap;
+        }
+
+        .items-table td {
+            padding: 7px 8px;
+            border-bottom: 1px solid #f3f4f6;
+            color: #1f2937;
+            vertical-align: middle;
+        }
+
+        .items-table tr:nth-child(even) td {
+            background: #fafafa;
+        }
+
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+
+        .item-title {
+            font-weight: 700;
+            color: #111827;
+            font-size: 11.5px;
+            display: inline-block;
+        }
+
+        .item-unit-tag {
+            font-size: 9.5px;
+            color: #6b7280;
+            margin-left: 3px;
+            font-weight: 500;
+        }
+
+        /* ── Summary & Totals Grid ── */
+        .summary-wrapper {
+            display: grid;
+            grid-template-columns: 1.1fr 0.9fr;
+            gap: 12px;
+            margin-bottom: 14px;
+            align-items: start;
+        }
+
+        .words-box {
+            border: 1px solid #e5e7eb;
+            padding: 9px 12px;
+            background: #fafafa;
+            font-size: 11px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .words-title {
+            font-size: 9.5px;
+            font-weight: 800;
+            color: #6b7280;
+            text-transform: uppercase;
+        }
+
+        .words-val {
+            font-size: 11.5px;
+            font-weight: 800;
+            color: #111827;
+            line-height: 1.4;
+        }
+
+        .tax-disclaimer {
+            font-size: 9.5px;
+            color: #6b7280;
+            line-height: 1.4;
+            border-top: 1px dashed #e5e7eb;
+            padding-top: 5px;
+        }
+
+        .totals-table {
+            width: 100%;
+            border-collapse: collapse;
+            border: 1px solid #e5e7eb;
+            font-size: 11px;
+        }
+
+        .totals-table td {
+            padding: 5px 9px;
+            border-bottom: 1px solid #f3f4f6;
+        }
+
+        .totals-table .label {
+            color: #4b5563;
+            font-weight: 600;
+        }
+
+        .totals-table .amount {
+            text-align: right;
+            font-weight: 700;
+            color: #111827;
+            white-space: nowrap;
+        }
+
+        .totals-table .grand-row td {
+            background: #eff6ff;
+            border-top: 2px solid #2874f0;
+            padding: 7px 9px;
+        }
+
+        .totals-table .grand-label {
+            font-size: 12px;
+            font-weight: 900;
+            color: #1e3a8a;
+            text-transform: uppercase;
+        }
+
+        .totals-table .grand-amount {
+            font-size: 14px;
+            font-weight: 900;
+            color: #2874f0;
+            text-align: right;
+            white-space: nowrap;
+        }
+
+        /* ── Signatory & Seal Row ── */
+        .sign-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            border-top: 1px solid #e5e7eb;
+            padding-top: 12px;
+            margin-top: 6px;
+            gap: 12px;
+        }
+
+        .sign-left {
+            max-width: 55%;
+            font-size: 9.5px;
+            color: #6b7280;
+            line-height: 1.5;
+        }
+
+        .sign-left strong {
+            color: #1f2937;
+        }
+
+        .sign-right {
+            text-align: right;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+        }
+
+        .sign-comp-name {
+            font-size: 9.5px;
+            font-weight: 700;
+            color: #4b5563;
+            margin-bottom: 3px;
+        }
+
+        .digital-seal {
+            border: 1.5px dashed #2874f0;
+            background: #eff6ff;
+            color: #2874f0;
+            padding: 5px 12px;
+            border-radius: 4px;
+            text-align: center;
+            margin-bottom: 3px;
+        }
+
+        .digital-seal .seal-icon {
+            font-size: 11px;
+            margin-bottom: 1px;
+        }
+
+        .digital-seal .seal-text {
+            font-size: 9px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .sign-caption {
+            font-size: 9px;
+            font-weight: 700;
+            color: #4b5563;
+        }
+
+        /* ── Delivered Watermark Stamp ── */
+        .stamp-delivered {
+            position: absolute;
+            top: 48%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-18deg);
+            font-size: 52px;
+            font-weight: 900;
+            color: rgba(56, 142, 60, 0.08);
+            border: 5px dashed rgba(56, 142, 60, 0.12);
+            padding: 4px 28px;
+            border-radius: 10px;
+            letter-spacing: 5px;
+            pointer-events: none;
+            user-select: none;
+            z-index: 1;
+            white-space: nowrap;
+        }
+
+        /* ── Print Media Optimization ── */
         @media print {
             .no-print {
                 display: none !important;
             }
 
             body {
-                background: white !important;
+                background: #ffffff !important;
                 padding: 0 !important;
             }
 
-            .invoice-page {
+            .invoice-paper {
                 box-shadow: none !important;
-                margin: 0 !important;
-                border-radius: 0 !important;
+                border: none !important;
+                max-width: 100% !important;
+                padding: 8mm !important;
             }
         }
 
-        /* ── Toolbar ── */
-        .toolbar {
-            max-width: 800px;
-            margin: 20px auto 16px;
-            padding: 0 16px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .toolbar a {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            color: #878787;
-            font-weight: 700;
-            font-size: 13px;
-            text-decoration: none;
-            background: #fff;
-            border: 1px solid #e0e0e0;
-            padding: 8px 16px;
-            border-radius: 4px;
-            transition: all 0.15s;
-        }
-
-        .toolbar a:hover {
-            color: #212121;
-            border-color: #212121;
-        }
-
-        .toolbar button {
-            background: #2874f0;
-            color: #fff;
-            border: none;
-            cursor: pointer;
-            padding: 10px 24px;
-            border-radius: 4px;
-            font-weight: 700;
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            transition: background 0.15s;
-        }
-
-        .toolbar button:hover {
-            background: #1a5dc8;
-        }
-
-        /* ── Invoice Page ── */
-        .invoice-page {
-            max-width: 800px;
-            margin: 0 auto 40px;
-            background: #fff;
-            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
-            overflow: hidden;
-        }
-
-        /* ── Blue Header Strip ── */
-        .inv-header {
-            background: #2874f0;
-            color: #fff;
-            padding: 28px 36px;
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-        }
-
-        .inv-header .brand {
-            font-size: 28px;
-            font-weight: 900;
-            letter-spacing: -0.5px;
-            line-height: 1;
-        }
-
-        .inv-header .brand span {
-            color: #ffe500;
-        }
-
-        .inv-header .doc-type {
-            text-align: right;
-        }
-
-        .inv-header .doc-type h2 {
-            font-size: 22px;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            margin-bottom: 4px;
-        }
-
-        .inv-header .doc-type p {
-            font-size: 11px;
-            font-weight: 500;
-            opacity: 0.85;
-        }
-
-        /* ── Order Meta Row ── */
-        .order-meta {
-            background: #f8f9fc;
-            border-bottom: 1px solid #e0e0e0;
-            padding: 16px 36px;
-            display: flex;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 12px;
-        }
-
-        .meta-item {
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-        }
-
-        .meta-label {
-            font-size: 10px;
-            font-weight: 700;
-            color: #878787;
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
-        }
-
-        .meta-value {
-            font-size: 13px;
-            font-weight: 700;
-            color: #212121;
-        }
-
-        /* ── Address Section ── */
-        .address-section {
-            padding: 24px 36px;
-            border-bottom: 1px solid #f0f0f0;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 32px;
-        }
-
-        .addr-block .addr-title {
-            font-size: 11px;
-            font-weight: 800;
-            color: #878787;
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
-            margin-bottom: 10px;
-            padding-bottom: 6px;
-            border-bottom: 2px solid #2874f0;
-            display: inline-block;
-        }
-
-        .addr-block .addr-name {
-            font-size: 15px;
-            font-weight: 800;
-            color: #212121;
-            margin-bottom: 4px;
-        }
-
-        .addr-block .addr-detail {
-            font-size: 12.5px;
-            font-weight: 500;
-            color: #666;
-            line-height: 1.7;
-        }
-
-        .addr-block .addr-phone {
-            font-size: 12px;
-            font-weight: 600;
-            color: #878787;
-            margin-top: 6px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .addr-block .addr-phone i {
-            font-size: 10px;
-            color: #2874f0;
-        }
-
-        /* ── Items Table ── */
-        .items-section {
-            padding: 0 36px;
-        }
-
-        .items-section .section-title {
-            font-size: 12px;
-            font-weight: 800;
-            color: #212121;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            padding: 20px 0 12px;
-            border-bottom: 1px solid #e0e0e0;
-        }
-
-        .items-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        .items-table thead th {
-            padding: 12px 0;
-            font-size: 10px;
-            font-weight: 700;
-            color: #878787;
-            text-transform: uppercase;
-            letter-spacing: 0.6px;
-            border-bottom: 1px solid #e0e0e0;
-            text-align: left;
-        }
-
-        .items-table thead th:nth-child(2),
-        .items-table thead th:nth-child(3) {
-            text-align: center;
-        }
-
-        .items-table thead th:last-child {
-            text-align: right;
-        }
-
-        .items-table tbody tr {
-            border-bottom: 1px solid #f5f5f5;
-        }
-
-        .items-table tbody tr:nth-child(even) {
-            background: #fafbfc;
-        }
-
-        .items-table tbody td {
-            padding: 14px 0;
-            font-size: 13px;
-        }
-
-        .items-table tbody td:nth-child(2),
-        .items-table tbody td:nth-child(3) {
-            text-align: center;
-        }
-
-        .items-table tbody td:last-child {
-            text-align: right;
-        }
-
-        .item-name {
-            font-weight: 700;
-            color: #212121;
-            display: block;
-        }
-
-        .item-unit {
-            font-size: 10.5px;
-            font-weight: 600;
-            color: #878787;
-            margin-top: 2px;
-        }
-
-        .item-qty {
-            font-weight: 700;
-            color: #212121;
-            background: #f1f3f6;
-            display: inline-block;
-            padding: 3px 12px;
-            border-radius: 3px;
-            font-size: 12px;
-        }
-
-        .item-price {
-            font-weight: 600;
-            color: #666;
-            font-size: 12.5px;
-        }
-
-        .item-total {
-            font-weight: 800;
-            color: #212121;
-            font-size: 13px;
-        }
-
-        /* ── Summary Section ── */
-        .summary-section {
-            padding: 20px 36px 28px;
-            display: flex;
-            justify-content: flex-end;
-        }
-
-        .summary-box {
-            width: 320px;
-        }
-
-        .summary-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 7px 0;
-            font-size: 12.5px;
-        }
-
-        .summary-row .s-label {
-            font-weight: 600;
-            color: #666;
-        }
-
-        .summary-row .s-value {
-            font-weight: 700;
-            color: #212121;
-        }
-
-        .summary-row.discount .s-label,
-        .summary-row.discount .s-value {
-            color: #388e3c;
-        }
-
-        .summary-row.surge {
-            background: #fff3e0;
-            margin: 4px -8px;
-            padding: 7px 8px;
-            border-radius: 4px;
-        }
-
-        .summary-row.surge .s-label,
-        .summary-row.surge .s-value {
-            color: #e65100;
-            font-weight: 700;
-        }
-
-        .summary-divider {
-            border: none;
-            border-top: 1.5px dashed #e0e0e0;
-            margin: 8px 0;
-        }
-
-        .summary-total {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px 0 4px;
-        }
-
-        .summary-total .t-label {
-            font-size: 14px;
-            font-weight: 800;
-            color: #212121;
-            text-transform: uppercase;
-            letter-spacing: 0.3px;
-        }
-
-        .summary-total .t-value {
-            font-size: 22px;
-            font-weight: 900;
-            color: #2874f0;
-            letter-spacing: -0.5px;
-        }
-
-        /* ── Payment Badge ── */
-        .payment-badge {
-            margin-top: 12px;
-            background: #212121;
-            color: #fff;
-            border-radius: 6px;
-            padding: 12px 16px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .payment-badge .pb-label {
-            font-size: 10px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
-            opacity: 0.7;
-        }
-
-        .payment-badge .pb-method {
-            font-size: 13px;
-            font-weight: 800;
-            color: #ffe500;
-        }
-
-        /* ── Footer ── */
-        .inv-footer {
-            background: #f8f9fc;
-            border-top: 1px solid #e0e0e0;
-            padding: 20px 36px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .inv-footer .note {
-            font-size: 10px;
-            font-weight: 500;
-            color: #999;
-            line-height: 1.6;
-            max-width: 400px;
-        }
-
-        .inv-footer .brand-footer {
-            text-align: right;
-        }
-
-        .inv-footer .brand-footer .bf-name {
-            font-size: 16px;
-            font-weight: 900;
-            color: #212121;
-        }
-
-        .inv-footer .brand-footer .bf-name span {
-            color: #2874f0;
-        }
-
-        .inv-footer .brand-footer .bf-tag {
-            font-size: 10px;
-            font-weight: 600;
-            color: #878787;
-            margin-top: 2px;
-        }
-
-        /* ── Stamp Watermark ── */
-        .stamp-delivered {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) rotate(-18deg);
-            font-size: 72px;
-            font-weight: 900;
-            color: rgba(40, 116, 240, 0.04);
-            text-transform: uppercase;
-            letter-spacing: 12px;
-            pointer-events: none;
-            white-space: nowrap;
-        }
-
-        /* ── Mobile Responsive ── */
+        /* ── Mobile Responsive Styles (< 640px) ── */
         @media (max-width: 640px) {
-            .inv-header {
-                padding: 20px 20px;
+            body {
+                background: #ffffff;
+                padding-bottom: 20px;
             }
 
-            .inv-header .brand {
-                font-size: 22px;
+            .top-toolbar {
+                margin: 0 0 10px;
+                padding: 8px 10px;
+                box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
             }
 
-            .inv-header .doc-type h2 {
-                font-size: 16px;
+            .btn-back {
+                padding: 6px 10px;
+                font-size: 11.5px;
             }
 
-            .order-meta {
-                padding: 12px 20px;
+            .btn-download {
+                padding: 6px 12px;
+                font-size: 11.5px;
             }
 
-            .address-section {
-                padding: 20px;
-                grid-template-columns: 1fr;
-                gap: 20px;
+            .btn-print {
+                display: none !important; /* Hide print on phone; download PDF is primary */
             }
 
-            .items-section {
-                padding: 0 16px;
+            .invoice-paper {
+                padding: 12px 10px;
+                border: none;
+                box-shadow: none;
+                border-radius: 0;
             }
 
-            .summary-section {
-                padding: 16px 20px;
-            }
-
-            .summary-box {
-                width: 100%;
-            }
-
-            .inv-footer {
-                padding: 16px 20px;
+            .inv-head-row {
                 flex-direction: column;
+                gap: 6px;
+                padding-bottom: 10px;
+                margin-bottom: 10px;
+            }
+
+            .tax-title-box {
+                text-align: left;
+                width: 100%;
+                border-top: 1px dashed #e5e7eb;
+                padding-top: 6px;
+            }
+
+            .brand-logo-text {
+                font-size: 21px;
+            }
+
+            .tax-title-box h1 {
+                font-size: 13px;
+            }
+
+            /* Responsive 2x2 Metadata Grid */
+            .meta-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .meta-cell:nth-child(2) {
+                border-right: none;
+            }
+
+            .meta-cell:nth-child(1), .meta-cell:nth-child(2) {
+                border-bottom: 1px solid #e5e7eb;
+            }
+
+            .meta-cell {
+                padding: 6px 8px;
+            }
+
+            .meta-label {
+                font-size: 9px;
+            }
+
+            .meta-val {
+                font-size: 11px;
+            }
+
+            /* Stack Addresses vertically */
+            .addr-grid {
+                grid-template-columns: 1fr;
+                gap: 8px;
+            }
+
+            .addr-card {
+                padding: 8px 10px;
+            }
+
+            /* Hide Gross and Discount columns on narrow mobile screens to fit 100% */
+            .col-gross, .col-discount {
+                display: none !important;
+            }
+
+            .items-table th, .items-table td {
+                padding: 6px 6px;
+            }
+
+            .item-title {
+                font-size: 11px;
+                line-height: 1.3;
+            }
+
+            /* Stack Summary vertically */
+            .summary-wrapper {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+
+            /* Stack Signatory section cleanly */
+            .sign-row {
+                flex-direction: column-reverse;
                 gap: 12px;
-                text-align: center;
+                align-items: stretch;
             }
 
-            .inv-footer .note {
+            .sign-left {
                 max-width: 100%;
-                text-align: center;
+                border-top: 1px dashed #e5e7eb;
+                padding-top: 8px;
             }
 
-            .inv-footer .brand-footer {
-                text-align: center;
-            }
-
-            .toolbar {
-                margin: 12px auto;
-                padding: 0 12px;
+            .sign-right {
+                align-items: flex-start;
+                text-align: left;
             }
 
             .stamp-delivered {
-                font-size: 40px;
+                font-size: 34px;
+                padding: 4px 16px;
+                letter-spacing: 3px;
+                border-width: 3px;
             }
         }
     </style>
 </head>
 
 <body>
-    <!-- ── Toolbar (No Print) ── -->
-    <div class="toolbar no-print">
-        <a href="{{ url_for('my_orders') }}">
-            <i class="fas fa-arrow-left" style="font-size:11px"></i> Back
-        </a>
-        <button onclick="window.print()">
-            <i class="fas fa-cloud-arrow-down"></i> Download Invoice
-        </button>
-    </div>
 
-    <!-- ── Invoice Page ── -->
-    <div class="invoice-page" style="position:relative;">
+    <!-- ── Top Sticky Toolbar (Never Printed) ── -->
+    <header class="top-toolbar no-print">
+        <a href="{{ url_for('my_orders') }}" class="btn-back">
+            <i class="fas fa-arrow-left"></i>
+            <span>Back to Orders</span>
+        </a>
+
+        <div class="actions-right">
+            <!-- Dedicated PDF Download Button that generates file on-the-fly -->
+            <button id="btn-download-pdf" class="btn-download" onclick="downloadInvoicePDF()">
+                <i class="fas fa-file-pdf"></i>
+                <span id="btn-download-text">Download PDF</span>
+            </button>
+
+            <!-- Standard Print Button (Desktop only) -->
+            <button class="btn-print" onclick="window.print()" title="Print Invoice">
+                <i class="fas fa-print"></i>
+                <span>Print</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- ── Flipkart Style Invoice Document ── -->
+    <main class="invoice-paper" id="invoice-paper">
         <!-- Watermark -->
         <div class="stamp-delivered">DELIVERED</div>
 
-        <!-- ── Blue Header ── -->
-        <div class="inv-header">
-            <div>
-                <div class="brand">jippy<span>.</span>store</div>
-                <p style="font-size:11px; font-weight:500; opacity:0.8; margin-top:4px;">
-                    Your Neighbourhood, Delivered Fast
-                </p>
+        <!-- 1. Header: Logo & Document Title -->
+        <div class="inv-head-row">
+            <div class="logo-box">
+                <div class="brand-logo-text">
+                    jippy<span class="dot">.</span>store
+                </div>
+                <div class="brand-sub">
+                    Explore Plus <span>✦ 10-15 Mins Hyperlocal</span>
+                </div>
             </div>
-            <div class="doc-type">
-                <h2>Tax Invoice</h2>
-                <p>Original for Recipient</p>
+
+            <div class="tax-title-box">
+                <h1>Tax Invoice / Bill of Supply</h1>
+                <p class="original-badge">(Original for Recipient)</p>
             </div>
         </div>
 
-        <!-- ── Order Meta Row ── -->
-        <div class="order-meta">
-            <div class="meta-item">
-                <span class="meta-label">Order ID</span>
-                <span class="meta-value">{{ order.order_id|upper }}</span>
+        <!-- 2. Order Metadata Responsive Grid -->
+        <div class="meta-grid">
+            <div class="meta-cell">
+                <span class="meta-label">Order Number</span>
+                <span class="meta-val">OD{{ (order.order_id|string)|upper }}</span>
             </div>
-            <div class="meta-item">
+            <div class="meta-cell">
                 <span class="meta-label">Order Date</span>
-                <span class="meta-value">{{ order.created_at.strftime('%d %b %Y, %I:%M %p') if (order.created_at and
-                    order.created_at.strftime) else (order.created_at or 'N/A') }}</span>
+                <span class="meta-val">
+                    {{ order.created_at.strftime('%d-%m-%Y, %I:%M %p') if (order.created_at and order.created_at.strftime) else (order.created_at or 'N/A') }}
+                </span>
             </div>
-            <div class="meta-item">
+            <div class="meta-cell">
+                <span class="meta-label">Invoice Number</span>
+                <span class="meta-val">JIP-INV-{{ (order.order_id|string)[-8:]|upper }}</span>
+            </div>
+            <div class="meta-cell">
                 <span class="meta-label">Invoice Date</span>
-                <span class="meta-value">{{ order.created_at.strftime('%d %b %Y') if (order.created_at and
-                    order.created_at.strftime) else (order.created_at or 'N/A') }}</span>
-            </div>
-            <div class="meta-item">
-                <span class="meta-label">Payment</span>
-                <span class="meta-value">{{ order.payment_method|default('COD') }}</span>
+                <span class="meta-val">
+                    {{ order.created_at.strftime('%d-%m-%Y') if (order.created_at and order.created_at.strftime) else (order.created_at or 'N/A') }}
+                </span>
             </div>
         </div>
 
-        <!-- ── Address Section ── -->
-        <div class="address-section">
-            <div class="addr-block">
-                <div class="addr-title">Billing & Shipping Address</div>
-                <p class="addr-name">{{ order.user_name|default('Valued Customer') }}</p>
-                <div class="addr-detail">
+        <!-- 3. Address Details (Sold By & Billing/Shipping) -->
+        <div class="addr-grid">
+            <!-- Sold By Column -->
+            <div class="addr-card">
+                <div class="addr-header">Sold By</div>
+                <div class="addr-name">{{ order.shop_name or 'Jippy Hyperlocal Retail Pvt. Ltd.' }}</div>
+                <div class="addr-text">
+                    Amarpali Empire Partner Store<br>
+                    Crossings Republik, NH-24, Ghaziabad<br>
+                    Uttar Pradesh, India - 201016
+                </div>
+            </div>
+
+            <!-- Billing & Shipping Column -->
+            <div class="addr-card">
+                <div class="addr-header">Billing & Shipping Details</div>
+                <div class="addr-name">{{ order.user_name or 'Valued Customer' }}</div>
+                <div class="addr-text">
                     {% if order.address %}
-                    {{ order.address.line1 }}<br>
-                    {% if order.address.line2 %}{{ order.address.line2 }}<br>{% endif %}
-                    {{ order.address.city }} — {{ order.address.pincode }}
+                        {% if order.address is mapping %}
+                            {{ order.address.line1 or '' }}<br>
+                            {% if order.address.line2 %}{{ order.address.line2 }}<br>{% endif %}
+                            {{ order.address.city or 'Ghaziabad' }} - {{ order.address.pincode or '201016' }}, UP
+                        {% else %}
+                            {{ order.address }}
+                        {% endif %}
+                    {% else %}
+                        Amarpali Empire, Crossings Republik, Ghaziabad
                     {% endif %}
                 </div>
-                {% if order.user_phone and order.user_phone != 'guest' %}
+                {% set main_phone = order.user_phone or order.phone or (order.address.phone if order.address is mapping else '') %}
+                {% set alt_phone = (order.address.alt_phone or order.address.alternate_phone if order.address is mapping else '') or order.alt_phone or order.alternate_phone %}
+
+                {% if main_phone and main_phone != 'guest' %}
                 <div class="addr-phone">
-                    <i class="fas fa-phone-alt"></i>
-                    {{ order.user_phone }}
+                    <i class="fas fa-phone-alt text-[9px] mr-1 text-slate-500"></i>
+                    Phone: <span style="font-weight: 700; color: #111827;">{{ main_phone }}</span>
                 </div>
                 {% endif %}
-                {% if order.address and order.address.alt_phone %}
-                <div class="addr-phone">
-                    <i class="fas fa-phone-alt"></i>
-                    {{ order.address.alt_phone }} (Alt)
+
+                {% if alt_phone and alt_phone != main_phone %}
+                <div class="addr-phone" style="margin-top: 3px;">
+                    <i class="fas fa-phone-volume text-[9px] mr-1 text-[#2874f0]"></i>
+                    Alt Phone: <span style="font-weight: 700; color: #111827;">{{ alt_phone }}</span>
                 </div>
                 {% endif %}
-            </div>
-            <div class="addr-block" style="text-align:right;">
-                <div class="addr-title">Sold By</div>
-                <p class="addr-name">Jippy Store</p>
-                <div class="addr-detail">
-                    Hyperlocal Delivery Service<br>
-                    {{ order.address.city if order.address else 'Ghaziabad' }}, India
-                </div>
-                <div class="addr-phone" style="justify-content:flex-end;">
-                    <i class="fas fa-globe" style="color:#2874f0;"></i>
-                    jippy.store
-                </div>
             </div>
         </div>
 
-        <!-- ── Items Table ── -->
-        <div class="items-section">
-            <div class="section-title">
-                <i class="fas fa-box" style="color:#2874f0; margin-right:6px; font-size:11px;"></i>
-                Order Items ({{ (order['items'] or [])|length }})
-            </div>
+        <!-- 4. Product Items Table (Fits Perfectly on Phone Screen) -->
+        {% set order_items = items if items is defined else (order['items'] if order and 'items' in order else []) %}
+        <div class="table-responsive">
             <table class="items-table">
                 <thead>
                     <tr>
-                        <th style="width:5%;">#</th>
-                        <th style="width:45%;">Product</th>
-                        <th style="width:15%;">Qty</th>
-                        <th style="width:15%;">Unit Price</th>
-                        <th style="width:20%;">Amount</th>
+                        <th style="width: 8%;" class="text-center">#</th>
+                        <th style="width: 50%;">Description</th>
+                        <th style="width: 14%;" class="text-center">Qty</th>
+                        <th style="width: 14%;" class="text-right col-gross">Gross</th>
+                        <th style="width: 14%;" class="text-right col-discount">Disc</th>
+                        <th style="width: 28%;" class="text-right">Total (₹)</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for item in (order['items'] or []) %}
+                    {% for item in order_items %}
+                    {% set item_price = (item.price or 0)|float %}
+                    {% set item_qty = (item.qty or 1)|int %}
+                    {% set row_total = item_price * item_qty %}
                     <tr>
-                        <td style="font-size:11px; font-weight:600; color:#999;">{{ loop.index }}</td>
+                        <td class="text-center" style="font-weight: 700; color: #6b7280;">{{ loop.index }}</td>
                         <td>
-                            <span class="item-name">{{ item.name }}</span>
+                            <span class="item-title">{{ item.name }}</span>
                             {% if item.unit %}
-                            <span class="item-unit">{{ item.unit }}</span>
+                            <span class="item-unit-tag">({{ item.unit }})</span>
                             {% endif %}
                         </td>
-                        <td>
-                            <span class="item-qty">{{ item.qty }}</span>
-                        </td>
-                        <td>
-                            <span class="item-price">₹{{ "%.2f"|format(item.price|default(0)) }}</span>
-                        </td>
-                        <td>
-                            <span class="item-total">₹{{ "%.2f"|format((item.price|default(0)) * (item.qty|default(1)))
-                                }}</span>
-                        </td>
+                        <td class="text-center" style="font-weight: 800;">{{ item_qty }}</td>
+                        <td class="text-right col-gross">₹{{ "{:,.2f}".format(item_price) }}</td>
+                        <td class="text-right col-discount" style="color: #16a34a; font-weight: 600;">₹0.00</td>
+                        <td class="text-right" style="font-weight: 800; color: #111827;">₹{{ "{:,.2f}".format(row_total) }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
 
-        <!-- ── Summary Section ── -->
-        <div class="summary-section">
-            <div class="summary-box">
-                <div class="summary-row">
-                    <span class="s-label">Items Subtotal ({{ (order['items'] or [])|length }} items)</span>
-                    <span class="s-value">₹{{ "%.2f"|format(order.subtotal|default(0)) }}</span>
+        <!-- 5. Summary & Totals -->
+        <div class="summary-wrapper">
+            <!-- Left: Amount in Words & Tax Note -->
+            <div class="words-box">
+                <div>
+                    <span class="words-title">Total Amount In Words</span>
+                    <p class="words-val" id="amount-words-text" data-total="{{ (order.total or 0)|float }}">Calculating...</p>
                 </div>
-
-                <div class="summary-row">
-                    <span class="s-label">Delivery Charges</span>
-                    {% if order.delivery_fee == 0 %}
-                    <span class="s-value" style="color:#388e3c; font-weight:800;">FREE</span>
-                    {% else %}
-                    <span class="s-value">₹{{ "%.2f"|format(order.delivery_fee|default(0)) }}</span>
-                    {% endif %}
-                </div>
-
-                <div class="summary-row">
-                    <span class="s-label">Handling Fee</span>
-                    <span class="s-value">₹{{ "%.2f"|format(order.handling_fee|default(0)) }}</span>
-                </div>
-
-                {% if order.surge_charge and order.surge_charge > 0 %}
-                <div class="summary-row surge">
-                    <span class="s-label"><i class="fas fa-bolt" style="font-size:10px; margin-right:4px;"></i> Surge
-                        Charge</span>
-                    <span class="s-value">₹{{ "%.2f"|format(order.surge_charge) }}</span>
-                </div>
-                {% endif %}
-
-                <div class="summary-row">
-                    <span class="s-label">Platform Fee</span>
-                    <span class="s-value">₹{{ "%.2f"|format(order.platform_fee|default(0)) }}</span>
-                </div>
-
-                <hr class="summary-divider">
-
-                <div class="summary-total">
-                    <span class="t-label">Grand Total</span>
-                    <span class="t-value">₹{{ "%.2f"|format(order.total|default(0)) }}</span>
-                </div>
-
-                <!-- Payment Badge -->
-                <div class="payment-badge">
-                    <div>
-                        <div class="pb-label">Payment Method</div>
-                        <div class="pb-method">{{ order.payment_method|default('Cash on Delivery') }}</div>
-                    </div>
-                    <i class="fas fa-check-circle" style="font-size:22px; color:#ffe500;"></i>
+                <div class="tax-disclaimer">
+                    • Payment Method: <strong>{{ order.payment_method or 'Cash on Delivery' }}</strong><br>
+                    • Delivery Status: <strong>Delivered</strong>
                 </div>
             </div>
+
+            <!-- Right: Breakdown Table -->
+            <table class="totals-table">
+                <tr>
+                    <td class="label">Items Subtotal ({{ order_items|length }} items)</td>
+                    <td class="amount">₹{{ "{:,.2f}".format((order.subtotal or 0)|float) }}</td>
+                </tr>
+                <tr>
+                    <td class="label">Delivery Charges</td>
+                    <td class="amount">
+                        {% if (order.delivery_fee or 0)|float == 0 %}
+                            <span style="color:#16a34a; font-weight:800;">FREE</span>
+                        {% else %}
+                            ₹{{ "{:,.2f}".format((order.delivery_fee or 0)|float) }}
+                        {% endif %}
+                    </td>
+                </tr>
+                {% if (order.handling_fee or 0)|float > 0 %}
+                <tr>
+                    <td class="label">Handling Fee</td>
+                    <td class="amount">₹{{ "{:,.2f}".format((order.handling_fee or 0)|float) }}</td>
+                </tr>
+                {% endif %}
+                {% if (order.platform_fee or 0)|float > 0 %}
+                <tr>
+                    <td class="label">Platform Fee</td>
+                    <td class="amount">₹{{ "{:,.2f}".format((order.platform_fee or 0)|float) }}</td>
+                </tr>
+                {% endif %}
+                {% if (order.surge_charge or 0)|float > 0 %}
+                <tr>
+                    <td class="label">Surge Charge</td>
+                    <td class="amount">₹{{ "{:,.2f}".format((order.surge_charge or 0)|float) }}</td>
+                </tr>
+                {% endif %}
+                <tr class="grand-row">
+                    <td class="grand-label">Grand Total</td>
+                    <td class="grand-amount" id="invoice-grand-total">₹{{ "{:,.2f}".format((order.total or 0)|float) }}</td>
+                </tr>
+            </table>
         </div>
 
-        <!-- ── Notes Section ── -->
+        <!-- 6. Special Customer Notes (if present) -->
         {% if order.notes %}
-        <div style="padding:0 36px 20px;">
-            <div
-                style="background:#fff8e1; border:1px solid #ffe082; border-radius:6px; padding:12px 16px; display:flex; align-items:flex-start; gap:10px;">
-                <i class="fas fa-sticky-note" style="color:#f9a825; font-size:12px; margin-top:2px;"></i>
-                <div>
-                    <div
-                        style="font-size:10px; font-weight:700; color:#f9a825; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px;">
-                        Customer Note</div>
-                    <div style="font-size:12px; font-weight:500; color:#666; line-height:1.5;">{{ order.notes }}</div>
-                </div>
-            </div>
+        <div style="background:#fffbeb; border:1px solid #fef3c7; border-radius:4px; padding:7px 10px; margin-bottom:12px; font-size:10.5px;">
+            <strong style="color:#b45309; text-transform:uppercase; font-size:9px; display:block; margin-bottom:2px;">Special Instructions:</strong>
+            <span style="color:#92400e;">{{ order.notes }}</span>
         </div>
         {% endif %}
 
-        <!-- ── Footer ── -->
-        <div class="inv-footer">
-            <div class="note">
-                <strong style="color:#666;">Note:</strong> This is a computer-generated invoice and does not require a
-                physical signature.
-                For support, visit <strong>jippy.store/support</strong>.
+        <!-- 7. Signatory & Compliance Footer -->
+        <div class="sign-row">
+            <div class="sign-left">
+                <strong>Declaration:</strong> We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct.<br>
+                This is a computer-generated invoice and does not require physical signature.<br>
+                For support, queries or returns, visit <strong>jippy.store/support</strong>.
             </div>
-            <div class="brand-footer">
-                <div class="bf-name">jippy<span>.</span>store</div>
-                <div class="bf-tag">Thank you for shopping with us! 💛</div>
+
+            <div class="sign-right">
+                <div class="sign-comp-name">For Jippy Hyperlocal Retail Pvt. Ltd.</div>
+                <div class="digital-seal">
+                    <div class="seal-icon"><i class="fas fa-shield-check"></i></div>
+                    <div class="seal-text">VERIFIED INVOICE</div>
+                </div>
+                <div class="sign-caption">Authorized Signatory</div>
             </div>
         </div>
-    </div>
+    </main>
 
+    <!-- Client-side PDF Generation & Words Converter Script -->
     <script>
-        // Set dynamic title for PDF saving
-        const orderId = "{{ (order.order_id|string)[-6:] if order.order_id else 'INV' }}";
-        document.title = `Jippy_Invoice_${orderId}`;
+        // 1. Convert Amount to Indian English Words
+        function convertNumberToWords(amount) {
+            const num = Math.round(Number(amount) || 0);
+            if (num <= 0) return "Zero Rupees Only";
+
+            const units = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", 
+                           "Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", 
+                           "Seventeen", "Eighteen", "Nineteen"];
+            const tens = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"];
+
+            function convertSection(n) {
+                let str = "";
+                if (n >= 100) {
+                    str += units[Math.floor(n / 100)] + " Hundred ";
+                    n %= 100;
+                    if (n > 0) str += "and ";
+                }
+                if (n >= 20) {
+                    str += tens[Math.floor(n / 10)] + " ";
+                    n %= 10;
+                }
+                if (n > 0) {
+                    str += units[n] + " ";
+                }
+                return str.trim();
+            }
+
+            let result = "";
+            let remaining = num;
+
+            if (remaining >= 10000000) {
+                const crore = Math.floor(remaining / 10000000);
+                result += convertSection(crore) + " Crore ";
+                remaining %= 10000000;
+            }
+            if (remaining >= 100000) {
+                const lakh = Math.floor(remaining / 100000);
+                result += convertSection(lakh) + " Lakh ";
+                remaining %= 100000;
+            }
+            if (remaining >= 1000) {
+                const thousand = Math.floor(remaining / 1000);
+                result += convertSection(thousand) + " Thousand ";
+                remaining %= 1000;
+            }
+            if (remaining > 0) {
+                result += convertSection(remaining);
+            }
+
+            return "INR " + result.trim() + " Only";
+        }
+
+        // Initialize Amount in Words
+        document.addEventListener("DOMContentLoaded", () => {
+            const wordsEl = document.getElementById("amount-words-text");
+            if (wordsEl) {
+                const rawTotal = parseFloat(wordsEl.getAttribute("data-total") || "0");
+                wordsEl.textContent = convertNumberToWords(rawTotal);
+            }
+        });
+
+        // 2. High-Quality Client-Side PDF Downloader (Works in Android & iOS WebViews)
+        async function downloadInvoicePDF() {
+            const btn = document.getElementById("btn-download-pdf");
+            const btnText = document.getElementById("btn-download-text");
+            const originalHTML = btn.innerHTML;
+
+            const orderIdShort = "{{ (order.order_id|string)[-8:]|upper if order.order_id else 'INV' }}";
+            const invoiceFilename = `Jippy_Invoice_${orderIdShort}.pdf`;
+
+            try {
+                // Set loading state
+                btn.disabled = true;
+                btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> <span>Downloading...</span>`;
+
+                const element = document.getElementById("invoice-paper");
+                
+                // Configure html2pdf options for pristine A4 export (using desktop windowWidth)
+                const opt = {
+                    margin:       [8, 8, 8, 8],
+                    filename:     invoiceFilename,
+                    image:        { type: 'jpeg', quality: 0.98 },
+                    html2canvas:  { 
+                        scale: 2, 
+                        useCORS: true, 
+                        logging: false,
+                        windowWidth: 840
+                    },
+                    jsPDF:        { 
+                        unit: 'mm', 
+                        format: 'a4', 
+                        orientation: 'portrait' 
+                    }
+                };
+
+                // Generate and trigger download
+                await html2pdf().set(opt).from(element).save();
+
+                // Success state
+                btn.innerHTML = `<i class="fas fa-check"></i> <span>Saved!</span>`;
+                btn.style.background = "#16a34a";
+                btn.style.borderColor = "#15803d";
+
+                setTimeout(() => {
+                    btn.disabled = false;
+                    btn.innerHTML = originalHTML;
+                    btn.style.background = "#2874f0";
+                    btn.style.borderColor = "#1d4ed8";
+                }, 3000);
+
+            } catch (error) {
+                console.error("PDF Download Error:", error);
+                btn.disabled = false;
+                btn.innerHTML = originalHTML;
+                alert("PDF generation completed. If download didn't start automatically, you can use the Print button to Save as PDF.");
+                try { window.print(); } catch(e){}
+            }
+        }
     </script>
 </body>
 
