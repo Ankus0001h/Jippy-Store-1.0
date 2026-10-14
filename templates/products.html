@@ -415,6 +415,8 @@
     window.suggestionsCache = window.suggestionsCache || new Map();
     let activeAbortController = null;
     let debounceTimer = null;
+    // WebView fix: prevent blur from hiding suggestions when tapping a suggestion item
+    let suppressBlurHide = false;
 
     // ───────── Recent Searches ─────────
     function getRecentSearches() {
@@ -526,12 +528,12 @@
         html += `<div class="px-3.5 py-2 bg-[#fafafa] border-b border-[#f0f0f0]">
           <div class="flex items-center justify-between">
             <span class="text-[10px] font-bold uppercase tracking-wider text-[#878787]"><i class="fas fa-clock-rotate-left text-[9px] mr-1.5"></i>Recent Searches</span>
-            <button onclick="localStorage.removeItem('recentSearches');document.getElementById('product-suggestions').classList.add('hidden')" class="text-[10px] text-rose-500 font-bold hover:text-rose-700 transition-colors">Clear</button>
+            <button onmousedown="event.preventDefault()" ontouchstart="event.preventDefault()" onclick="localStorage.removeItem('recentSearches');document.getElementById('product-suggestions').classList.add('hidden')" class="text-[10px] text-rose-500 font-bold hover:text-rose-700 transition-colors">Clear</button>
           </div>
         </div>`;
         recents.forEach(s => {
           const safe = s.replace(/'/g, "\\'");
-          html += `<div onclick="window.executeSearch('${safe}')" class="px-3.5 py-2.5 hover:bg-blue-50/80 cursor-pointer border-b border-[#f0f0f0] flex items-center gap-2.5 group transition-colors">
+          html += `<div onmousedown="event.preventDefault()" ontouchstart="event.preventDefault()" onclick="window.executeSearch('${safe}')" class="px-3.5 py-2.5 hover:bg-blue-50/80 cursor-pointer border-b border-[#f0f0f0] flex items-center gap-2.5 group transition-colors">
             <i class="fas fa-clock-rotate-left text-[#c2c2c2] text-xs group-hover:text-[#2874f0] shrink-0"></i>
             <span class="text-[13px] font-medium text-[#212121] capitalize truncate">${s}</span>
             <i class="fas fa-arrow-up-left text-[#c2c2c2] text-[10px] ml-auto group-hover:text-[#2874f0] shrink-0"></i>
@@ -546,7 +548,7 @@
       <div class="flex flex-wrap gap-1.5 px-3.5 py-2.5">`;
       trending.forEach(t => {
         const safe = t.replace(/'/g, "\\'");
-        html += `<button onclick="window.executeSearch('${safe}')" class="inline-flex items-center gap-1 px-2.5 py-1.5 bg-[#f1f3f6] hover:bg-blue-50 border border-[#e0e0e0] hover:border-[#2874f0] rounded-sm text-[11.5px] font-semibold text-[#212121] hover:text-[#2874f0] transition-all active:scale-95">
+        html += `<button onmousedown="event.preventDefault()" ontouchstart="event.preventDefault()" onclick="window.executeSearch('${safe}')" class="inline-flex items-center gap-1 px-2.5 py-1.5 bg-[#f1f3f6] hover:bg-blue-50 border border-[#e0e0e0] hover:border-[#2874f0] rounded-sm text-[11.5px] font-semibold text-[#212121] hover:text-[#2874f0] transition-all active:scale-95">
           <i class="fas fa-arrow-trend-up text-[8px] text-orange-400"></i>${t}
         </button>`;
       });
@@ -603,7 +605,7 @@
         categories.forEach(c => {
           const safeName = (c.name || '').replace(/'/g, "\\'");
           const safeUrl = (c.url || '').replace(/'/g, "\\'");
-          html += `<div onclick="window.handleSuggestionClick('${safeName}', 'category', '${safeUrl}')"
+          html += `<div onmousedown="event.preventDefault()" ontouchstart="event.preventDefault()" onclick="window.handleSuggestionClick('${safeName}', 'category', '${safeUrl}')"
             class="px-3.5 py-2.5 hover:bg-blue-50/80 cursor-pointer border-b border-[#f0f0f0] last:border-0 flex items-center justify-between group transition-colors">
             <div class="flex items-center gap-2.5 min-w-0">
               <div class="w-7 h-7 rounded-sm bg-emerald-50 border border-emerald-200 flex items-center justify-center shrink-0">
@@ -633,7 +635,7 @@
             : `<div class="w-9 h-9 rounded-sm bg-[#f1f3f6] flex items-center justify-center shrink-0"><i class="fas fa-box text-[#c2c2c2] text-xs"></i></div>`;
           const oosTag = p.out_of_stock ? `<span class="text-[8px] font-bold text-rose-600 bg-rose-50 border border-rose-200 px-1.5 py-0.5 rounded-xs uppercase">Out of Stock</span>` : '';
 
-          html += `<div onclick="window.handleSuggestionClick('${safeName}', 'product', '${safeUrl}')"
+          html += `<div onmousedown="event.preventDefault()" ontouchstart="event.preventDefault()" onclick="window.handleSuggestionClick('${safeName}', 'product', '${safeUrl}')"
             class="px-3.5 py-2 hover:bg-blue-50/80 cursor-pointer border-b border-[#f0f0f0] last:border-0 flex items-center gap-3 group transition-colors ${p.out_of_stock ? 'opacity-60' : ''}">
             <div class="shrink-0">${imgHtml}</div>
             <div class="flex-1 min-w-0">
@@ -659,7 +661,7 @@
         trendingItems.forEach(t => {
           const safe = (t.name || '').replace(/'/g, "\\'");
           const safeUrl = (t.url || '').replace(/'/g, "\\'");
-          html += `<div onclick="window.handleSuggestionClick('${safe}', 'trending', '${safeUrl}')"
+          html += `<div onmousedown="event.preventDefault()" ontouchstart="event.preventDefault()" onclick="window.handleSuggestionClick('${safe}', 'trending', '${safeUrl}')"
             class="px-3.5 py-2.5 hover:bg-blue-50/80 cursor-pointer border-b border-[#f0f0f0] last:border-0 flex items-center gap-2.5 group transition-colors">
             <i class="fas fa-arrow-trend-up text-orange-400 text-xs shrink-0"></i>
             <span class="text-[13px] font-medium text-[#212121] capitalize truncate">${t.name}</span>
@@ -674,11 +676,42 @@
     // ───────── Fetch Suggestions (with debounce) ─────────
     window.fetchSuggestions = function(q) {
       const searchInput = document.getElementById("product-search");
-      // Instant local matches
+      // Instant local matches (works offline/WebView without network)
       const localMatches = window.getLocalInstantSuggestions(q);
       if (localMatches.length > 0) {
         window.renderSuggestionsList(localMatches, q);
       }
+
+      // Also search prefetched full catalog for richer results
+      if (window._fullCatalog && window._fullCatalog.length > 0) {
+        const catalogMatches = window._fullCatalog.filter(p =>
+          p.name && p.name.toLowerCase().includes(q)
+        ).slice(0, 10).map(p => ({
+          name: p.name,
+          type: 'product',
+          category: p.category || '',
+          price: p.price,
+          orig_price: p.orig_price,
+          unit: p.unit || '',
+          image: p.image || '',
+          out_of_stock: p.out_of_stock || false,
+          url: p.url || `/category/all?search=${encodeURIComponent(p.name)}`
+        }));
+        if (catalogMatches.length > 0) {
+          // Merge with local matches (deduplicate by name)
+          const seen = new Set(localMatches.map(m => m.name.toLowerCase()));
+          const merged = [...localMatches];
+          catalogMatches.forEach(m => {
+            if (!seen.has(m.name.toLowerCase())) {
+              seen.add(m.name.toLowerCase());
+              merged.push(m);
+            }
+          });
+          window.renderSuggestionsList(merged.slice(0, 10), q);
+          return; // catalog is comprehensive, skip network call
+        }
+      }
+
       // Check cache
       if (window.suggestionsCache.has(q)) {
         window.renderSuggestionsList(window.suggestionsCache.get(q), q);
@@ -969,6 +1002,18 @@
 
         searchInput.onblur = () => {
           selectOnFocus = true;
+          // WebView fix: delay hiding suggestions so tap on suggestion item can fire click
+          setTimeout(() => {
+            if (!suppressBlurHide) {
+              const suggestBox = document.getElementById("product-suggestions");
+              // Only hide if focus didn't move into the suggest box itself
+              if (suggestBox && !suggestBox.contains(document.activeElement) &&
+                  document.activeElement !== searchInput) {
+                // Don't hide – let outside click handler manage it
+              }
+            }
+            suppressBlurHide = false;
+          }, 200);
         };
 
         searchInput.oninput = (e) => {
@@ -1015,28 +1060,69 @@
       }
     };
 
+    // ───────── Prefetch Full Catalog for instant WebView suggestions ─────────
+    window._prefetchCatalog = function() {
+      if (window._fullCatalog && window._fullCatalog.length > 0) return; // already loaded
+      try {
+        fetch('/api/suggestions?all=1', { cache: 'default' })
+          .then(r => r.ok ? r.json() : [])
+          .then(data => {
+            if (Array.isArray(data) && data.length > 0) {
+              window._fullCatalog = data;
+            }
+          })
+          .catch(() => {});
+      } catch(e) {}
+    };
+
     // Run automatically on first load and Turbo navigations
     document.addEventListener("turbo:load", () => {
       if (typeof window.initProductsPage === 'function') {
         window.initProductsPage();
       }
+      // Prefetch catalog after page settles (non-blocking)
+      setTimeout(window._prefetchCatalog, 800);
     });
 
     if (document.readyState === 'loading') {
-      document.addEventListener("DOMContentLoaded", window.initProductsPage);
+      document.addEventListener("DOMContentLoaded", () => {
+        window.initProductsPage();
+        setTimeout(window._prefetchCatalog, 800);
+      });
     } else {
       window.initProductsPage();
+      setTimeout(window._prefetchCatalog, 800);
     }
 
-    // Dismiss suggestions on outside click
+    // Dismiss suggestions on outside click (WebView-safe with delay)
     document.addEventListener("click", (e) => {
       const searchInput = document.getElementById("product-search");
       const suggestBox = document.getElementById("product-suggestions");
       const clearBtn = document.getElementById("clear-search");
       if (!searchInput?.contains(e.target) && !suggestBox?.contains(e.target) && !clearBtn?.contains(e.target)) {
-        suggestBox?.classList.add("hidden");
+        // Small delay to let any suggestion onclick fire first in WebView
+        setTimeout(() => {
+          const sb = document.getElementById("product-suggestions");
+          if (sb && !sb.contains(document.activeElement)) {
+            sb.classList.add("hidden");
+          }
+        }, 100);
       }
     });
+
+    // WebView fix: prevent suggestion box from stealing focus and causing input blur
+    document.addEventListener("mousedown", (e) => {
+      const suggestBox = document.getElementById("product-suggestions");
+      if (suggestBox && suggestBox.contains(e.target)) {
+        suppressBlurHide = true;
+      }
+    });
+    document.addEventListener("touchstart", (e) => {
+      const suggestBox = document.getElementById("product-suggestions");
+      if (suggestBox && suggestBox.contains(e.target)) {
+        suppressBlurHide = true;
+      }
+    }, { passive: true });
   })();
 </script>
 
