@@ -10,12 +10,24 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
     rel="stylesheet">
 
+  <!-- 🚀 Hotwired Turbo Drive (Instant zero-reload navigation) -->
+  <script src="{{ url_for('static', filename='js/turbo.min.js') }}"></script>
+  {% block extra_head %}{% endblock %}
+
   <style>
     body {
       font-family: 'Plus Jakarta Sans', sans-serif;
       -webkit-tap-highlight-color: transparent;
       scroll-behavior: smooth;
       background-color: #f1f3f6;
+    }
+
+    /* ⚡ Sleek Flipkart Blue / Emerald Turbo Progress Bar */
+    .turbo-progress-bar {
+      height: 2.5px !important;
+      background: linear-gradient(90deg, #2874f0, #00c853) !important;
+      box-shadow: 0 0 10px rgba(40, 116, 240, 0.8) !important;
+      z-index: 999999 !important;
     }
 
     .page-fade-in {
@@ -287,264 +299,56 @@
       const wrapper = document.querySelector(".user-menu");
       if (menu && wrapper && !wrapper.contains(e.target)) { menu.classList.add("hidden"); }
     });
+    // Badge sync across storage, events and Turbo page loads
     document.addEventListener("DOMContentLoaded", updateCartBadge);
+    document.addEventListener("turbo:load", updateCartBadge);
     window.addEventListener('storage', updateCartBadge);
     window.addEventListener('cartUpdated', updateCartBadge);
 
     /* ═══════════════════════════════════════════════════════════════════
-       ⚡ JIPPY UNIVERSAL STOREWIDE SPA ROUTER (Zero Tab Reload, 0ms Instant Feel)
-       Covers: Categories, Products, Cart, Address, Order Confirmation,
-               Order Tracking, Societies, Shops & Store Home!
+       ⚡ HOTWIRED TURBO DRIVE INTEGRATION (Zero Tab Reload, High-Performance)
        ═══════════════════════════════════════════════════════════════════ */
-    (function () {
-      const pageCache = new Map();
-      let isNavigating = false;
-
-      // 1. Sleek Blinkit/Flipkart Blue Top Progress Bar
-      const progressBar = document.createElement('div');
-      progressBar.id = 'spa-top-loader';
-      progressBar.style.cssText = 'position:fixed;top:0;left:0;height:2.5px;width:0%;background:linear-gradient(90deg,#2874f0,#00c853);box-shadow:0 0 10px rgba(40,116,240,0.8);z-index:99999;transition:width 0.18s cubic-bezier(0.4,0,0.2,1),opacity 0.25s ease;pointer-events:none;opacity:0;';
-      document.body.appendChild(progressBar);
-
-      // 1b. Center Screen Clean Blue Loader (Shows when tab switching / page load takes time > 180ms)
-      const pageLoader = document.createElement('div');
-      pageLoader.id = 'spa-page-loader';
-      pageLoader.style.cssText = 'position:fixed;inset:0;z-index:99998;display:none;align-items:center;justify-content:center;background:rgba(255,255,255,0.7);backdrop-filter:blur(3px);opacity:0;transition:opacity 0.2s ease;pointer-events:none;';
-      pageLoader.innerHTML = `
-        <div style="display:flex;flex-direction:column;align-items:center;gap:10px;background:#ffffff;padding:16px 26px;border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,0.12);border:1px solid #e8eaed;">
-          <div style="width:34px;height:34px;border:3px solid #dbeafe;border-top-color:#2874f0;border-radius:50%;animation:jippySpin 0.7s linear infinite;"></div>
-          <span style="font-size:12px;font-weight:700;color:#212121;font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.2px;">Loading...</span>
-        </div>
-      `;
-      document.body.appendChild(pageLoader);
-
-      let loaderTimeout = null;
-
-      function startProgress() {
-        progressBar.style.opacity = '1';
-        progressBar.style.width = '35%';
-        setTimeout(() => { if (isNavigating) progressBar.style.width = '78%'; }, 70);
-
-        // If navigation takes longer than 180ms, smoothly show the blue page loader
-        clearTimeout(loaderTimeout);
-        loaderTimeout = setTimeout(() => {
-          if (isNavigating) {
-            pageLoader.style.display = 'flex';
-            requestAnimationFrame(() => { pageLoader.style.opacity = '1'; });
-          }
-        }, 180);
+    // Backward-compatible navigation helper used across templates
+    window.jippyNavigate = function (url) {
+      if (window.Turbo && typeof window.Turbo.visit === 'function') {
+        window.Turbo.visit(url);
+      } else {
+        window.location.href = url;
       }
+    };
 
-      function finishProgress() {
-        clearTimeout(loaderTimeout);
-        progressBar.style.width = '100%';
-        pageLoader.style.opacity = '0';
-        setTimeout(() => {
-          progressBar.style.opacity = '0';
-          pageLoader.style.display = 'none';
-          setTimeout(() => { progressBar.style.width = '0%'; }, 220);
-        }, 90);
+    // Configure Turbo on start
+    if (window.Turbo) {
+      // Show progress bar quickly on slow connections (120ms)
+      if (typeof window.Turbo.setProgressBarDelay === 'function') {
+        window.Turbo.setProgressBarDelay(120);
       }
+    }
 
-      // Check whether a route is eligible for seamless SPA transition
-      function isSpaRoute(pathname) {
-        if (!pathname) return false;
-        // Never SPA-route admin, portal, vendor, logistics, logout, or PDF invoice downloads
-        if (pathname.startsWith('/admin') ||
-            pathname.startsWith('/portal') ||
-            pathname.startsWith('/vendor') ||
-            pathname.startsWith('/logistics') ||
-            pathname.startsWith('/download-invoice') ||
-            pathname.startsWith('/logout') ||
-            pathname.startsWith('/login') ||
-            pathname.startsWith('/register')) {
-          return false;
+    // Intercept navigation for non-SPA routes (admin, vendor, portal, download, auth)
+    document.addEventListener("turbo:before-visit", function (event) {
+      try {
+        const url = new URL(event.detail.url);
+        const p = url.pathname;
+        if (p.startsWith('/admin') ||
+            p.startsWith('/portal') ||
+            p.startsWith('/vendor') ||
+            p.startsWith('/logistics') ||
+            p.startsWith('/download-invoice') ||
+            p.startsWith('/logout') ||
+            p.startsWith('/login') ||
+            p.startsWith('/register')) {
+          event.preventDefault();
+          window.location.href = event.detail.url;
         }
-        return (
-          pathname === '/' ||
-          pathname.startsWith('/category/') ||
-          pathname.startsWith('/shop/') ||
-          pathname.startsWith('/societies') ||
-          pathname.startsWith('/society/') ||
-          pathname.startsWith('/cart') ||
-          pathname.startsWith('/address') ||
-          pathname.startsWith('/order-confirmation') ||
-          pathname.startsWith('/order/') ||
-          pathname.startsWith('/my-orders') ||
-          pathname.startsWith('/my-profile') ||
-          pathname.startsWith('/privacy') ||
-          pathname.startsWith('/support')
-        );
-      }
+      } catch (e) {}
+    });
 
-      // 2. Background Pre-fetcher (Touch/Hover)
-      function prefetchUrl(url) {
-        try {
-          const parsed = new URL(url, window.location.origin);
-          if (parsed.origin !== window.location.origin) return;
-          if (!isSpaRoute(parsed.pathname)) return;
-          if (pageCache.has(parsed.href)) return;
-          fetch(parsed.href, { priority: 'low' })
-            .then(res => { if (res.ok) return res.text(); throw new Error(); })
-            .then(html => { pageCache.set(parsed.href, html); })
-            .catch(() => {});
-        } catch (e) {}
-      }
-
-      // 3. Navigation Core Function (Swaps #app-body cleanly)
-      window.jippyNavigate = async function (url, push = true) {
-        const targetUrl = new URL(url, window.location.origin).href;
-        if (isNavigating && push) return;
-        isNavigating = true;
-        startProgress();
-
-        try {
-          let htmlText = pageCache.get(targetUrl);
-          // Always fetch fresh for cart page (fees/settings can change server-side)
-          const parsedTarget = new URL(targetUrl);
-          if (parsedTarget.pathname === '/cart' || parsedTarget.pathname === '/address') {
-            pageCache.delete(targetUrl);
-            htmlText = null;
-          }
-          if (!htmlText) {
-            const resp = await fetch(targetUrl);
-            if (!resp.ok) throw new Error('HTTP ' + resp.status);
-            htmlText = await resp.text();
-            pageCache.set(targetUrl, htmlText);
-          }
-
-          const parser = new DOMParser();
-          const newDoc = parser.parseFromString(htmlText, 'text/html');
-          const newAppBody = newDoc.querySelector('#app-body');
-          const currentAppBody = document.querySelector('#app-body');
-
-          if (!newAppBody || !currentAppBody) {
-            window.location.href = targetUrl;
-            return;
-          }
-
-          // Update Document Title
-          if (newDoc.title) {
-            document.title = newDoc.title;
-          }
-
-          // Smooth micro fade transition
-          currentAppBody.style.opacity = '0.3';
-          currentAppBody.style.transition = 'opacity 0.1s ease';
-
-          setTimeout(() => {
-            currentAppBody.innerHTML = newAppBody.innerHTML;
-            currentAppBody.className = newAppBody.className;
-            currentAppBody.style.opacity = '1';
-
-            // Push History State IMMEDIATELY so window.location.search reflects the target URL
-            if (push) {
-              window.history.pushState({ spa: true, url: targetUrl }, '', targetUrl);
-            }
-
-            // Scroll up smoothly
-            window.scrollTo({ top: 0, behavior: 'instant' });
-
-            // Dynamically execute scripts from the newly loaded view
-            const newScripts = Array.from(newAppBody.querySelectorAll('script'));
-            newScripts.forEach(oldScript => {
-              const newScript = document.createElement('script');
-              if (oldScript.src) {
-                newScript.src = oldScript.src;
-                newScript.async = false;
-              } else {
-                newScript.textContent = oldScript.textContent;
-              }
-              Array.from(oldScript.attributes).forEach(attr => {
-                if (attr.name !== 'src') newScript.setAttribute(attr.name, attr.value);
-              });
-              document.body.appendChild(newScript);
-              setTimeout(() => { try { newScript.remove(); } catch(e){} }, 150);
-            });
-
-            // Re-trigger DOMContentLoaded listeners and custom controllers
-            try { document.dispatchEvent(new Event('DOMContentLoaded')); } catch(e){}
-            try { window.dispatchEvent(new Event('cartUpdated')); } catch(e){}
-
-            // Re-run products controller if on products page
-            if (typeof window.initProductsPage === 'function' && (document.getElementById('products-grid') || document.getElementById('category-grid'))) {
-              window.initProductsPage();
-            }
-
-            // Sync cart badges
-            updateCartBadge();
-
-            isNavigating = false;
-            finishProgress();
-          }, 60);
-
-        } catch (err) {
-          isNavigating = false;
-          finishProgress();
-          window.location.href = targetUrl;
-        }
-      };
-
-      // 4. Intercept Clicks for Seamless SPA Feel across store
-      document.addEventListener('click', (e) => {
-        if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
-        const link = e.target.closest('a');
-        if (!link) return;
-
-        const rawHref = link.getAttribute('href');
-        if (!rawHref || rawHref.startsWith('#') || rawHref.startsWith('javascript:') || rawHref.startsWith('tel:') || rawHref.startsWith('mailto:')) return;
-        if (link.target === '_blank') return;
-
-        try {
-          const url = new URL(link.href, window.location.origin);
-          if (url.origin !== window.location.origin) return;
-
-          if (isSpaRoute(url.pathname)) {
-            e.preventDefault();
-            window.jippyNavigate(url.href, true);
-          }
-        } catch (ex) {}
-      });
-
-      // 5. Touchstart & Pointerenter Pre-fetcher (0ms lag!)
-      document.addEventListener('pointerenter', (e) => {
-        const link = e.target.closest('a');
-        if (link && link.href) {
-          try {
-            const u = new URL(link.href, window.location.origin);
-            if (u.origin === window.location.origin && isSpaRoute(u.pathname)) {
-              prefetchUrl(u.href);
-            }
-          } catch(e) {}
-        }
-      }, { passive: true });
-
-      document.addEventListener('touchstart', (e) => {
-        const link = e.target.closest('a');
-        if (link && link.href) {
-          try {
-            const u = new URL(link.href, window.location.origin);
-            if (u.origin === window.location.origin && isSpaRoute(u.pathname)) {
-              prefetchUrl(u.href);
-            }
-          } catch(e) {}
-        }
-      }, { passive: true });
-
-      // 6. Handle Android / Browser Back & Forward buttons
-      window.addEventListener('popstate', () => {
-        const currentUrl = window.location.href;
-        try {
-          const u = new URL(currentUrl);
-          if (isSpaRoute(u.pathname)) {
-            window.jippyNavigate(currentUrl, false);
-          }
-        } catch(e) {}
-      });
-
-      // Cache initial page outer HTML
-      pageCache.set(window.location.href, document.documentElement.outerHTML);
-    })();
+    // Close any open dropdowns when navigating
+    document.addEventListener("turbo:visit", function () {
+      const menu = document.getElementById("user-dropdown");
+      if (menu) menu.classList.add("hidden");
+    });
   </script>
 </body>
 
