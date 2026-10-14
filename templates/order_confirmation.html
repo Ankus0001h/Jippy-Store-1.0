@@ -274,6 +274,12 @@
     }
   }
 
+  document.addEventListener('turbo:load', () => {
+    if (document.querySelector('.confetti-canvas') || document.getElementById('order-confirmed-box')) {
+      fireConfettiCelebration();
+    }
+  });
+
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', fireConfettiCelebration);
   } else {
