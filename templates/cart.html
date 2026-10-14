@@ -33,7 +33,7 @@
 {% endblock %}
 
 {% block full_content %}
-<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+<script src="{{ url_for('static', filename='js/confetti.browser.min.js') }}"></script>
 
 <!-- 📱 Main Page Content Container (Flipkart Style: #f1f3f6 body, compact spacing, pb-24 for flush bottom bar) -->
 <div class="bg-[#f1f3f6] min-h-[100dvh] font-['Plus_Jakarta_Sans'] pb-24 pt-2">
@@ -172,20 +172,22 @@
         <!-- 2. SUMMARY STATE (When points are added - Sleek Chips View) -->
         <div id="special-request-summary-card"
           class="hidden bg-gradient-to-r from-emerald-50/90 via-teal-50/70 to-emerald-50/90 border-2 border-emerald-400 rounded-none sm:rounded-md p-3.5 sm:p-4 shadow-xs space-y-2.5 relative overflow-hidden">
-          <div class="flex items-center justify-between gap-2">
-            <div class="flex items-center gap-2">
+          <div class="flex items-center justify-between gap-1.5 sm:gap-2">
+            <div class="flex items-center gap-1.5 sm:gap-2 min-w-0">
               <span
-                class="w-6 h-6 rounded-full bg-[#16a34a] text-white flex items-center justify-center text-[10px] font-black shrink-0 shadow-2xs">
+                class="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-[#16a34a] text-white flex items-center justify-center text-[9px] sm:text-[10px] font-black shrink-0 shadow-2xs">
                 <i class="fas fa-check"></i>
               </span>
-              <h4 class="text-[13px] sm:text-[13.5px] font-extrabold text-[#1c1917] leading-tight">Special Request Items Added</h4>
-              <span id="summary-items-count-badge"
-                class="text-[10.5px] font-black bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full border border-emerald-300">0 Items</span>
+              <div class="flex items-center gap-1.5 min-w-0">
+                <h4 class="text-[12.5px] sm:text-[13.5px] font-extrabold text-[#1c1917] leading-tight whitespace-nowrap">Special Request</h4>
+                <span id="summary-items-count-badge"
+                  class="whitespace-nowrap shrink-0 text-[10px] sm:text-[10.5px] font-black bg-emerald-100 text-emerald-800 px-2 sm:px-2.5 py-0.5 rounded-full border border-emerald-300">0 Items</span>
+              </div>
             </div>
             <div class="flex items-center gap-1.5 shrink-0">
               <button type="button" onclick="openRequestDrawer()"
-                class="px-2.5 py-1 bg-white hover:bg-slate-50 text-[#212121] border border-[#e0e0e0] rounded-sm text-[11px] font-bold shadow-2xs transition-all active:scale-95 flex items-center gap-1">
-                <i class="fas fa-pen text-[9px] text-[#2874f0]"></i> Edit
+                class="px-2 sm:px-2.5 py-1 bg-white hover:bg-slate-50 text-[#212121] border border-[#e0e0e0] rounded-sm text-[10.5px] sm:text-[11px] font-bold shadow-2xs transition-all active:scale-95 flex items-center gap-1">
+                <i class="fas fa-pen text-[9px] text-[#2874f0]"></i> <span>Edit</span>
               </button>
               <button type="button" onclick="clearSpecialRequest()"
                 class="w-6 h-6 flex items-center justify-center bg-white hover:bg-rose-50 text-slate-400 hover:text-rose-600 border border-[#e0e0e0] rounded-sm text-[10px] transition-all active:scale-95"
@@ -450,12 +452,34 @@
   <div class="h-[env(safe-area-inset-bottom,0px)] bg-white"></div>
 </div>
 
-<!-- Undo Notification Toast -->
+<!-- 🔄 Flipkart / Blinkit Style Ultra-Polished Mobile-Friendly Undo Toast -->
 <div id="undo-toast"
-  class="fixed bottom-16 sm:bottom-20 left-1/2 -translate-x-1/2 z-[80] bg-[#212121] text-white px-4 py-2 rounded-full shadow-2xl flex items-center gap-3 text-xs font-bold transition-all duration-300 opacity-0 pointer-events-none translate-y-3">
-  <span id="undo-toast-text">Item removed</span>
-  <button type="button" onclick="undoRemoveItem()"
-    class="text-amber-400 hover:text-amber-300 uppercase tracking-wider text-[11px] font-bold underline">Undo</button>
+  class="fixed bottom-[74px] sm:bottom-[80px] left-1/2 -translate-x-1/2 z-[85] w-[calc(100%-20px)] sm:w-auto min-w-[300px] max-w-[420px] bg-[#1e293b]/95 backdrop-blur-md text-white px-3.5 py-2.5 rounded-xl shadow-[0_12px_32px_rgba(0,0,0,0.35)] border border-slate-700/80 flex items-center justify-between gap-3 transition-all duration-300 opacity-0 pointer-events-none translate-y-4">
+  
+  <div class="flex items-center gap-2.5 min-w-0 flex-1">
+    <div class="w-7 h-7 rounded-lg bg-rose-500/20 border border-rose-500/30 text-rose-400 flex items-center justify-center shrink-0 text-xs shadow-2xs">
+      <i class="fas fa-trash-can"></i>
+    </div>
+    <div class="min-w-0 flex-1">
+      <p id="undo-toast-text" class="text-[12.5px] font-bold text-white leading-tight truncate">
+        Item removed
+      </p>
+      <p class="text-[10px] text-slate-400 font-medium mt-0.5">Accidentally removed?</p>
+    </div>
+  </div>
+
+  <div class="flex items-center gap-2 shrink-0">
+    <button type="button" onclick="undoRemoveItem()"
+      class="px-3.5 py-1.5 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 active:scale-90 text-slate-950 text-[11.5px] font-black rounded-lg shadow-sm transition-all flex items-center gap-1.5 uppercase tracking-wide cursor-pointer">
+      <i class="fas fa-rotate-left text-[11px]"></i>
+      <span>Undo</span>
+    </button>
+    <button type="button" onclick="hideUndoToast()"
+      class="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-white rounded-lg hover:bg-slate-800/60 active:scale-90 transition-all text-xs"
+      title="Dismiss">
+      <i class="fas fa-times"></i>
+    </button>
+  </div>
 </div>
 
 <style>
@@ -500,12 +524,16 @@
   }
 
   function triggerConfetti() {
-    confetti({
-      particleCount: 120,
-      spread: 60,
-      origin: { y: 0.6 },
-      colors: ['#2874f0', '#fb641b', '#388e3c']
-    });
+    try {
+      if (typeof window.confetti === 'function') {
+        window.confetti({
+          particleCount: 120,
+          spread: 60,
+          origin: { y: 0.6 },
+          colors: ['#2874f0', '#fb641b', '#388e3c']
+        });
+      }
+    } catch (e) {}
   }
 
   let lastRemovedItem = null;
@@ -517,7 +545,7 @@
     if (!toast || !text) return;
 
     text.textContent = `"${itemName}" removed`;
-    toast.classList.remove("opacity-0", "pointer-events-none", "translate-y-3");
+    toast.classList.remove("opacity-0", "pointer-events-none", "translate-y-4");
     toast.classList.add("opacity-100", "pointer-events-auto", "translate-y-0");
 
     if (undoToastTimer) clearTimeout(undoToastTimer);
@@ -529,7 +557,7 @@
   function hideUndoToast() {
     const toast = document.getElementById("undo-toast");
     if (!toast) return;
-    toast.classList.add("opacity-0", "pointer-events-none", "translate-y-3");
+    toast.classList.add("opacity-0", "pointer-events-none", "translate-y-4");
     toast.classList.remove("opacity-100", "pointer-events-auto", "translate-y-0");
   }
 
@@ -647,36 +675,49 @@
     let finalPayable = subtotal + PLATFORM_FEE + HANDLING_FEE + SURGE_CHARGE;
 
     if (subtotal >= FREE_DELIVERY_THRESHOLD) {
-      if (!hasFiredConfetti) {
-        triggerConfetti();
-        hasFiredConfetti = true;
+      if (deliveryFeeEl) {
+        deliveryFeeEl.textContent = "FREE";
+        deliveryFeeEl.className = "font-bold text-[#388e3c]";
       }
-      deliveryFeeEl.textContent = "FREE";
-      deliveryFeeEl.className = "font-bold text-[#388e3c]";
-      dFeeStrike.textContent = `₹${DELIVERY_FEE}`;
-      dFeeStrike.classList.remove("hidden");
-      hintMain.innerHTML = '<span class="text-[#388e3c] font-bold">🎉 Free delivery unlocked!</span>';
-      deliveryCard.classList.add("free-delivery-active");
+      if (dFeeStrike) {
+        dFeeStrike.textContent = `₹${DELIVERY_FEE}`;
+        dFeeStrike.classList.remove("hidden");
+      }
+      if (hintMain) {
+        hintMain.innerHTML = '<span class="text-[#388e3c] font-bold">🎉 Free delivery unlocked!</span>';
+      }
+      if (deliveryCard) deliveryCard.classList.add("free-delivery-active");
       if (savingsBanner) savingsBanner.classList.remove("hidden");
       if (savingsSummaryLine) savingsSummaryLine.classList.remove("hidden");
     } else {
       hasFiredConfetti = false;
       const remaining = FREE_DELIVERY_THRESHOLD - subtotal;
-      deliveryFeeEl.textContent = `₹${DELIVERY_FEE}`;
-      deliveryFeeEl.className = "font-medium text-[#212121]";
-      dFeeStrike.classList.add("hidden");
-      hintMain.innerHTML = `<i class="fas fa-gift text-amber-500 text-xs"></i> <span>Add <b>₹${remaining}</b> more for free delivery</span>`;
-      deliveryCard.classList.remove("free-delivery-active");
+      if (deliveryFeeEl) {
+        deliveryFeeEl.textContent = `₹${DELIVERY_FEE}`;
+        deliveryFeeEl.className = "font-medium text-[#212121]";
+      }
+      if (dFeeStrike) dFeeStrike.classList.add("hidden");
+      if (hintMain) {
+        hintMain.innerHTML = `<i class="fas fa-gift text-amber-500 text-xs"></i> <span>Add <b>₹${remaining}</b> more for free delivery</span>`;
+      }
+      if (deliveryCard) deliveryCard.classList.remove("free-delivery-active");
       if (savingsBanner) savingsBanner.classList.add("hidden");
       if (savingsSummaryLine) savingsSummaryLine.classList.add("hidden");
       finalPayable += DELIVERY_FEE;
     }
 
-    itemsTotalEl.textContent = `₹${subtotal.toFixed(0)}`;
-    totalEl.textContent = `₹${finalPayable.toFixed(0)}`;
-    footerTotal.textContent = `₹${finalPayable.toFixed(0)}`;
+    // Set totals unconditionally FIRST
+    if (itemsTotalEl) itemsTotalEl.textContent = `₹${subtotal.toFixed(0)}`;
+    if (totalEl) totalEl.textContent = `₹${finalPayable.toFixed(0)}`;
+    if (footerTotal) footerTotal.textContent = `₹${finalPayable.toFixed(0)}`;
 
-    renderSpecialRequestSummary();
+    // Fire celebration confetti safely without breaking total
+    if (subtotal >= FREE_DELIVERY_THRESHOLD && !hasFiredConfetti) {
+      hasFiredConfetti = true;
+      try { triggerConfetti(); } catch(e) {}
+    }
+
+    try { renderSpecialRequestSummary(); } catch(e) {}
   }
 
   function changeQty(key, delta) {
@@ -919,7 +960,7 @@
         summaryBadge.textContent = `${specialItems.length} Item${specialItems.length > 1 ? 's' : ''}`;
         summaryBadge.classList.remove("hidden");
       } else {
-        summaryBadge.textContent = "Customer Note";
+        summaryBadge.textContent = "Note Added";
       }
     }
 
@@ -931,8 +972,8 @@
           chip.className = "inline-flex items-center gap-1.5 bg-white border border-emerald-200 rounded-sm px-2.5 py-1 shadow-2xs text-[11.5px] font-bold text-[#1c1917]";
           chip.innerHTML = `
             <span class="text-[#16a34a] font-black text-[10.5px]">${idx + 1}.</span>
-            <span class="truncate max-w-[150px] sm:max-w-[200px]">${item.name}</span>
-            <span class="text-[9.5px] font-black text-emerald-800 bg-emerald-100 px-1.5 py-0.5 rounded-sm">${item.qty}</span>
+            <span class="truncate max-w-[140px] sm:max-w-[200px]">${item.name}</span>
+            <span class="text-[9.5px] font-black text-emerald-800 bg-emerald-100 px-1.5 py-0.5 rounded-sm whitespace-nowrap shrink-0">${item.qty}</span>
             <button type="button" onclick="quickRemoveSpecialItem(${idx})" class="w-4 h-4 flex items-center justify-center text-slate-400 hover:text-rose-500 active:scale-90 transition-all ml-0.5" title="Remove item">
               <i class="fas fa-times text-[9px]"></i>
             </button>
@@ -1002,6 +1043,7 @@
   // Export functions to window so inline onclick="..." handlers can access them
   window.changeQty = changeQty;
   window.undoRemoveItem = undoRemoveItem;
+  window.hideUndoToast = hideUndoToast;
   window.openRequestDrawer = openRequestDrawer;
   window.closeRequestDrawer = closeRequestDrawer;
   window.setDrawerQty = setDrawerQty;
