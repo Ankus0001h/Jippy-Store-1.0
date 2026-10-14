@@ -1,5 +1,9 @@
 {% extends "base.html" %}
 
+{% block extra_head %}
+<meta name="turbo-cache-control" content="no-cache">
+{% endblock %}
+
 {% block navbar %}
 <!-- 🛍️ Flipkart Style Blue Header -->
 <nav
@@ -248,6 +252,7 @@
 </style>
 
 <script>
+(function() {
   const fallbackSociety = "{{ (society.name if society else session.get('current_society_name', 'Amarpali Empire')) | escape }}";
   const fallbackCity = "{{ (society.city if society else session.get('current_society_city', 'Ghaziabad')) | escape }}";
   const fallbackPin = "{{ (society.pincode if society else session.get('current_society_pincode', '201016')) | escape }}";
@@ -308,6 +313,12 @@
 
     showAutoFetchSuccess(fallbackSociety);
   }
+
+  document.addEventListener("turbo:load", () => {
+    if (document.getElementById("addr-line2")) {
+      initAddressPage();
+    }
+  });
 
   if (document.readyState === 'loading') {
     document.addEventListener("DOMContentLoaded", initAddressPage);
@@ -438,6 +449,7 @@
     if (submitSpinner) submitSpinner.classList.add("hidden");
     if (submitIcon) submitIcon.classList.remove("hidden");
   }
+})();
 </script>
 {% endblock %}
 
