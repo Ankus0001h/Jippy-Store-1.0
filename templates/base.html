@@ -74,6 +74,18 @@
 <body
   class="relative min-h-screen flex flex-col text-[#212121] bg-[#f1f3f6] selection:bg-blue-100 selection:text-blue-900 overflow-x-hidden">
 
+  <!-- ⚡ Turbo Permanent Center Screen Blue Loader (Shows when tab switching / page loading takes > 100ms) -->
+  <div id="turbo-page-loader" data-turbo-permanent
+    style="position:fixed;inset:0;z-index:999998;display:none;align-items:center;justify-content:center;background:rgba(255,255,255,0.72);backdrop-filter:blur(3px);opacity:0;transition:opacity 0.2s ease;pointer-events:none;">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:12px;background:#ffffff;padding:18px 28px;border-radius:16px;box-shadow:0 10px 35px rgba(40,116,240,0.15), 0 2px 10px rgba(0,0,0,0.06);border:1px solid #e0e7ff;">
+      <div style="width:36px;height:36px;border:3.5px solid #dbeafe;border-top-color:#2874f0;border-radius:50%;animation:jippySpin 0.75s linear infinite;"></div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
+        <span style="font-size:12.5px;font-weight:700;color:#212121;font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.2px;">Loading...</span>
+        <span style="font-size:10px;font-weight:700;color:#2874f0;font-family:'Plus Jakarta Sans',sans-serif;text-transform:uppercase;letter-spacing:0.5px;">⚡ Quick Store</span>
+      </div>
+    </div>
+  </div>
+
   <div id="app-body" class="flex-1 flex flex-col min-h-screen">
   {% block navbar %}
   <!-- 🛍️ Modern Clean White Header (Blinkit / Zepto Style) -->
@@ -319,11 +331,41 @@
 
     // Configure Turbo on start
     if (window.Turbo) {
-      // Show progress bar quickly on slow connections (120ms)
+      // Show top progress bar quickly on slow connections (60ms)
       if (typeof window.Turbo.setProgressBarDelay === 'function') {
-        window.Turbo.setProgressBarDelay(120);
+        window.Turbo.setProgressBarDelay(60);
       }
     }
+
+    // ⚡ Sleek Center Screen Blue Loader (smoothly covers network delay > 120ms)
+    let loaderTimer = null;
+    function showPageLoader() {
+      clearTimeout(loaderTimer);
+      loaderTimer = setTimeout(() => {
+        const loader = document.getElementById('turbo-page-loader');
+        if (loader) {
+          loader.style.display = 'flex';
+          requestAnimationFrame(() => { loader.style.opacity = '1'; });
+        }
+      }, 120);
+    }
+
+    function hidePageLoader() {
+      clearTimeout(loaderTimer);
+      const loader = document.getElementById('turbo-page-loader');
+      if (loader) {
+        loader.style.opacity = '0';
+        setTimeout(() => {
+          loader.style.display = 'none';
+        }, 160);
+      }
+    }
+
+    document.addEventListener("turbo:visit", showPageLoader);
+    document.addEventListener("turbo:request-start", showPageLoader);
+    document.addEventListener("turbo:render", hidePageLoader);
+    document.addEventListener("turbo:load", hidePageLoader);
+    document.addEventListener("turbo:request-end", hidePageLoader);
 
     // Intercept navigation for non-SPA routes (admin, vendor, portal, download, auth)
     document.addEventListener("turbo:before-visit", function (event) {
