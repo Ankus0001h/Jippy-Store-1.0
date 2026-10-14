@@ -716,10 +716,42 @@ def search_page():
 
 @app.route("/api/suggestions")
 def api_suggestions():
+    # Support full catalog pre-load for instant 0ms offline/WebView search
+    if request.args.get("all") == "1":
+        try:
+            prods = list(products.find({}, {
+                "name": 1,
+                "category": 1,
+                "price": 1,
+                "discount_price": 1,
+                "unit": 1,
+                "image": 1,
+                "out_of_stock": 1
+            }).limit(300))
+            catalog = []
+            for p in prods:
+                p_name = p.get("name", "").strip()
+                if not p_name:
+                    continue
+                catalog.append({
+                    "name": p_name,
+                    "category": p.get("category", ""),
+                    "price": p.get("discount_price") or p.get("price", 0),
+                    "orig_price": p.get("price", 0) if p.get("discount_price") else None,
+                    "unit": p.get("unit", ""),
+                    "image": p.get("image", ""),
+                    "out_of_stock": bool(p.get("out_of_stock")),
+                    "url": f"/category/{quote(p.get('category', 'all'))}?search={quote(p_name)}"
+                })
+            return jsonify(catalog)
+        except Exception as e:
+            print(f"Catalog suggestions error: {e}")
+            return jsonify([])
+
     q = request.args.get("q", "").strip()
     if not q:
         trending = ["Milk", "Amul Butter", "Maggi", "Cold Drinks", "Aata", "Chips", "Bread", "Dahi", "Biscuits"]
-        return jsonify([{"name": t, "type": "trending", "url": f"/category/all?search={urllib.parse.quote(t)}"} for t in trending])
+        return jsonify([{"name": t, "type": "trending", "url": f"/category/all?search={quote(t)}"} for t in trending])
 
     q_lower = q.lower()
     results = []
