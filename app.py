@@ -2929,43 +2929,7 @@ def handle_exception(e):
 def privacy(): 
     return render_template("privacy.html")   
 
-from flask import jsonify # Ise top par import karein
 
-@app.route("/api/suggestions")
-def search_suggestions():
-    q = request.args.get('q', '').strip()
-    if not q: 
-        return jsonify([])
-    
-    safe_q = re.escape(q)
-    
-    # 1. Search in Categories (Matching start of string for better single-char results)
-    cat_matches = products.distinct("category", {"category": {"$regex": f"^{safe_q}", "$options": "i"}})
-    if not cat_matches:
-        cat_matches = products.distinct("category", {"category": {"$regex": safe_q, "$options": "i"}})
-        
-    suggestions = [{"name": c, "type": "category", "url": f"/category/{quote(c)}"} for c in cat_matches]
-    
-    # 2. Search in Products (Limit to 15 for speed)
-    prod_matches = list(products.find(
-        {"name": {"$regex": safe_q, "$options": "i"}},
-        {"name": 1, "category": 1}
-    ).limit(15))
-    
-    seen_products = set()
-    for p in prod_matches:
-        c_name = p.get('category') or ''
-        p_name = p.get('name') or ''
-        if not p_name or p_name.strip().lower() in seen_products:
-            continue
-        seen_products.add(p_name.strip().lower())
-        suggestions.append({
-            "name": p_name,
-            "type": "product",
-            "url": f"/category/{quote(c_name)}?search={quote(p_name)}"
-        })
-        
-    return jsonify(suggestions[:20])
    
 from flask import render_template, abort
 # Baki imports ke saath ise bhi rakhein
