@@ -1015,7 +1015,13 @@
       }
     };
 
-    // Run automatically on first load
+    // Run automatically on first load and Turbo navigations
+    document.addEventListener("turbo:load", () => {
+      if (typeof window.initProductsPage === 'function') {
+        window.initProductsPage();
+      }
+    });
+
     if (document.readyState === 'loading') {
       document.addEventListener("DOMContentLoaded", window.initProductsPage);
     } else {
