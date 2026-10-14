@@ -977,13 +977,21 @@
       if (searchInput) {
         // Focus: show recent/trending when empty, or auto-select text so typing immediately replaces old search
         let selectOnFocus = true;
+        let lastSuggestShowTime = 0; // dedup guard
 
-        searchInput.onfocus = () => {
+        // Core function to show suggestions (called by focus/click/touchend)
+        function triggerSearchSuggestions() {
+          const now = Date.now();
+          if (now - lastSuggestShowTime < 300) return; // dedup rapid fires
+          lastSuggestShowTime = now;
+
           const q = searchInput.value.trim();
           if (!q) {
-            showRecentAndTrending();
+            // Show after a micro-delay so WebView keyboard layout settles
+            requestAnimationFrame(() => {
+              setTimeout(() => { showRecentAndTrending(); }, 50);
+            });
           } else {
-            // Auto-select text so typing any new character immediately overwrites previous search!
             if (selectOnFocus) {
               setTimeout(() => {
                 try { searchInput.select(); } catch(e){}
@@ -991,7 +999,21 @@
             }
             window.fetchSuggestions(q.toLowerCase());
           }
-        };
+        }
+
+        // Primary: onfocus (works in Chrome, some WebViews)
+        searchInput.onfocus = triggerSearchSuggestions;
+
+        // WebView fallback: click fires reliably after tap
+        searchInput.addEventListener('click', triggerSearchSuggestions);
+
+        // WebView fallback 2: touchend is most reliable in Android WebView
+        searchInput.addEventListener('touchend', (e) => {
+          // Only trigger if input is already focused (keyboard is open)
+          if (document.activeElement === searchInput) {
+            triggerSearchSuggestions();
+          }
+        }, { passive: true });
 
         searchInput.onmouseup = (e) => {
           if (selectOnFocus && searchInput.value.length > 0) {
@@ -1002,18 +1024,10 @@
 
         searchInput.onblur = () => {
           selectOnFocus = true;
-          // WebView fix: delay hiding suggestions so tap on suggestion item can fire click
-          setTimeout(() => {
-            if (!suppressBlurHide) {
-              const suggestBox = document.getElementById("product-suggestions");
-              // Only hide if focus didn't move into the suggest box itself
-              if (suggestBox && !suggestBox.contains(document.activeElement) &&
-                  document.activeElement !== searchInput) {
-                // Don't hide – let outside click handler manage it
-              }
-            }
-            suppressBlurHide = false;
-          }, 200);
+          // WebView fix: do NOT hide suggestions on blur
+          // Let ONLY the outside-click handler manage hiding
+          // This prevents keyboard open/close from killing the dropdown
+          suppressBlurHide = false;
         };
 
         searchInput.oninput = (e) => {
