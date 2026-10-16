@@ -14,6 +14,8 @@ from flask import (
     redirect,
     url_for,
     flash,
+    send_from_directory,
+    make_response,
 )
 from pymongo import MongoClient
 from twilio.rest import Client as TwilioClient
@@ -43,6 +45,17 @@ app.config['CACHE_TYPE'] = 'SimpleCache'
 app.config['CACHE_DEFAULT_TIMEOUT'] = 300
 cache = Cache(app)
 
+@app.route('/sw.js')
+def service_worker():
+    response = make_response(send_from_directory('static', 'sw.js', mimetype='application/javascript'))
+    response.headers['Service-Worker-Allowed'] = '/'
+    return response
+
+@app.route('/manifest.json')
+def web_manifest():
+    response = make_response(send_from_directory('static', 'manifest.json', mimetype='application/manifest+json'))
+    return response
+
 
 # ---------- Security & admin creds ----------
 bcrypt = Bcrypt(app)
@@ -50,6 +63,24 @@ ADMIN_EMAIL = os.getenv("ADMIN_EMAIL")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")
 ADMIN_NUMBER_1 = os.getenv("ADMIN_NUMBER_1", "")
 ADMIN_NUMBER_2 = os.getenv("ADMIN_NUMBER_2", "")
+
+# ---------- 🛡️ Dedicated Admin Session Token (100% Isolated from Customer Logins) ----------
+from itsdangerous import URLSafeTimedSerializer
+
+ADMIN_COOKIE_NAME = "jippy_admin_session"
+admin_serializer = URLSafeTimedSerializer(app.secret_key, salt="jippy-admin-secret-salt-2026")
+
+def generate_admin_token(email):
+    return admin_serializer.dumps({"email": email, "role": "admin"})
+
+def verify_admin_token(token, max_age=365 * 24 * 3600):
+    if not token:
+        return False
+    try:
+        data = admin_serializer.loads(token, max_age=max_age)
+        return data.get("email") == ADMIN_EMAIL
+    except Exception:
+        return False
 
 # ---------- Twilio Verify ----------
 account_sid = os.environ["TWILIO_ACCOUNT_SID"]
@@ -81,7 +112,7 @@ db = mongo_client["grocery_app"]
 
 # ---------- Firebase Admin ----------
 import firebase_admin
-from firebase_admin import credentials, auth as firebase_auth
+from firebase_admin import credentials, auth as firebase_auth, messaging
 import os
 
 firebase_cred_path = os.path.join(os.path.dirname(__file__), 'jippy-936b9-firebase-adminsdk-fbsvc-926fa22dd5.json')
@@ -99,6 +130,8 @@ products = db["products"]
 orders = db["orders"]
 settings = db["settings"]
 societies = db["societies"]
+categories_col = db["categories"]
+admin_push_subscriptions = db["admin_push_subscriptions"]
 
 # High concurrency background indexing
 try:
@@ -108,6 +141,7 @@ try:
     orders.create_index([("status", 1)], background=True)
     users.create_index([("phone", 1)], background=True)
     societies.create_index([("name", 1)], background=True)
+    categories_col.create_index([("normalized_name", 1)], unique=True, background=True)
 except Exception as _idx_err:
     print("MongoDB index init warning:", _idx_err)
 
@@ -171,6 +205,11 @@ def generate_order_id() -> str:
 @app.before_request
 def make_session_permanent():
     session.permanent = True
+    # 🛡️ 100% Dedicated Admin Session Verification:
+    # If signed admin cookie is valid, guarantee admin_logged_in is True regardless of customer login/logout
+    admin_cookie = request.cookies.get(ADMIN_COOKIE_NAME)
+    if admin_cookie and verify_admin_token(admin_cookie):
+        session["admin_logged_in"] = True
 
 @app.after_request
 def add_cache_headers(response):
@@ -243,7 +282,18 @@ def load_user(user_id):
 
 @app.context_processor
 def inject_user():
-    return dict(current_user=current_user)
+    cat_imgs = {}
+    try:
+        for doc in categories_col.find({"image": {"$exists": True, "$ne": ""}}):
+            img_url = doc.get("image", "")
+            if img_url:
+                if doc.get("name"):
+                    cat_imgs[doc["name"].lower().strip()] = img_url
+                if doc.get("normalized_name"):
+                    cat_imgs[doc["normalized_name"]] = img_url
+    except Exception as e:
+        pass
+    return dict(current_user=current_user, category_images=cat_imgs)
 
 # ================================
 # PUBLIC: PRODUCTS
@@ -265,12 +315,72 @@ def clean_cat_name(name):
         decoded = urllib.parse.unquote(decoded)
     return decoded.replace('+', ' ').strip()
 
+def clean_category_title(name: str) -> str:
+    """
+    Cleanly capitalizes category names while preserving symbols.
+    e.g. 'fresh fruits & vegetables' -> 'Fresh Fruits & Vegetables'
+    """
+    if not name:
+        return ""
+    cleaned = re.sub(r"\s+", " ", name.strip())
+    words = cleaned.split(" ")
+    titled = []
+    minor_words = {"and", "&", "of", "in", "the", "for", "to"}
+    for i, w in enumerate(words):
+        if i > 0 and w.lower() in minor_words:
+            titled.append(w.lower() if w != "&" else "&")
+        else:
+            titled.append(w.capitalize())
+    return " ".join(titled)
+
+def validate_category_name(raw_name: str):
+    """
+    Validates category name with strict conditions & checks.
+    Returns: (is_valid: bool, cleaned_name: str, error_message: str)
+    """
+    if not raw_name or not isinstance(raw_name, str):
+        return False, "", "Category name cannot be empty."
+    
+    cleaned = raw_name.strip()
+    if len(cleaned) < 2:
+        return False, "", "Category name must be at least 2 characters long."
+    if len(cleaned) > 50:
+        return False, "", "Category name cannot exceed 50 characters."
+    
+    # Check for at least one alphabet
+    if not re.search(r"[a-zA-Z]", cleaned):
+        return False, "", "Category name must contain at least one letter."
+        
+    # Check for disallowed characters (no HTML, quotes, backslashes, scripts)
+    if not re.match(r"^[a-zA-Z0-9\s&/,\-()]+$", cleaned):
+        return False, "", "Category name contains invalid characters. Use letters, numbers, spaces, &, /, -, or ()."
+        
+    formatted = clean_category_title(cleaned)
+    return True, formatted, ""
+
 @cache.memoize(timeout=600)
 def get_cached_categories():
     try:
-        return sorted([c for c in products.distinct("category") if c])
-    except:
-        return []
+        deleted_norms = set(
+            doc.get("normalized_name")
+            for doc in categories_col.find({"deleted": True})
+            if doc.get("normalized_name")
+        )
+        from_products = set(c.strip() for c in products.distinct("category") if c and isinstance(c, str) and c.strip())
+        from_col = set(doc.get("name", "").strip() for doc in categories_col.find({"deleted": {"$ne": True}}) if doc.get("name", "").strip())
+        standard = {"Fruits", "Vegetables", "Dairy", "Bakery", "Snacks", "Beverages", "Meat", "Household", "Personal Care"}
+        all_cats = from_products.union(from_col).union(standard)
+        # Deduplicate case-insensitively while preserving nice titles
+        seen = {}
+        for c in sorted(all_cats):
+            norm = normalize_category_name(c)
+            if norm not in deleted_norms:
+                if norm not in seen:
+                    seen[norm] = clean_category_title(c)
+        return sorted(list(seen.values()), key=lambda x: x.lower())
+    except Exception as e:
+        print(f"Categories cache error: {e}")
+        return ["Bakery", "Beverages", "Dairy", "Fruits", "Household", "Meat", "Personal Care", "Snacks", "Vegetables"]
 
 @cache.memoize(timeout=300)
 def get_cached_category_items(original_category):
@@ -512,6 +622,7 @@ def societies_page():
                 "name": soc.get("name"),
                 "city": soc.get("city"),
                 "pincode": soc.get("pincode"),
+                "image": soc.get("image"),
                 "distance": None
             })
         top_societies = results
@@ -537,6 +648,7 @@ def societies_page():
                     "name": soc.get("name"),
                     "city": soc.get("city"),
                     "pincode": soc.get("pincode"),
+                    "image": soc.get("image"),
                     "distance": round(dist, 1)
                 })
                 
@@ -550,7 +662,7 @@ def societies_page():
         
         return render_template(
             "societies.html",
-            societies=in_range_societies[:1] if in_range_societies else [],
+            societies=in_range_societies if in_range_societies else [],
             nearest_society=nearest_soc,
             user_address=user_address,
             max_radius=MAX_SERVICE_RADIUS_KM
@@ -573,11 +685,23 @@ def society_shops(society_id):
         session["current_society_lng"] = sloc.get("lng")
             
         # Find vendors that serve this society
-        # Vendors should have society_id string in their serviceable_societies list
-        shops = list(users.find({
-            "role": "vendor",
-            "serviceable_societies": str(society_id)
-        }))
+        # Vendors should have society_id string or ObjectId in their serviceable_societies list
+        try:
+            soc_oid = ObjectId(society_id)
+            query_filter = {
+                "role": "vendor",
+                "$or": [
+                    {"serviceable_societies": str(society_id)},
+                    {"serviceable_societies": soc_oid}
+                ]
+            }
+        except Exception:
+            query_filter = {
+                "role": "vendor",
+                "serviceable_societies": str(society_id)
+            }
+
+        shops = list(users.find(query_filter))
         
         current_shop_id = session.get("current_shop_id")
         if current_shop_id and not any(str(s["_id"]) == str(current_shop_id) for s in shops):
@@ -599,8 +723,11 @@ def shop_home(shop_id):
             
         session["current_shop_id"] = str(shop_id)
         session["current_shop_name"] = shop.get("shop_name", "Local Shop")
-        if shop.get("shop_image"):
-            session["current_shop_image"] = shop.get("shop_image")
+        shop_img = shop.get("shop_image") or shop.get("image")
+        if shop_img:
+            session["current_shop_image"] = shop_img
+        else:
+            session.pop("current_shop_image", None)
         
         categories = get_cached_categories()
         return render_template("products.html", page_type="categories", categories=categories, shop=shop)
@@ -622,19 +749,39 @@ def api_societies():
         socs = list(societies.find().limit(20))
         
     for soc in socs:
-        results.append({"id": str(soc["_id"]), "name": soc.get("name"), "city": soc.get("city"), "pincode": soc.get("pincode")})
+        results.append({
+            "id": str(soc["_id"]),
+            "name": soc.get("name"),
+            "city": soc.get("city"),
+            "pincode": soc.get("pincode"),
+            "image": soc.get("image")
+        })
     return jsonify({"status": "success", "societies": results})
 
 @app.route("/api/society/<society_id>/shops")
 def api_society_shops(society_id):
-    shops_data = list(users.find({"role": "vendor", "serviceable_societies": str(society_id)}))
+    try:
+        soc_oid = ObjectId(society_id)
+        query_filter = {
+            "role": "vendor",
+            "$or": [
+                {"serviceable_societies": str(society_id)},
+                {"serviceable_societies": soc_oid}
+            ]
+        }
+    except Exception:
+        query_filter = {"role": "vendor", "serviceable_societies": str(society_id)}
+
+    shops_data = list(users.find(query_filter))
     results = []
     for s in shops_data:
         results.append({
             "id": str(s["_id"]),
             "shop_name": s.get("shop_name", "Shop"),
             "owner_name": s.get("name", ""),
-            "contact": s.get("phone", "")
+            "contact": s.get("phone", ""),
+            "shop_image": s.get("shop_image") or s.get("image", ""),
+            "vendor_type": s.get("vendor_type", "")
         })
     return jsonify({"status": "success", "shops": results})
 
@@ -817,6 +964,11 @@ def api_suggestions():
 @app.route("/admin/login", methods=["GET", "POST"])
 def admin_login():
     if request.method == "GET":
+        admin_cookie = request.cookies.get(ADMIN_COOKIE_NAME)
+        if admin_cookie and verify_admin_token(admin_cookie):
+            session["admin_logged_in"] = True
+            return redirect(url_for("admin_dashboard"))
+
         captcha_code = "".join(str(random.randint(0, 9)) for _ in range(4))
         session["captcha_code"] = captcha_code
         return render_template("admin_login.html", captcha_code=captcha_code)
@@ -838,8 +990,19 @@ def admin_login():
     session.pop("captcha_code", None)
 
     if email == ADMIN_EMAIL and password == ADMIN_PASSWORD:
+        session.permanent = True
         session["admin_logged_in"] = True
-        return redirect(url_for("admin_dashboard"))
+        token = generate_admin_token(email)
+        resp = redirect(url_for("admin_dashboard"))
+        resp.set_cookie(
+            ADMIN_COOKIE_NAME,
+            value=token,
+            max_age=365 * 24 * 3600,
+            httponly=True,
+            samesite="Lax",
+            path="/"
+        )
+        return resp
 
     new_captcha = "".join(str(random.randint(0, 9)) for _ in range(4))
     session["captcha_code"] = new_captcha
@@ -860,120 +1023,372 @@ def refresh_captcha():
 @app.route("/admin/logout")
 def admin_logout():
     session.pop("admin_logged_in", None)
-    return redirect(url_for("admin_login"))
+    resp = redirect(url_for("admin_login"))
+    resp.delete_cookie(ADMIN_COOKIE_NAME, path="/")
+    return resp
 
 
 # ================================
 # ADMIN: ADD / EDIT PRODUCT
 # ================================
 
+@app.route("/admin/api/add-category", methods=["POST"])
+def admin_api_add_category():
+    if not session.get("admin_logged_in"):
+        return jsonify({"success": False, "message": "Unauthorized. Please log in as admin."}), 401
+
+    raw_name = request.form.get("name", "").strip()
+    if not raw_name and request.is_json:
+        raw_name = (request.get_json(silent=True) or {}).get("name", "").strip()
+
+    is_valid, cleaned_name, err = validate_category_name(raw_name)
+    if not is_valid:
+        return jsonify({"success": False, "message": err}), 400
+
+    norm_name = normalize_category_name(cleaned_name)
+    existing_cats = get_cached_categories()
+    existing_map = {normalize_category_name(c): c for c in existing_cats}
+
+    # Handle Category Image Upload (Cloudinary)
+    cat_image_url = ""
+    cat_image_public_id = ""
+    if "image" in request.files:
+        cat_file = request.files["image"]
+        if cat_file and cat_file.filename != "":
+            allowed_exts = {"jpg", "jpeg", "png", "webp", "gif"}
+            ext = cat_file.filename.rsplit(".", 1)[-1].lower() if "." in cat_file.filename else ""
+            if ext in allowed_exts:
+                try:
+                    upload_res = cloudinary.uploader.upload(cat_file, folder="categories")
+                    cat_image_url = upload_res.get("secure_url", "")
+                    cat_image_public_id = upload_res.get("public_id", "")
+                except Exception as up_err:
+                    print(f"Category image upload error: {up_err}")
+
+    update_payload = {
+        "name": cleaned_name,
+        "normalized_name": norm_name,
+        "created_at": datetime.datetime.now(IST)
+    }
+    if cat_image_url:
+        update_payload["image"] = cat_image_url
+        update_payload["image_public_id"] = cat_image_public_id
+
+    try:
+        categories_col.update_one(
+            {"normalized_name": norm_name},
+            {"$set": update_payload},
+            upsert=True
+        )
+        cache.delete_memoized(get_cached_categories)
+    except Exception as e:
+        print(f"Error saving category: {e}")
+
+    updated_cats = get_cached_categories()
+
+    if norm_name in existing_map:
+        matched = existing_map[norm_name]
+        return jsonify({
+            "success": True,
+            "category": matched,
+            "image": cat_image_url,
+            "message": f"Category '{matched}' updated successfully!",
+            "is_existing": True,
+            "categories": updated_cats
+        })
+
+    return jsonify({
+        "success": True,
+        "category": cleaned_name,
+        "image": cat_image_url,
+        "message": f"Category '{cleaned_name}' added successfully!",
+        "is_existing": False,
+        "categories": updated_cats
+    })
+
+@app.route("/admin/api/categories", methods=["GET"])
+def admin_api_list_categories():
+    if not session.get("admin_logged_in"):
+        return jsonify({"success": False, "message": "Unauthorized"}), 401
+
+    cats = get_cached_categories()
+    result = []
+    for c in cats:
+        norm = normalize_category_name(c)
+        doc = categories_col.find_one({"normalized_name": norm, "deleted": {"$ne": True}})
+        img = doc.get("image", "") if doc else ""
+        cnt = products.count_documents({"category": {"$regex": f"^{re.escape(c)}$", "$options": "i"}})
+        result.append({
+            "name": c,
+            "image": img,
+            "product_count": cnt
+        })
+    return jsonify({"success": True, "categories": result})
+
+@app.route("/admin/api/delete-category", methods=["POST"])
+def admin_api_delete_category():
+    if not session.get("admin_logged_in"):
+        return jsonify({"success": False, "message": "Unauthorized. Please log in as admin."}), 401
+
+    raw_name = request.form.get("category", "").strip()
+    if not raw_name and request.is_json:
+        raw_name = (request.get_json(silent=True) or {}).get("category", "").strip()
+
+    if not raw_name:
+        return jsonify({"success": False, "message": "Category name is required."}), 400
+
+    norm_name = normalize_category_name(raw_name)
+
+    # Check if active products are assigned to this category
+    product_count = products.count_documents({
+        "category": {"$regex": f"^{re.escape(raw_name)}$", "$options": "i"}
+    })
+    if product_count > 0:
+        return jsonify({
+            "success": False,
+            "message": f"Cannot delete '{raw_name}' because {product_count} product(s) are currently assigned to it. Please reassign or delete those products first."
+        }), 400
+
+    # Delete category image from Cloudinary if stored
+    try:
+        cat_doc = categories_col.find_one({"normalized_name": norm_name})
+        if cat_doc:
+            pub_id = cat_doc.get("image_public_id")
+            if pub_id:
+                try:
+                    cloudinary.uploader.destroy(pub_id, invalidate=True)
+                except Exception:
+                    pass
+            # Mark deleted or remove
+            categories_col.update_one(
+                {"normalized_name": norm_name},
+                {"$set": {"deleted": True, "deleted_at": datetime.datetime.now(IST)}},
+                upsert=True
+            )
+        else:
+            categories_col.insert_one({
+                "name": raw_name,
+                "normalized_name": norm_name,
+                "deleted": True,
+                "deleted_at": datetime.datetime.now(IST)
+            })
+
+        cache.delete_memoized(get_cached_categories)
+    except Exception as e:
+        print(f"Error deleting category: {e}")
+        return jsonify({"success": False, "message": f"Database error: {str(e)}"}), 500
+
+    updated_cats = get_cached_categories()
+    return jsonify({
+        "success": True,
+        "message": f"Category '{raw_name}' deleted successfully.",
+        "category": raw_name,
+        "categories": updated_cats
+    })
+
+
 @app.route("/admin/add-product", methods=["GET", "POST"])
 def add_product():
     if not session.get("admin_logged_in"):
         return redirect(url_for("admin_login"))
 
+    categories_list = get_cached_categories()
+
     if request.method == "POST":
+        is_ajax = (
+            request.headers.get("X-Requested-With") == "XMLHttpRequest"
+            or request.form.get("is_ajax") == "1"
+            or "application/json" in request.headers.get("Accept", "")
+        )
+
         name = request.form.get("name", "").strip()
-        price = request.form.get("price", "").strip()
-        discount_price = request.form.get("discount_price", "").strip()  # NEW
+        price_raw = request.form.get("price", "").strip()
+        discount_price_raw = request.form.get("discount_price", "").strip()
         unit = request.form.get("unit", "").strip()
         category = request.form.get("category", "").strip()
         other_category = request.form.get("other_category", "").strip()
+        brand = request.form.get("brand", "").strip()
+        description = request.form.get("description", "").strip()
+        out_of_stock = request.form.get("out_of_stock") in ("1", "true", "on", "yes")
 
-        if not all([name, price, unit, category]):
-            products_list = list(products.find())
+        def handle_error(msg):
+            if is_ajax:
+                return jsonify({"success": False, "message": msg}), 400
+            products_list = list(products.find().sort("_id", -1))
             return render_template(
                 "add_product.html",
-                error="All fields are required.",
+                error=msg,
                 products=products_list,
+                categories=categories_list,
+                form_data=request.form,
             )
 
-        if category == "Other":
-            if not other_category:
-                products_list = list(products.find())
-                return render_template(
-                    "add_product.html",
-                    error="Please enter a custom category name.",
-                    products=products_list,
-                )
+        # 1. Product Name Validation
+        if not name or len(name) < 2:
+            return handle_error("Product Title must be at least 2 characters long.")
 
-            # new custom category normalized
-            new_cat_norm = normalize_category_name(other_category)
+        # 2. Packaging Unit Validation
+        if not unit:
+            return handle_error("Packaging Unit (e.g. 1 kg, 500 g, 1 Pc) is required.")
 
-            # existing categories -> normalized map
-            existing_cats = products.distinct("category")
-            existing_map = {
-                normalize_category_name(c): c
-                for c in existing_cats
-                if isinstance(c, str)
-            }
+        # 3. Category Validation & Resolution
+        target_cat = other_category if category == "Other" else category
+        if not target_cat:
+            return handle_error("Please select or enter a valid category.")
 
-            if new_cat_norm in existing_map:
-                # same category (case/space ignore) already exists
-                category = existing_map[new_cat_norm]
-            else:
-                # completely new category
-                category = other_category.strip()
+        is_valid_cat, cleaned_cat, cat_err = validate_category_name(target_cat)
+        if not is_valid_cat:
+            return handle_error(f"Invalid Category: {cat_err}")
 
+        final_category = cleaned_cat
+        # Save custom category if new
+        try:
+            norm_c = normalize_category_name(final_category)
+            categories_col.update_one(
+                {"normalized_name": norm_c},
+                {"$set": {"name": final_category, "normalized_name": norm_c, "updated_at": datetime.datetime.now(IST)}},
+                upsert=True
+            )
+            cache.delete_memoized(get_cached_categories)
+            categories_list = get_cached_categories()
+        except Exception:
+            pass
+
+        # 4. Listing Price (MRP) Validation
+        try:
+            price = float(price_raw)
+            if price <= 0:
+                raise ValueError("Price must be strictly positive.")
+            if price > 1000000:
+                raise ValueError("Price exceeds reasonable catalog limit.")
+        except (ValueError, TypeError):
+            return handle_error("Listing Price (MRP) must be a valid number greater than ₹0.")
+
+        # 5. Discount / Selling Price Validation (Policy: Selling Price <= MRP)
+        discount_price = None
+        if discount_price_raw:
+            try:
+                discount_price = float(discount_price_raw)
+                if discount_price <= 0:
+                    raise ValueError("Discounted price must be greater than ₹0.")
+                if discount_price > price:
+                    return handle_error(f"Selling Price (₹{discount_price:.2f}) cannot exceed MRP (₹{price:.2f}).")
+            except (ValueError, TypeError):
+                return handle_error("Please enter a valid discounted price or leave it empty.")
+
+        # 6. Image File Validation & Upload (Supports reusing image for variants)
+        existing_image_url = request.form.get("existing_image_url", "").strip()
+        existing_image_public_id = request.form.get("existing_image_public_id", "").strip()
+
+        file = request.files.get("image")
+        final_image_url = None
+        final_public_id = ""
+
+        if file and file.filename != "":
+            allowed_exts = {"jpg", "jpeg", "png", "webp", "gif"}
+            ext = file.filename.rsplit(".", 1)[-1].lower() if "." in file.filename else ""
+            if ext not in allowed_exts:
+                return handle_error("Invalid image format. Supported formats: JPG, PNG, WEBP, GIF.")
+
+            try:
+                upload_result = cloudinary.uploader.upload(file, folder="products")
+                final_image_url = upload_result["secure_url"]
+                final_public_id = upload_result.get("public_id", "")
+            except Exception as e:
+                return handle_error(f"Image upload failed: {str(e)}")
+        elif existing_image_url and (existing_image_url.startswith("http://") or existing_image_url.startswith("https://")):
+            final_image_url = existing_image_url
+            final_public_id = existing_image_public_id
+        else:
+            return handle_error("Product showcase image is required.")
+
+        # 7. Unique Slug Generation
         base_slug = slugify(name + "-" + unit)
         slug = base_slug
         if products.find_one({"slug": slug}):
-            slug = f"{base_slug}-{int(float(price))}"
+            slug = f"{base_slug}-{int(price)}"
             if products.find_one({"slug": slug}):
                 slug = f"{base_slug}-{uuid.uuid4().hex[:4]}"
 
-        if "image" not in request.files:
-            products_list = list(products.find())
-            return render_template(
-                "add_product.html",
-                error="No image file uploaded.",
-                products=products_list,
-            )
-
-        file = request.files["image"]
-        if file.filename == "":
-            products_list = list(products.find())
-            return render_template(
-                "add_product.html",
-                error="No file selected.",
-                products=products_list,
-            )
-
-        upload_result = cloudinary.uploader.upload(file, folder="products")
-
-        # base document
+        # 8. Create Product Document
         doc = {
             "name": name,
             "slug": slug,
             "price": float(price),
             "unit": unit,
-            "category": category,
-            "image": upload_result["secure_url"],
-            "image_public_id": upload_result["public_id"],
+            "category": final_category,
+            "image": final_image_url,
+            "image_public_id": final_public_id,
+            "out_of_stock": bool(out_of_stock),
+            "created_at": datetime.datetime.now(IST),
         }
 
-        # optional discounted price
-        if discount_price:
-            try:
-                doc["discount_price"] = float(discount_price)
-            except ValueError:
-                # agar admin ne galat value dali to error dikha do
-                products_list = list(products.find())
-                return render_template(
-                    "add_product.html",
-                    error="Please enter a valid discounted price.",
-                    products=products_list,
-                )
+        if discount_price is not None:
+            doc["discount_price"] = float(discount_price)
+        if brand:
+            doc["brand"] = brand
+        if description:
+            doc["description"] = description
 
         products.insert_one(doc)
+
+        try:
+            cache.delete_memoized(get_cached_categories)
+        except Exception:
+            pass
+
+        if is_ajax:
+            return jsonify({
+                "success": True,
+                "message": f"'{name}' ({unit}) published successfully to Jippy Store!",
+                "product_id": str(doc["_id"]),
+                "slug": slug,
+                "name": name,
+                "unit": unit,
+                "category": final_category,
+                "brand": brand,
+                "description": description,
+                "price": float(price),
+                "discount_price": float(discount_price) if discount_price else None,
+                "image": final_image_url,
+                "image_public_id": final_public_id
+            })
+
         return redirect(url_for("add_product"))
 
-    products_list = list(products.find())
-    return render_template("add_product.html", products=products_list)
+    variant_of = request.args.get("variant_of", "").strip()
+    prefill_variant = None
+    if variant_of:
+        try:
+            parent_prod = products.find_one({"_id": ObjectId(variant_of)})
+            if parent_prod:
+                prefill_variant = {
+                    "id": str(parent_prod["_id"]),
+                    "name": parent_prod.get("name", ""),
+                    "category": parent_prod.get("category", ""),
+                    "brand": parent_prod.get("brand", ""),
+                    "description": parent_prod.get("description", ""),
+                    "image": parent_prod.get("image", ""),
+                    "image_public_id": parent_prod.get("image_public_id", ""),
+                }
+        except Exception:
+            pass
+
+    products_list = list(products.find().sort("_id", -1))
+    return render_template(
+        "add_product.html",
+        products=products_list,
+        categories=categories_list,
+        prefill_variant=prefill_variant
+    )
 
 @app.route("/admin/delete-product/<product_id>", methods=["POST"])
 def delete_product(product_id):
+    is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.form.get("is_ajax") == "1"
+
     if not session.get("admin_logged_in"):
+        if is_ajax:
+            return jsonify({"success": False, "message": "Authentication required"}), 401
         return redirect(url_for("admin_login"))
 
     try:
@@ -988,66 +1403,150 @@ def delete_product(product_id):
                     pass
 
         products.delete_one({"_id": ObjectId(product_id)})
-    except Exception:
-        pass
 
+        if is_ajax:
+            return jsonify({
+                "success": True, 
+                "product_id": str(product_id),
+                "message": "Product removed from catalog successfully."
+            })
+    except Exception as e:
+        if is_ajax:
+            return jsonify({"success": False, "message": str(e)}), 500
+
+    referrer = request.referrer or ""
+    if "inventory" in referrer:
+        return redirect(url_for("admin_inventory"))
     return redirect(url_for("add_product"))
 
 
 @app.route("/admin/edit-product/<product_id>", methods=["GET", "POST"])
 def edit_product(product_id):
+    is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.form.get("is_ajax") == "1"
+
     if not session.get("admin_logged_in"):
+        if is_ajax:
+            return jsonify({"success": False, "message": "Authentication required"}), 401
         return redirect(url_for("admin_login"))
 
     product = products.find_one({"_id": ObjectId(product_id)})
     if not product:
+        if is_ajax:
+            return jsonify({"success": False, "message": "Product not found"}), 404
         return redirect(url_for("add_product"))
 
     if request.method == "POST":
         name = request.form.get("name", "").strip()
         price = request.form.get("price", "").strip()
-        discount_price = request.form.get("discount_price", "").strip()  # NEW
+        discount_price = request.form.get("discount_price", "").strip()
         unit = request.form.get("unit", "").strip()
         category = request.form.get("category", "").strip()
         other_category = request.form.get("other_category", "").strip()
+        brand = request.form.get("brand", "").strip()
+        description = request.form.get("description", "").strip()
 
         if not all([name, price, unit, category]):
+            if is_ajax:
+                return jsonify({"success": False, "message": "All required fields (Name, Price, Unit, Category) must be provided."}), 400
             return render_template(
                 "edit_product.html",
                 error="All fields are required.",
                 product=product,
+                categories=get_cached_categories()
+            )
+
+        try:
+            price_val = float(price)
+            if price_val <= 0:
+                raise ValueError()
+        except ValueError:
+            if is_ajax:
+                return jsonify({"success": False, "message": "Listing price must be a valid positive number."}), 400
+            return render_template(
+                "edit_product.html",
+                error="Listing price must be a valid positive number.",
+                product=product,
+                categories=get_cached_categories()
             )
 
         if category == "Other":
             if not other_category:
+                if is_ajax:
+                    return jsonify({"success": False, "message": "Please enter a custom category name."}), 400
                 return render_template(
                     "edit_product.html",
                     error="Please enter a custom category name.",
                     product=product,
+                    categories=get_cached_categories()
                 )
-            category = other_category
+            is_valid_cat, cleaned_cat, cat_err = validate_category_name(other_category)
+            if not is_valid_cat:
+                if is_ajax:
+                    return jsonify({"success": False, "message": f"Invalid category: {cat_err}"}), 400
+                return render_template(
+                    "edit_product.html",
+                    error=f"Invalid category: {cat_err}",
+                    product=product,
+                    categories=get_cached_categories()
+                )
+            category = cleaned_cat
+            try:
+                norm_c = normalize_category_name(category)
+                categories_col.update_one(
+                    {"normalized_name": norm_c},
+                    {"$set": {"name": category, "normalized_name": norm_c, "updated_at": datetime.datetime.now(IST)}},
+                    upsert=True
+                )
+                cache.delete_memoized(get_cached_categories)
+            except Exception:
+                pass
 
         # base update document
         update_doc = {
             "name": name,
-            "price": float(price),
+            "price": price_val,
             "unit": unit,
             "category": category,
         }
 
-        # optional discounted price handling
+        if brand:
+            update_doc["brand"] = brand
+        if description:
+            update_doc["description"] = description
+
+        # optional stock toggle
+        if "out_of_stock" in request.form:
+            oos_val = request.form.get("out_of_stock")
+            update_doc["out_of_stock"] = (oos_val in ("1", "true", "on"))
+
+        unset_fields = {}
         if discount_price:
             try:
-                update_doc["discount_price"] = float(discount_price)
+                disc_val = float(discount_price)
+                if disc_val <= 0:
+                    raise ValueError()
+                if disc_val > price_val:
+                    if is_ajax:
+                        return jsonify({"success": False, "message": f"Selling price (₹{disc_val:.2f}) cannot exceed MRP (₹{price_val:.2f})."}), 400
+                    return render_template(
+                        "edit_product.html",
+                        error=f"Selling price (₹{disc_val:.2f}) cannot exceed MRP (₹{price_val:.2f}).",
+                        product=product,
+                        categories=get_cached_categories()
+                    )
+                update_doc["discount_price"] = disc_val
             except ValueError:
+                if is_ajax:
+                    return jsonify({"success": False, "message": "Please enter a valid discounted price."}), 400
                 return render_template(
                     "edit_product.html",
                     error="Please enter a valid discounted price.",
                     product=product,
+                    categories=get_cached_categories()
                 )
         else:
-            # agar blank hai to field ko unset kar do (remove discount)
-            update_doc = {"$unset": {"discount_price": ""}}
+            # If blank, remove discount price
+            unset_fields["discount_price"] = ""
 
         # image update (optional)
         if "image" in request.files:
@@ -1058,39 +1557,53 @@ def edit_product(product_id):
                 if old_public_id:
                     try:
                         cloudinary.uploader.destroy(old_public_id, invalidate=True)
-                    except:
+                    except Exception:
                         pass
                 
                 upload_result = cloudinary.uploader.upload(file, folder="products")
                 update_doc["image"] = upload_result["secure_url"]
                 update_doc["image_public_id"] = upload_result["public_id"]
 
-        # proper MongoDB update structure
-        if "discount_price" not in update_doc and "$unset" not in update_doc:
-            # only $set if no discount changes
-            products.update_one(
-                {"_id": ObjectId(product_id)}, 
-                {"$set": update_doc}
-            )
-        else:
-            # handle $set and $unset together
-            set_update = {k: v for k, v in update_doc.items() if k != "$unset"}
-            unset_update = update_doc.get("$unset", {})
-            
-            update_payload = {}
-            if set_update:
-                update_payload["$set"] = set_update
-            if unset_update:
-                update_payload["$unset"] = unset_update
-            
-            products.update_one(
-                {"_id": ObjectId(product_id)}, 
-                update_payload
-            )
+        # Proper MongoDB update payload
+        update_payload = {"$set": update_doc}
+        if unset_fields:
+            update_payload["$unset"] = unset_fields
 
-        return redirect(url_for("add_product"))
+        products.update_one(
+            {"_id": ObjectId(product_id)}, 
+            update_payload
+        )
 
-    return render_template("edit_product.html", product=product)
+        try:
+            cache.delete_memoized(get_cached_categories)
+        except Exception:
+            pass
+
+        if is_ajax:
+            updated_p = products.find_one({"_id": ObjectId(product_id)})
+            return jsonify({
+                "success": True,
+                "message": f"'{name}' updated successfully!",
+                "product": {
+                    "_id": str(updated_p["_id"]),
+                    "name": updated_p.get("name", ""),
+                    "price": float(updated_p.get("price", 0)),
+                    "discount_price": float(updated_p.get("discount_price")) if updated_p.get("discount_price") else None,
+                    "unit": updated_p.get("unit", ""),
+                    "category": updated_p.get("category", ""),
+                    "brand": updated_p.get("brand", ""),
+                    "description": updated_p.get("description", ""),
+                    "out_of_stock": bool(updated_p.get("out_of_stock", False)),
+                    "image": updated_p.get("image", "")
+                }
+            })
+
+        referrer = request.referrer or ""
+        if "add-product" in referrer:
+            return redirect(url_for("add_product"))
+        return redirect(url_for("admin_inventory"))
+
+    return render_template("edit_product.html", product=product, categories=get_cached_categories())
 
 # ================================
 # ADMIN: ADD VENDOR/DELIVERY USER
@@ -1104,7 +1617,7 @@ def add_user():
     if request.method == "POST":
         role = request.form.get("role", "").strip()
         name = request.form.get("name", "").strip()
-        email = request.form.get("email", "").strip()
+        email = request.form.get("email", "").strip().lower()
         password = request.form.get("password", "")
 
         vendor_type = request.form.get("vendor_type", "").strip()
@@ -1114,31 +1627,26 @@ def add_user():
         shop_image = request.form.get("shop_image", "").strip()
         serviceable_societies = request.form.getlist("serviceable_societies")
 
-        # NEW: delivery phone (10 digit) -> normalize to +91
+        # Phone validation (10 digit Indian mobile) -> normalize to +91
         raw_phone = request.form.get("phone", "").strip()
         phone = None
+        phone_error = None
         if raw_phone:
-            # sirf digits lo
             digits = re.sub(r"\D", "", raw_phone)
-            if len(digits) == 10:
+            if len(digits) == 10 and digits[0] in "6789":
                 phone = "+91" + digits
-            elif digits.startswith("91") and len(digits) == 12:
+            elif len(digits) == 12 and digits.startswith("91") and digits[2] in "6789":
+                phone = "+" + digits
+            elif len(digits) == 10:
+                phone = "+91" + digits
+            elif len(digits) == 12 and digits.startswith("91"):
                 phone = "+" + digits
             else:
-                # galat format -> error
-                error = "Please enter a valid 10-digit phone for delivery user"
-                vendors = list(users.find({"role": "vendor"}))
-                deliveries = list(users.find({"role": "delivery"}))
-                all_societies = list(societies.find())
-                return render_template(
-                    "add_user.html",
-                    error=error,
-                    vendors=vendors,
-                    deliveries=deliveries,
-                    all_societies=all_societies,
-                )
+                phone_error = "Please enter a valid 10-digit mobile number (e.g. 9876543210)"
+        else:
+            phone_error = "Mobile number is required for all personnel (Vendors & Delivery Riders)"
 
-        # lat / lng from onboarding form
+        # Lat / Lng from form (optional, backwards-compatible)
         raw_lat = request.form.get("lat", "").strip()
         raw_lng = request.form.get("lng", "").strip()
         try:
@@ -1148,65 +1656,69 @@ def add_user():
             lat = None
             lng = None
 
-        # Basic validations
+        # Comprehensive validation checks
+        error = None
         if role not in ["vendor", "delivery"]:
-            error = "Invalid role"
-        elif not name or not email or not password:
-            error = "Name, email and password are required"
-        elif role == "delivery" and not phone:
-            error = "Phone is required for delivery users"
-        else:
-            error = None
+            error = "Please choose a valid role (Store Vendor or Logistics Partner)"
+        elif not name or len(name) < 2:
+            error = "Full Legal Name is required (minimum 2 characters)"
+        elif not email or "@" not in email or "." not in email:
+            error = "A valid official email address is required"
+        elif phone_error:
+            error = phone_error
+        elif not password or len(password) < 6:
+            error = "Password must be at least 6 characters long"
+        elif role == "vendor" and not shop_name:
+            error = "Shop name is required for Store Vendor accounts"
+        elif role == "vendor" and not (vendor_type_other if vendor_type == "other" else vendor_type):
+            error = "Please select a store classification type for the vendor"
+
+        # Duplicate checks in database
+        if not error:
+            existing_email = users.find_one({"email": {"$regex": f"^{re.escape(email)}$", "$options": "i"}})
+            if existing_email:
+                error = f"An account with email '{email}' already exists in the system."
+        
+        if not error and phone:
+            existing_phone = users.find_one({"phone": phone})
+            if existing_phone:
+                error = f"An account with mobile number '{phone}' already exists in the system."
 
         if error:
-            vendors = list(users.find({"role": "vendor"}))
-            deliveries = list(users.find({"role": "delivery"}))
+            vendors = list(users.find({"role": "vendor"}).sort("_id", -1))
+            deliveries = list(users.find({"role": "delivery"}).sort("_id", -1))
             all_societies = list(societies.find())
             return render_template(
                 "add_user.html",
                 error=error,
+                form_data=request.form,
                 vendors=vendors,
                 deliveries=deliveries,
                 all_societies=all_societies,
             )
 
-        existing = users.find_one({"email": email, "role": role})
-        if existing:
-            vendors = list(users.find({"role": "vendor"}))
-            deliveries = list(users.find({"role": "delivery"}))
-            all_societies = list(societies.find())
-            return render_template(
-                "add_user.html",
-                error="User with this email and role already exists",
-                vendors=vendors,
-                deliveries=deliveries,
-                all_societies=all_societies,
-            )
-
-        # Final vendor_type
+        # Final vendor_type resolution
         final_vendor_type = None
         if role == "vendor":
             if vendor_type == "other":
-                final_vendor_type = vendor_type_other.strip() or None
+                final_vendor_type = vendor_type_other.strip() or "General Store"
             else:
-                final_vendor_type = vendor_type or None
+                final_vendor_type = vendor_type or "General Store"
 
         pw_hash = bcrypt.generate_password_hash(password).decode("utf-8")
         doc = {
             "name": name,
             "email": email,
+            "phone": phone,
             "password": pw_hash,
             "role": role,
+            "created_at": datetime.now(),
         }
 
         if final_vendor_type:
             doc["vendor_type"] = final_vendor_type
 
-        # NEW: phone sirf delivery users ke liye store
-        if role == "delivery" and phone:
-            doc["phone"] = phone
-
-        # coords field (optional)
+        # Optional coords field
         if lat is not None and lng is not None:
             doc["coords"] = {"lat": lat, "lng": lng}
 
@@ -1217,20 +1729,20 @@ def add_user():
 
         users.insert_one(doc)
 
-        vendors = list(users.find({"role": "vendor"}))
-        deliveries = list(users.find({"role": "delivery"}))
+        vendors = list(users.find({"role": "vendor"}).sort("_id", -1))
+        deliveries = list(users.find({"role": "delivery"}).sort("_id", -1))
         all_societies = list(societies.find())
         return render_template(
             "add_user.html",
-            success="User created successfully",
+            success=f"Successfully onboarded {role.capitalize()} '{name}' ({phone})!",
             vendors=vendors,
             deliveries=deliveries,
             all_societies=all_societies,
         )
 
-    # GET: show form + existing users
-    vendors = list(users.find({"role": "vendor"}))
-    deliveries = list(users.find({"role": "delivery"}))
+    # GET: show form + existing users (latest first)
+    vendors = list(users.find({"role": "vendor"}).sort("_id", -1))
+    deliveries = list(users.find({"role": "delivery"}).sort("_id", -1))
     all_societies = list(societies.find())
     return render_template("add_user.html", vendors=vendors, deliveries=deliveries, all_societies=all_societies)
 
@@ -1250,7 +1762,7 @@ def edit_user(user_id):
 
     if request.method == "POST":
         name = request.form.get("name", "").strip()
-        email = request.form.get("email", "").strip()
+        email = request.form.get("email", "").strip().lower()
         role = request.form.get("role", "").strip()
         vendor_type = request.form.get("vendor_type", "").strip()
         vendor_type_other = request.form.get("vendor_type_other", "").strip()
@@ -1258,7 +1770,7 @@ def edit_user(user_id):
         new_password = request.form.get("new_password", "")
         confirm_password = request.form.get("confirm_password", "")
 
-        # NEW: phone edit (10-digit -> +91)
+        # Phone edit (10-digit -> +91)
         raw_phone = request.form.get("phone", "").strip()
         phone = None
         if raw_phone:
@@ -1268,11 +1780,11 @@ def edit_user(user_id):
             elif digits.startswith("91") and len(digits) == 12:
                 phone = "+" + digits
             else:
-                error = "Please enter a valid 10-digit phone for delivery user"
+                error = "Please enter a valid 10-digit mobile number"
                 all_societies = list(societies.find())
                 return render_template("edit_user.html", error=error, user=user, all_societies=all_societies)
 
-        # lat / lng from edit form (same field names)
+        # lat / lng from edit form
         raw_lat = request.form.get("lat", "").strip()
         raw_lng = request.form.get("lng", "").strip()
         try:
@@ -1286,28 +1798,61 @@ def edit_user(user_id):
         shop_image = request.form.get("shop_image", "").strip()
         serviceable_societies = request.form.getlist("serviceable_societies")
 
+        # Comprehensive validations
+        error = None
         if role not in ["vendor", "delivery"]:
-            error = "Invalid role"
-        elif not name or not email:
-            error = "Name and email are required"
+            error = "Please select a valid role (Store Vendor or Logistics Partner)."
+        elif not name or len(name) < 2:
+            error = "Full Legal Name is required (minimum 2 characters)."
+        elif not email or "@" not in email or "." not in email:
+            error = "A valid official email address is required."
+        elif not (phone or user.get("phone")):
+            error = "A valid 10-digit mobile phone number is required."
         elif new_password and new_password != confirm_password:
-            error = "New password and confirm password do not match"
-        elif role == "delivery" and not (phone or user.get("phone")):
-            # agar pehle bhi phone nahi tha aur ab bhi blank hai
-            error = "Phone is required for delivery users"
-        else:
-            error = None
+            error = "New password and confirm password do not match."
+        elif new_password and len(new_password) < 6:
+            error = "New password must be at least 6 characters long."
+        elif role == "vendor" and not shop_name:
+            error = "Shop name is required for Store Vendor accounts."
+
+        # Check duplicate email across other users
+        if not error:
+            existing_email = users.find_one({
+                "_id": {"$ne": ObjectId(user_id)},
+                "email": {"$regex": f"^{re.escape(email)}$", "$options": "i"}
+            })
+            if existing_email:
+                error = f"Another user account with email '{email}' already exists."
+
+        # Check duplicate phone across other users
+        effective_phone = phone or user.get("phone")
+        if not error and effective_phone:
+            existing_phone = users.find_one({
+                "_id": {"$ne": ObjectId(user_id)},
+                "phone": effective_phone
+            })
+            if existing_phone:
+                error = f"Another user account with phone '{effective_phone}' already exists."
 
         if error:
+            temp_user = dict(user)
+            temp_user["name"] = name
+            temp_user["email"] = email
+            temp_user["role"] = role
+            temp_user["phone"] = effective_phone
+            temp_user["shop_name"] = shop_name
+            temp_user["shop_image"] = shop_image
+            temp_user["vendor_type"] = vendor_type_other if vendor_type == "other" else vendor_type
+            temp_user["serviceable_societies"] = serviceable_societies
             all_societies = list(societies.find())
-            return render_template("edit_user.html", error=error, user=user, all_societies=all_societies)
+            return render_template("edit_user.html", error=error, user=temp_user, all_societies=all_societies)
 
         final_vendor_type = None
         if role == "vendor":
             if vendor_type == "other":
-                final_vendor_type = vendor_type_other.strip() or None
+                final_vendor_type = vendor_type_other.strip() or "General Store"
             else:
-                final_vendor_type = vendor_type or None
+                final_vendor_type = vendor_type or "General Store"
 
         update_doc = {
             "name": name,
@@ -1320,13 +1865,11 @@ def edit_user(user_id):
         else:
             update_doc["vendor_type"] = None
 
-        # NEW: phone update logic
-        if role == "delivery":
-            if phone:
-                update_doc["phone"] = phone
-        else:
-            # vendor ke liye phone clear kar sakte ho ya rehne do; yahan clear kar diya
-            update_doc["phone"] = None
+        # Phone update logic: support both vendor and delivery
+        if phone:
+            update_doc["phone"] = phone
+        elif user.get("phone"):
+            update_doc["phone"] = user.get("phone")
 
         # coords update (set or clear)
         if lat is not None and lng is not None:
@@ -1834,6 +2377,66 @@ def send_order_whatsapp_notifications_async(order):
     threading.Thread(target=send_order_whatsapp_notifications, args=(order,), daemon=True).start()
 
 
+def send_admin_push_notifications(order):
+    """
+    Dispatches FCM & Cloud Web Push Notifications to all registered Admin devices.
+    Delivers notifications to laptops and phones even when browser tabs are closed.
+    """
+    try:
+        short_id = str(order.get("order_id", ""))[-8:].upper()
+        user_name = order.get("user_name", "Resident")
+        grand_total = order.get("total", 0)
+        items = order.get("items", [])
+        item_count = len(items)
+        order_id = str(order.get("order_id", ""))
+
+        title = f"🛒 New Order: ₹{grand_total:,.0f}"
+        body = f"Order #{short_id} by {user_name} ({item_count} items). Delivered to Flat."
+
+        # Fetch all active registered admin device tokens
+        subscriptions = list(admin_push_subscriptions.find({"active": {"$ne": False}}))
+        if not subscriptions:
+            return
+
+        for sub_doc in subscriptions:
+            token = sub_doc.get("token")
+            if token and firebase_admin._apps:
+                try:
+                    fcm_msg = messaging.Message(
+                        notification=messaging.Notification(
+                            title=title,
+                            body=body,
+                        ),
+                        data={
+                            "order_id": order_id,
+                            "type": "NEW_ORDER",
+                            "url": "/admin/orders"
+                        },
+                        token=token,
+                        webpush=messaging.WebpushConfig(
+                            notification=messaging.WebpushNotification(
+                                title=title,
+                                body=body,
+                                icon="/static/logo.jpeg",
+                                badge="/static/logo.jpeg",
+                                require_interaction=True,
+                            ),
+                            fcm_options=messaging.WebpushFCMOptions(
+                                link="/admin/orders"
+                            )
+                        )
+                    )
+                    messaging.send(fcm_msg)
+                except Exception as fcm_err:
+                    print(f"FCM push notification delivery error: {fcm_err}")
+    except Exception as e:
+        print("Admin push notification dispatch failed:", e)
+
+
+def send_admin_push_notifications_async(order):
+    threading.Thread(target=send_admin_push_notifications, args=(order,), daemon=True).start()
+
+
 @app.route("/api/send-whatsapp-otp", methods=["POST"])
 def send_whatsapp_otp():
     data = request.get_json()
@@ -2103,6 +2706,12 @@ def checkout():
     except Exception as e:
         print("WhatsApp dispatch failed:", e)
 
+    # 🔔 Cloud Web Push & FCM Notification to Admin (Works even if browser tab closed)
+    try:
+        send_admin_push_notifications_async(order)
+    except Exception as e:
+        print("Admin push dispatch failed:", e)
+
     return jsonify({
         "message": "Order placed successfully",
         "order_id": order_id,
@@ -2322,46 +2931,209 @@ def admin_orders():
         return redirect(url_for("admin_login"))
 
     all_orders = list(orders.find().sort("created_at", -1))
+    all_vendors = list(users.find({"role": "vendor"}, {"_id": 1, "name": 1, "shop_name": 1, "phone": 1}))
+    all_delivery = list(users.find({"role": "delivery"}, {"_id": 1, "name": 1, "phone": 1}))
 
-    # YAHAN users collection se vendors/delivery nikaalna hai
-    all_vendors = list(users.find({"role": "vendor"}, {"_id": 1, "name": 1}))
-    all_delivery = list(users.find({"role": "delivery"}, {"_id": 1, "name": 1}))
+    # Calculate Overview Metrics
+    total_orders = len(all_orders)
+    pending_orders = sum(1 for o in all_orders if (o.get("status") or "pending").lower() not in ["delivered", "cancelled", "canceled"])
+    delivered_orders = sum(1 for o in all_orders if (o.get("status") or "").lower() == "delivered")
+    cancelled_orders = sum(1 for o in all_orders if (o.get("status") or "").lower() in ["cancelled", "canceled"])
+    
+    total_revenue = sum(float(o.get("total", 0) or 0) for o in all_orders if (o.get("status") or "").lower() not in ["cancelled", "canceled"])
+
+    # Calculate Today's figures in IST
+    today_date = datetime.datetime.now(IST).date()
+    today_orders_count = 0
+    today_revenue = 0.0
+    for o in all_orders:
+        cat = o.get("created_at")
+        if cat and isinstance(cat, (datetime.datetime, datetime.date)):
+            if getattr(cat, "tzinfo", None) is None:
+                cat = pytz.utc.localize(cat)
+            if cat.astimezone(IST).date() == today_date:
+                today_orders_count += 1
+                if (o.get("status") or "").lower() not in ["cancelled", "canceled"]:
+                    today_revenue += float(o.get("total", 0) or 0)
+
+    overview = {
+        "total": total_orders,
+        "pending": pending_orders,
+        "delivered": delivered_orders,
+        "cancelled": cancelled_orders,
+        "total_revenue": round(total_revenue, 2),
+        "today_orders": today_orders_count,
+        "today_revenue": round(today_revenue, 2)
+    }
 
     return render_template(
         "admin_orders.html",
         orders=all_orders,
         vendors=all_vendors,
         delivery_boys=all_delivery,
+        overview=overview
     )
 
+@app.route("/admin/api/orders-feed")
+def admin_api_orders_feed():
+    if not session.get("admin_logged_in"):
+        return jsonify({"error": "Unauthorized"}), 401
+
+    all_orders = list(orders.find().sort("created_at", -1))
+    total_orders = len(all_orders)
+    pending_orders = sum(1 for o in all_orders if (o.get("status") or "pending").lower() not in ["delivered", "cancelled", "canceled"])
+    delivered_orders = sum(1 for o in all_orders if (o.get("status") or "").lower() == "delivered")
+    cancelled_orders = sum(1 for o in all_orders if (o.get("status") or "").lower() in ["cancelled", "canceled"])
+    total_revenue = sum(float(o.get("total", 0) or 0) for o in all_orders if (o.get("status") or "").lower() not in ["cancelled", "canceled"])
+
+    today_date = datetime.datetime.now(IST).date()
+    today_orders_count = 0
+    today_revenue = 0.0
+    for o in all_orders:
+        cat = o.get("created_at")
+        if cat and isinstance(cat, (datetime.datetime, datetime.date)):
+            if getattr(cat, "tzinfo", None) is None:
+                cat = pytz.utc.localize(cat)
+            if cat.astimezone(IST).date() == today_date:
+                today_orders_count += 1
+                if (o.get("status") or "").lower() not in ["cancelled", "canceled"]:
+                    today_revenue += float(o.get("total", 0) or 0)
+
+    order_ids = [str(o.get("order_id")) for o in all_orders]
+
+    return jsonify({
+        "status": "success",
+        "total": total_orders,
+        "pending": pending_orders,
+        "delivered": delivered_orders,
+        "cancelled": cancelled_orders,
+        "total_revenue": round(total_revenue, 2),
+        "today_orders": today_orders_count,
+        "today_revenue": round(today_revenue, 2),
+        "order_ids": order_ids
+    })
+
+@app.route("/admin/api/register-push-token", methods=["POST"])
+def admin_register_push_token():
+    if not session.get("admin_logged_in"):
+        return jsonify({"success": False, "message": "Unauthorized"}), 401
+
+    data = request.get_json() or {}
+    token = data.get("token")
+    subscription = data.get("subscription")
+    token_type = data.get("type", "fcm" if token else "webpush")
+    user_agent = request.headers.get("User-Agent", "")
+
+    if not token and not subscription:
+        return jsonify({"success": False, "message": "Token or subscription required"}), 400
+
+    endpoint = subscription.get("endpoint") if isinstance(subscription, dict) else None
+    filter_query = {"token": token} if token else {"subscription.endpoint": endpoint}
+
+    admin_push_subscriptions.update_one(
+        filter_query,
+        {
+            "$set": {
+                "token": token,
+                "subscription": subscription,
+                "type": token_type,
+                "user_agent": user_agent,
+                "active": True,
+                "updated_at": datetime.datetime.now(datetime.timezone.utc)
+            }
+        },
+        upsert=True
+    )
+    return jsonify({"success": True, "message": "Admin device token registered for closed-browser alerts"})
+
+@app.route("/admin/api/test-push-notification", methods=["POST"])
+def admin_test_push_notification():
+    if not session.get("admin_logged_in"):
+        return jsonify({"success": False, "message": "Unauthorized"}), 401
+
+    sample_order = {
+        "order_id": f"TEST-{str(uuid.uuid4())[:8]}",
+        "user_name": "Test Resident (Flat A-402)",
+        "total": 499,
+        "items": [
+            {"name": "Amul Taaza Milk 500ml", "qty": 2, "price": 27},
+            {"name": "Aashirvaad Shudh Chakki Atta 5kg", "qty": 1, "price": 245}
+        ],
+        "status": "pending"
+    }
+    send_admin_push_notifications_async(sample_order)
+    return jsonify({"success": True, "message": "Test cloud push alert dispatched to all registered admin devices!"})
 
 @app.route("/admin/order/<order_id>/assign-vendor", methods=["POST"])
 def admin_assign_vendor(order_id):
     if not session.get("admin_logged_in"):
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.form.get("is_ajax") == "1":
+            return jsonify({"success": False, "message": "Unauthorized"}), 401
         return redirect(url_for("admin_login"))
 
     vendor_id = request.form.get("vendor_id") or None
-    update = {"$set": {"vendor_id": ObjectId(vendor_id) if vendor_id else None}}
-    orders.update_one({"order_id": order_id}, update)
-    return redirect(url_for("admin_orders"))
+    vendor_user = None
+    if vendor_id:
+        try:
+            vendor_user = users.find_one({"_id": ObjectId(vendor_id), "role": "vendor"})
+        except Exception:
+            pass
 
+    update = {"$set": {
+        "vendor_id": ObjectId(vendor_id) if (vendor_id and vendor_user) else None,
+        "vendor_status": "assigned" if (vendor_id and vendor_user) else "pending"
+    }}
+    orders.update_one({"order_id": order_id}, update)
+
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.form.get("is_ajax") == "1":
+        return jsonify({
+            "success": True,
+            "order_id": order_id,
+            "vendor_id": str(vendor_id) if vendor_id else None,
+            "vendor_name": vendor_user.get("shop_name") or vendor_user.get("name") if vendor_user else None,
+            "message": "Vendor updated successfully"
+        })
+    return redirect(url_for("admin_orders"))
 
 @app.route("/admin/order/<order_id>/assign-delivery", methods=["POST"])
 def admin_assign_delivery(order_id):
     if not session.get("admin_logged_in"):
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.form.get("is_ajax") == "1":
+            return jsonify({"success": False, "message": "Unauthorized"}), 401
         return redirect(url_for("admin_login"))
 
     delivery_id = request.form.get("delivery_id") or None
-    update = {"$set": {"delivery_id": ObjectId(delivery_id) if delivery_id else None}}
+    delivery_user = None
+    if delivery_id:
+        try:
+            delivery_user = users.find_one({"_id": ObjectId(delivery_id), "role": "delivery"})
+        except Exception:
+            pass
+
+    update = {"$set": {
+        "delivery_id": ObjectId(delivery_id) if (delivery_id and delivery_user) else None,
+        "delivery_status": "assigned" if (delivery_id and delivery_user) else None
+    }}
     orders.update_one({"order_id": order_id}, update)
+
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.form.get("is_ajax") == "1":
+        return jsonify({
+            "success": True,
+            "order_id": order_id,
+            "delivery_id": str(delivery_id) if delivery_id else None,
+            "delivery_name": delivery_user.get("name") if delivery_user else None,
+            "delivery_phone": delivery_user.get("phone") if delivery_user else None,
+            "message": f"Assigned to {delivery_user.get('name')}" if delivery_user else "Rider unassigned"
+        })
     return redirect(url_for("admin_orders"))
 
 @app.route("/admin/order/<order_id>/status", methods=["POST"])
 def admin_update_status(order_id):
     if not session.get("admin_logged_in"):
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.form.get("is_ajax") == "1":
+            return jsonify({"success": False, "message": "Unauthorized"}), 401
         return redirect(url_for("admin_login"))
 
-    # Allowed statuses (enums) jo templates/stepper use karenge
     allowed_statuses = {
         "RECEIVED",
         "PACKED",
@@ -2374,24 +3146,50 @@ def admin_update_status(order_id):
 
     if new_status in allowed_statuses:
         update = {"status": new_status}
-        # agar DELIVERED mark kar rahe ho to delivery time bhi save karo
         if new_status == "DELIVERED":
             update["delivered_at"] = datetime.datetime.now(datetime.timezone.utc)
+            update["delivery_status"] = "delivered"
+        elif new_status == "OUT_FOR_DELIVERY":
+            update["delivery_status"] = "out_for_delivery"
+        elif new_status == "CANCELLED":
+            cancel_reason = request.form.get("cancel_reason", "Cancelled by Admin").strip()
+            update["cancel_reason"] = cancel_reason
+            update["delivery_status"] = "cancelled"
 
         orders.update_one(
             {"order_id": order_id},
             {"$set": update},
         )
 
-    return redirect(url_for("admin_orders"))
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.form.get("is_ajax") == "1":
+            return jsonify({
+                "success": True,
+                "order_id": order_id,
+                "new_status": new_status,
+                "message": f"Order #{order_id[-8:]} status updated to {new_status}"
+            })
 
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.form.get("is_ajax") == "1":
+        return jsonify({"success": False, "message": "Invalid status parameter"}), 400
+
+    return redirect(url_for("admin_orders"))
 
 @app.route("/admin/order/<order_id>/delete", methods=["POST"])
 def admin_delete_order(order_id):
     if not session.get("admin_logged_in"):
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.form.get("is_ajax") == "1":
+            return jsonify({"success": False, "message": "Unauthorized"}), 401
         return redirect(url_for("admin_login"))
 
     orders.delete_one({"order_id": order_id})
+
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.form.get("is_ajax") == "1":
+        return jsonify({
+            "success": True,
+            "order_id": order_id,
+            "message": f"Order #{order_id[-8:]} removed permanently"
+        })
+
     return redirect(url_for("admin_orders"))
 
 from bson import ObjectId
@@ -2399,15 +3197,21 @@ from bson import ObjectId
 @app.route("/admin/order/<order_id>/assign-vendor-items", methods=["POST"])
 def admin_assign_vendor_items(order_id):
     if not session.get("admin_logged_in"):
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.form.get("is_ajax") == "1":
+            return jsonify({"success": False, "message": "Unauthorized"}), 401
         return redirect(url_for("admin_login"))
 
     # Order fetch karo
     order = orders.find_one({"order_id": order_id})
     if not order:
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.form.get("is_ajax") == "1":
+            return jsonify({"success": False, "message": "Order not found"}), 404
         return redirect(url_for("admin_orders"))
 
     items = order.get("items", [])
     if not isinstance(items, list):
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.form.get("is_ajax") == "1":
+            return jsonify({"success": False, "message": "Invalid order items"}), 400
         return redirect(url_for("admin_orders"))
 
     # Har item ke liye form se vendor lo
@@ -2420,10 +3224,8 @@ def admin_assign_vendor_items(order_id):
             try:
                 item["vendor_id"] = ObjectId(raw_vid)
             except Exception:
-                # agar ObjectId parse na ho to ignore karo
                 item.pop("vendor_id", None)
         else:
-            # empty select -> vendor remove
             item.pop("vendor_id", None)
 
         updated_items.append(item)
@@ -2434,12 +3236,22 @@ def admin_assign_vendor_items(order_id):
         {"$set": {"items": updated_items}}
     )
 
-    # Optional: overall vendor_status set karo (agar kam se kam 1 item assign hai)
     has_any_vendor = any(it.get("vendor_id") for it in updated_items)
+    all_assigned = all(it.get("vendor_id") for it in updated_items) if updated_items else False
+    vendor_status = "assigned" if all_assigned else ("partial" if has_any_vendor else "pending")
+
     orders.update_one(
         {"order_id": order_id},
-        {"$set": {"vendor_status": "assigned" if has_any_vendor else "pending"}}
+        {"$set": {"vendor_status": vendor_status}}
     )
+
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.form.get("is_ajax") == "1":
+        return jsonify({
+            "success": True,
+            "order_id": order_id,
+            "vendor_status": vendor_status,
+            "message": "Store stock distribution matrix saved successfully."
+        })
 
     return redirect(url_for("admin_orders"))
 
@@ -2557,15 +3369,25 @@ def admin_inventory():
 
     # saare products load karo, naam ke hisaab se sort
     items = list(products.find().sort("name", 1))
-    return render_template("portal_inventory.html", products=items)
+    try:
+        categories_list = get_cached_categories()
+    except Exception:
+        categories_list = []
+    return render_template("portal_inventory.html", products=items, categories=categories_list)
 
 @app.route("/admin/inventory/toggle/<product_id>", methods=["POST"])
 def portal_inventory_toggle(product_id):
+    is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.form.get("is_ajax") == "1"
+
     if not session.get("admin_logged_in"):
+        if is_ajax:
+            return jsonify({"success": False, "message": "Authentication required"}), 401
         return redirect(url_for("admin_login"))
 
     next_status = request.form.get("next_status")
     if next_status not in ("oos", "instock"):
+        if is_ajax:
+            return jsonify({"success": False, "message": "Invalid stock parameter"}), 400
         return redirect(url_for("admin_inventory"))
 
     out_of_stock = (next_status == "oos")
@@ -2574,10 +3396,45 @@ def portal_inventory_toggle(product_id):
             {"_id": ObjectId(product_id)},
             {"$set": {"out_of_stock": out_of_stock}}
         )
-    except Exception:
-        pass
+        if is_ajax:
+            return jsonify({
+                "success": True,
+                "product_id": str(product_id),
+                "out_of_stock": out_of_stock,
+                "status": "oos" if out_of_stock else "instock",
+                "message": "Stock fulfillment status updated."
+            })
+    except Exception as e:
+        if is_ajax:
+            return jsonify({"success": False, "message": str(e)}), 500
 
     return redirect(url_for("admin_inventory"))
+
+@app.route("/admin/api/product/<product_id>", methods=["GET"])
+def api_get_product_detail(product_id):
+    if not session.get("admin_logged_in"):
+        return jsonify({"success": False, "message": "Authentication required"}), 401
+    try:
+        p = products.find_one({"_id": ObjectId(product_id)})
+        if not p:
+            return jsonify({"success": False, "message": "Product not found"}), 404
+        return jsonify({
+            "success": True,
+            "product": {
+                "_id": str(p["_id"]),
+                "name": p.get("name", ""),
+                "price": float(p.get("price", 0)),
+                "discount_price": float(p.get("discount_price")) if p.get("discount_price") else None,
+                "unit": p.get("unit", ""),
+                "category": p.get("category", ""),
+                "brand": p.get("brand", ""),
+                "description": p.get("description", ""),
+                "out_of_stock": bool(p.get("out_of_stock", False)),
+                "image": p.get("image", "")
+            }
+        })
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
 
 @app.route("/admin/service-toggle", methods=["POST"])
 def admin_service_toggle():
@@ -2980,7 +3837,52 @@ def download_invoice(order_id):
         # 2. Check karein ki order DELIVERED hai ya nahi (Safety Check)
         raw_status = (order.get('status') or 'pending').lower()
         if raw_status != 'delivered':
-            return "Invoice is only available for delivered orders.", 403
+            if request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.args.get("json") == "1":
+                return jsonify({
+                    "success": False,
+                    "error": "invoice_not_ready",
+                    "status": raw_status,
+                    "message": f"Invoice is only available for DELIVERED orders. Current status is {raw_status.upper()}."
+                }), 400
+
+            return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tax Invoice Not Available - Jippy Store</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet">
+</head>
+<body class="bg-[#f1f3f6] font-['Roboto',sans-serif] min-h-screen flex items-center justify-center p-4">
+  <div class="max-w-md w-full bg-white rounded-sm shadow-md border border-[#e0e0e0] p-6 text-center space-y-4">
+    <div class="w-14 h-14 mx-auto rounded-full bg-amber-50 text-amber-500 border border-amber-200 flex items-center justify-center text-2xl">
+      <i class="fas fa-file-invoice"></i>
+    </div>
+    <div>
+      <h2 class="text-lg font-bold text-[#212121]">Tax Invoice Not Generated Yet</h2>
+      <p class="text-xs text-[#878787] mt-1">
+        Order <strong>#{order_id[-12:]}</strong> is currently: <span class="uppercase font-bold text-amber-600">{raw_status.replace('_', ' ')}</span>.
+      </p>
+    </div>
+    <div class="p-3 bg-amber-50/70 border border-amber-200/80 rounded text-left text-xs text-amber-900 space-y-1">
+      <div class="font-bold flex items-center gap-1.5 text-amber-800">
+        <i class="fas fa-circle-exclamation text-xs"></i>
+        <span>Tax Invoice Policy:</span>
+      </div>
+      <p class="text-[11px] text-amber-800/90 leading-relaxed">
+        Official tax invoices are finalized and generated only after the order is delivered to the customer.
+      </p>
+    </div>
+    <div class="pt-2">
+      <button onclick="window.close(); if(history.length > 1) history.back();" class="px-5 py-2 bg-[#2874f0] hover:bg-blue-600 text-white text-xs font-bold rounded-sm transition-all shadow-xs cursor-pointer">
+        ← Close Window
+      </button>
+    </div>
+  </div>
+</body>
+</html>""", 403
 
         # 3. Invoice template render karein
         order_items = order.get('items', []) if isinstance(order, dict) else getattr(order, 'items', [])
@@ -3006,8 +3908,10 @@ def admin_all_users():
             if user["created_at"].tzinfo is None:
                 user["created_at"] = pytz.utc.localize(user["created_at"])
             user["display_date"] = user["created_at"].astimezone(IST).strftime('%d %b %Y')
+            user["sort_date"] = user["created_at"].astimezone(IST).strftime('%Y%m%d%H%M%S')
         else:
             user["display_date"] = "N/A"
+            user["sort_date"] = "00000000000000"
 
     return render_template("admin_all_users.html", all_users=all_users)
 
@@ -3043,28 +3947,63 @@ def admin_societies():
     if not session.get("admin_logged_in"):
         return redirect(url_for("admin_login"))
 
+    error = None
+    success = None
+
     if request.method == "POST":
         name = request.form.get("name", "").strip()
         city = request.form.get("city", "").strip()
         pincode = request.form.get("pincode", "").strip()
-        lat = request.form.get("lat", "").strip()
-        lng = request.form.get("lng", "").strip()
+        lat_raw = request.form.get("lat", "").strip()
+        lng_raw = request.form.get("lng", "").strip()
         image = request.form.get("image", "").strip()
-        
-        if all([name, city, pincode, lat, lng]):
+
+        # Comprehensive input validations
+        lat = None
+        lng = None
+        if not name or len(name) < 3:
+            error = "Society name is required (minimum 3 characters)."
+        elif not city or len(city) < 2:
+            error = "City name is required (minimum 2 characters)."
+        elif not pincode or not re.match(r"^[1-9][0-9]{5}$", pincode):
+            error = "Please enter a valid 6-digit Indian PIN code (e.g. 201301)."
+        else:
+            try:
+                lat = float(lat_raw)
+                lng = float(lng_raw)
+                if not (-90.0 <= lat <= 90.0 and -180.0 <= lng <= 180.0):
+                    error = "Coordinates out of bounds (-90 to 90 latitude, -180 to 180 longitude)."
+            except (ValueError, TypeError):
+                error = "Please enter valid numeric latitude and longitude coordinates."
+
+        # Duplicate check in the same city
+        if not error:
+            existing = societies.find_one({
+                "name": {"$regex": f"^{re.escape(name)}$", "$options": "i"},
+                "city": {"$regex": f"^{re.escape(city)}$", "$options": "i"}
+            })
+            if existing:
+                error = f"A society named '{name}' already exists in '{city}'."
+
+        if not error:
             societies.insert_one({
                 "name": name,
                 "city": city,
                 "pincode": pincode,
-                "image": image,
+                "image": image or None,
                 "location": {
-                    "lat": float(lat),
-                    "lng": float(lng)
+                    "lat": lat,
+                    "lng": lng
                 },
                 "created_at": datetime.datetime.now()
             })
-            return redirect(url_for("admin_societies"))
-            
+            success = f"Society '{name}' in {city} successfully added!"
+            socs = list(societies.find().sort("created_at", -1))
+            return render_template("admin_societies.html", societies=socs, success=success)
+        else:
+            socs = list(societies.find().sort("created_at", -1))
+            return render_template("admin_societies.html", societies=socs, error=error, form_data=request.form)
+
     socs = list(societies.find().sort("created_at", -1))
     return render_template("admin_societies.html", societies=socs)
 
@@ -3073,33 +4012,79 @@ def admin_edit_society(society_id):
     if not session.get("admin_logged_in"):
         return redirect(url_for("admin_login"))
 
-    soc = societies.find_one({"_id": ObjectId(society_id)})
+    try:
+        soc = societies.find_one({"_id": ObjectId(society_id)})
+    except Exception:
+        soc = None
+
     if not soc:
         return redirect(url_for("admin_societies"))
+
+    error = None
+    success = None
 
     if request.method == "POST":
         name = request.form.get("name", "").strip()
         city = request.form.get("city", "").strip()
         pincode = request.form.get("pincode", "").strip()
-        lat = request.form.get("lat", "").strip()
-        lng = request.form.get("lng", "").strip()
+        lat_raw = request.form.get("lat", "").strip()
+        lng_raw = request.form.get("lng", "").strip()
         image = request.form.get("image", "").strip()
 
-        if all([name, city, pincode, lat, lng]):
+        # Comprehensive input validations
+        lat = None
+        lng = None
+        if not name or len(name) < 3:
+            error = "Society name is required (minimum 3 characters)."
+        elif not city or len(city) < 2:
+            error = "City name is required (minimum 2 characters)."
+        elif not pincode or not re.match(r"^[1-9][0-9]{5}$", pincode):
+            error = "Please enter a valid 6-digit Indian PIN code (e.g. 201301)."
+        else:
+            try:
+                lat = float(lat_raw)
+                lng = float(lng_raw)
+                if not (-90.0 <= lat <= 90.0 and -180.0 <= lng <= 180.0):
+                    error = "Coordinates out of bounds (-90 to 90 latitude, -180 to 180 longitude)."
+            except (ValueError, TypeError):
+                error = "Please enter valid numeric latitude and longitude coordinates."
+
+        # Duplicate check excluding current society
+        if not error:
+            existing = societies.find_one({
+                "_id": {"$ne": ObjectId(society_id)},
+                "name": {"$regex": f"^{re.escape(name)}$", "$options": "i"},
+                "city": {"$regex": f"^{re.escape(city)}$", "$options": "i"}
+            })
+            if existing:
+                error = f"Another society named '{name}' already exists in '{city}'."
+
+        if not error:
             societies.update_one(
                 {"_id": ObjectId(society_id)},
                 {"$set": {
                     "name": name,
                     "city": city,
                     "pincode": pincode,
-                    "image": image,
+                    "image": image or None,
                     "location": {
-                        "lat": float(lat),
-                        "lng": float(lng)
-                    }
+                        "lat": lat,
+                        "lng": lng
+                    },
+                    "updated_at": datetime.datetime.now()
                 }}
             )
-            return redirect(url_for("admin_societies"))
+            soc = societies.find_one({"_id": ObjectId(society_id)})
+            success = f"Society '{name}' updated successfully!"
+            return render_template("edit_society.html", soc=soc, success=success)
+        else:
+            temp_soc = dict(soc)
+            temp_soc["name"] = name
+            temp_soc["city"] = city
+            temp_soc["pincode"] = pincode
+            temp_soc["image"] = image
+            temp_soc["location"] = {"lat": lat_raw, "lng": lng_raw}
+            return render_template("edit_society.html", soc=temp_soc, error=error)
 
     return render_template("edit_society.html", soc=soc)
 
@@ -3108,7 +4093,10 @@ def admin_delete_society(society_id):
     if not session.get("admin_logged_in"):
         return redirect(url_for("admin_login"))
     
-    societies.delete_one({"_id": ObjectId(society_id)})
+    try:
+        societies.delete_one({"_id": ObjectId(society_id)})
+    except Exception:
+        pass
     return redirect(url_for("admin_societies"))
 
 import math
@@ -3147,6 +4135,8 @@ def nearby_societies():
                 "id": str(soc["_id"]),
                 "name": soc.get("name"),
                 "city": soc.get("city"),
+                "pincode": soc.get("pincode"),
+                "image": soc.get("image"),
                 "distance": round(dist, 1)
             })
             
@@ -3176,7 +4166,8 @@ def search_societies():
             "id": str(soc["_id"]),
             "name": soc.get("name"),
             "city": soc.get("city"),
-            "pincode": soc.get("pincode")
+            "pincode": soc.get("pincode"),
+            "image": soc.get("image")
         })
         
     return jsonify({"societies": results})
