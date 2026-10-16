@@ -1,315 +1,1223 @@
 {% extends "base_admin.html" %}
+
 {% block content %}
-<div class="max-w-6xl mx-auto px-4 py-8 space-y-10 animate-fade-in">
-  <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-6">
-    <div>
-      <div class="flex items-center gap-2 mb-1">
-        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-        <p class="text-[10px] font-black tracking-[0.2em] text-emerald-600 uppercase">
-          Human Resources
+<style>
+  .input-focus-blue:focus {
+    border-color: #2874f0 !important;
+    box-shadow: 0 0 0 3px rgba(40, 116, 240, 0.12) !important;
+  }
+  .role-card-active {
+    border-color: #2874f0 !important;
+    background-color: #f0f5ff !important;
+    box-shadow: 0 4px 12px rgba(40, 116, 240, 0.12) !important;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .animate-fade-in {
+    animation: fadeIn 0.25s ease-out forwards;
+  }
+  /* Custom thin scrollbar */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 5px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #c7cbd1;
+    border-radius: 4px;
+  }
+</style>
+
+<div class="max-w-7xl mx-auto px-2.5 sm:px-6 py-3 sm:py-6 space-y-5 animate-fade-in pb-16">
+
+  <!-- ======================================================== -->
+  <!-- TOP BREADCRUMB & HEADER -->
+  <!-- ======================================================== -->
+  <div class="bg-white border border-[#e0e0e0] rounded-sm shadow-xs overflow-hidden">
+    <!-- Royal Blue Brand Banner -->
+    <div class="bg-[#2874f0] px-4 sm:px-6 py-2.5 flex items-center justify-between text-white text-xs">
+      <div class="flex items-center gap-2">
+        <span class="font-extrabold tracking-tight flex items-center gap-1.5 text-xs sm:text-sm">
+          <span>Jippy</span>
+          <span class="text-[#ffe500] italic font-black">Store</span>
+        </span>
+        <span class="text-white/40">|</span>
+        <span class="text-blue-100 text-[11px] font-medium hidden sm:inline">Flipkart Seller Hub • Team Onboarding</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <a 
+          href="{{ url_for('admin_all_users') }}" 
+          class="inline-flex items-center gap-1.5 px-3 py-1 rounded bg-white text-[#2874f0] hover:bg-blue-50 text-[11px] font-bold transition-all shadow-2xs active:scale-95"
+        >
+          <i class="fas fa-users text-[10px]"></i>
+          <span>User Directory</span>
+        </a>
+        <a 
+          href="{{ url_for('admin_dashboard') }}" 
+          class="inline-flex items-center gap-1.5 px-3 py-1 rounded bg-white/15 hover:bg-white/25 text-white text-[11px] font-bold transition-all border border-white/20 active:scale-95"
+        >
+          <i class="fas fa-arrow-left text-[10px]"></i>
+          <span>Dashboard</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Title & Quick Stats -->
+    <div class="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white">
+      <div>
+        <nav class="flex items-center gap-1.5 text-[11px] text-[#878787] font-medium mb-1">
+          <a href="{{ url_for('admin_dashboard') }}" class="hover:text-[#2874f0] transition-colors">Dashboard</a>
+          <span>›</span>
+          <a href="{{ url_for('admin_all_users') }}" class="hover:text-[#2874f0] transition-colors">Personnel</a>
+          <span>›</span>
+          <span class="text-[#2874f0] font-bold">Add Team Partner</span>
+        </nav>
+        <h1 class="text-lg sm:text-xl font-black text-[#212121] tracking-tight flex items-center gap-2">
+          <span>Personnel Onboarding Portal</span>
+          <span class="text-[10px] font-extrabold uppercase px-2 py-0.5 bg-[#e8f0fe] text-[#2874f0] rounded border border-[#d2e3fc]">
+            Authorized Access
+          </span>
+        </h1>
+        <p class="text-xs text-[#878787] mt-0.5">
+          Register new store vendors and logistics delivery partners with verified contact details.
         </p>
       </div>
-      <h2 class="text-3xl font-black text-slate-900 tracking-tight">
-        Personnel Management
-      </h2>
-      <p class="text-sm font-bold text-slate-400 mt-1 uppercase tracking-wide">
-        Onboard vendors and logistics partners
-      </p>
+
+      <!-- Quick Metrics Counter -->
+      <div class="flex items-center gap-2 sm:gap-3">
+        <div class="px-3 py-1.5 bg-[#f8faff] border border-[#e0e0e0] rounded-sm text-center">
+          <div class="text-[10px] uppercase font-bold text-[#878787]">Active Vendors</div>
+          <div class="text-sm font-black text-[#2874f0]">{{ vendors|length }}</div>
+        </div>
+        <div class="px-3 py-1.5 bg-[#f8faff] border border-[#e0e0e0] rounded-sm text-center">
+          <div class="text-[10px] uppercase font-bold text-[#878787]">Active Riders</div>
+          <div class="text-sm font-black text-[#388e3c]">{{ deliveries|length }}</div>
+        </div>
+      </div>
     </div>
   </div>
 
-  <div class="bg-white border border-slate-200 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.03)] overflow-hidden">
-    <div class="px-8 py-6 bg-slate-50/50 border-b border-slate-100 flex items-center gap-4">
-        <div class="w-10 h-10 rounded-xl bg-emerald-500 flex items-center justify-center text-white shadow-lg shadow-emerald-200">
-            <i class="fas fa-user-plus text-sm"></i>
+  <!-- ======================================================== -->
+  <!-- FLASH MESSAGES / SYSTEM ALERTS -->
+  <!-- ======================================================== -->
+  {% if error %}
+  <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-sm text-xs font-semibold flex items-center justify-between shadow-2xs animate-fade-in" id="errorAlert">
+    <div class="flex items-center gap-2.5">
+      <div class="w-6 h-6 rounded-full bg-red-100 flex items-center justify-center text-red-600 flex-shrink-0">
+        <i class="fas fa-exclamation-circle text-xs"></i>
+      </div>
+      <div>
+        <span class="font-bold">Validation Error:</span> {{ error }}
+      </div>
+    </div>
+    <button type="button" onclick="document.getElementById('errorAlert').remove()" class="text-red-400 hover:text-red-700 p-1">
+      <i class="fas fa-times text-xs"></i>
+    </button>
+  </div>
+  {% endif %}
+
+  {% if success %}
+  <div class="bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-sm text-xs font-semibold flex items-center justify-between shadow-2xs animate-fade-in" id="successAlert">
+    <div class="flex items-center gap-2.5">
+      <div class="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 flex-shrink-0">
+        <i class="fas fa-check-circle text-xs"></i>
+      </div>
+      <div>
+        <span class="font-bold">Success:</span> {{ success }}
+      </div>
+    </div>
+    <button type="button" onclick="document.getElementById('successAlert').remove()" class="text-emerald-500 hover:text-emerald-800 p-1">
+      <i class="fas fa-times text-xs"></i>
+    </button>
+  </div>
+  {% endif %}
+
+  <!-- ======================================================== -->
+  <!-- ONBOARDING FORM CONTAINER -->
+  <!-- ======================================================== -->
+  <div class="bg-white border border-[#e0e0e0] rounded-sm shadow-xs overflow-hidden">
+    <div class="bg-[#fafafa] border-b border-[#e0e0e0] px-4 sm:px-6 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <div class="w-8 h-8 rounded-sm bg-[#2874f0] text-white flex items-center justify-center text-xs font-bold shadow-2xs">
+          <i class="fas fa-user-plus"></i>
         </div>
-        <h3 class="text-lg font-black text-slate-800 uppercase tracking-tighter">Onboarding Form</h3>
+        <div>
+          <h2 class="text-sm font-black text-[#212121] uppercase tracking-wide">New Partner Registration Form</h2>
+          <p class="text-[11px] text-[#878787]">All fields with asterisk (*) are required</p>
+        </div>
+      </div>
+      <span class="text-[10px] font-bold text-[#2874f0] bg-[#f0f5ff] px-2 py-0.5 rounded border border-[#d2e3fc]">
+        Flipkart Partner Onboarding
+      </span>
     </div>
 
-    <div class="p-8 md:p-10">
-      {% if error %}
-        <div class="mb-6 rounded-2xl bg-rose-50 border border-rose-100 px-4 py-3 text-xs font-black uppercase text-rose-600 flex items-center gap-3">
-          <i class="fas fa-circle-exclamation text-sm"></i>
-          <span>{{ error }}</span>
-        </div>
-      {% endif %}
-      {% if success %}
-        <div class="mb-6 rounded-2xl bg-emerald-50 border border-emerald-100 px-4 py-3 text-xs font-black uppercase text-emerald-600 flex items-center gap-3">
-          <i class="fas fa-circle-check text-sm"></i>
-          <span>{{ success }}</span>
-        </div>
-      {% endif %}
+    <form method="post" id="addUserForm" class="p-4 sm:p-6 space-y-6" novalidate>
 
-      <form method="post" class="space-y-8" id="add-user-form">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div class="space-y-5">
-            <div class="space-y-1.5">
-              <label class="block text-[11px] font-black uppercase tracking-wider text-slate-500 ml-1">Account Role</label>
-              <select name="role" id="role-select" class="w-full border-2 border-slate-100 bg-slate-50 text-slate-900 rounded-2xl px-4 py-3.5 text-sm font-bold focus:outline-none focus:bg-white focus:border-emerald-500 transition-all appearance-none cursor-pointer" required>
-                <option value="">-- Choose Role --</option>
-                <option value="vendor">Store Vendor</option>
-                <option value="delivery">Logistics Partner</option>
-              </select>
+      <!-- ================= STEP 1: ROLE SELECTION CARDS ================= -->
+      <div>
+        <label class="block text-xs font-black uppercase tracking-wider text-[#212121] mb-2 flex items-center gap-1.5">
+          <span>1. Choose Partner Role *</span>
+        </label>
+        
+        <!-- Hidden input for form submission -->
+        {% set current_role = form_data.role if form_data and form_data.role else 'vendor' %}
+        <input type="hidden" name="role" id="selectedRoleInput" value="{{ current_role }}">
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+          <!-- Vendor Choice Card -->
+          <div 
+            id="roleCardVendor"
+            onclick="selectRole('vendor')"
+            class="p-4 rounded-sm border-2 transition-all cursor-pointer flex items-start gap-3.5 {% if current_role == 'vendor' %}role-card-active border-[#2874f0] bg-[#f0f5ff]{% else %}border-[#e0e0e0] bg-white hover:border-[#b0c4de]{% endif %}"
+          >
+            <div class="w-10 h-10 rounded-sm bg-[#2874f0]/10 text-[#2874f0] flex items-center justify-center text-base flex-shrink-0">
+              <i class="fas fa-store"></i>
             </div>
-
-            <div class="space-y-1.5">
-              <label class="block text-[11px] font-black uppercase tracking-wider text-slate-500 ml-1">Full Identity Name</label>
-              <input type="text" name="name" placeholder="Legal Name" class="w-full border-2 border-slate-100 bg-slate-50 text-slate-900 rounded-2xl px-4 py-3.5 text-sm font-bold focus:outline-none focus:bg-white focus:border-emerald-500 transition-all" required>
-            </div>
-
-            <div class="space-y-1.5">
-              <label class="block text-[11px] font-black uppercase tracking-wider text-slate-500 ml-1">Email Address</label>
-              <input type="email" name="email" placeholder="official@domain.com" class="w-full border-2 border-slate-100 bg-slate-50 text-slate-900 rounded-2xl px-4 py-3.5 text-sm font-bold focus:outline-none focus:bg-white focus:border-emerald-500 transition-all" required>
-            </div>
-
-            {# NEW: Delivery phone #}
-            <div class="space-y-1.5">
+            <div class="flex-1">
               <div class="flex items-center justify-between">
-                <label class="block text-[11px] font-black uppercase tracking-wider text-slate-500 ml-1">
-                  Rider Phone (Delivery only)
-                </label>
-                <span class="text-[10px] font-bold text-slate-400 mr-1">
-                  +91 • 10 digits
+                <span class="text-xs font-black text-[#212121] uppercase tracking-wide">Store Vendor Partner</span>
+                <span id="vendorCheckmark" class="text-[#2874f0] text-xs {% if current_role != 'vendor' %}hidden{% endif %}">
+                  <i class="fas fa-check-circle"></i>
                 </span>
               </div>
-              <div class="relative">
-                <span class="absolute left-4 top-1/2 -translate-y-1/2 text-[11px] font-black text-slate-400">+91</span>
-                <input
-                  type="tel"
-                  name="phone"
-                  id="rider-phone"
-                  maxlength="10"
-                  inputmode="numeric"
-                  placeholder="9876543210"
-                  class="w-full pl-12 pr-4 py-3.5 border-2 border-slate-100 bg-slate-50 text-slate-900 rounded-2xl text-sm font-bold focus:outline-none focus:bg-white focus:border-emerald-500 transition-all"
-                >
+              <p class="text-[11px] text-[#878787] mt-1 leading-snug">
+                Local supermarket, dairy, grocery, or produce merchant who manages inventory and fulfills society orders.
+              </p>
+              <div class="mt-2 text-[10px] font-bold text-[#2874f0] flex items-center gap-1">
+                <span>Requires: Shop Name, Category & Covered Societies</span>
               </div>
-              <p class="text-[10px] text-slate-400 font-medium ml-1">
-                Required when role is set to Logistics Partner.
+            </div>
+          </div>
+
+          <!-- Delivery Choice Card -->
+          <div 
+            id="roleCardDelivery"
+            onclick="selectRole('delivery')"
+            class="p-4 rounded-sm border-2 transition-all cursor-pointer flex items-start gap-3.5 {% if current_role == 'delivery' %}role-card-active border-[#2874f0] bg-[#f0f5ff]{% else %}border-[#e0e0e0] bg-white hover:border-[#b0c4de]{% endif %}"
+          >
+            <div class="w-10 h-10 rounded-sm bg-[#388e3c]/10 text-[#388e3c] flex items-center justify-center text-base flex-shrink-0">
+              <i class="fas fa-motorcycle"></i>
+            </div>
+            <div class="flex-1">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-black text-[#212121] uppercase tracking-wide">Logistics Delivery Partner</span>
+                <span id="deliveryCheckmark" class="text-[#388e3c] text-xs {% if current_role != 'delivery' %}hidden{% endif %}">
+                  <i class="fas fa-check-circle"></i>
+                </span>
+              </div>
+              <p class="text-[11px] text-[#878787] mt-1 leading-snug">
+                Field delivery rider assigned to pick up dispatched packages and deliver directly to resident doorsteps.
+              </p>
+              <div class="mt-2 text-[10px] font-bold text-[#388e3c] flex items-center gap-1">
+                <span>Requires: Mobile Phone Number & App Login</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= STEP 2: CORE CREDENTIALS & CONTACT ================= -->
+      <div class="pt-4 border-t border-[#e0e0e0]">
+        <label class="block text-xs font-black uppercase tracking-wider text-[#212121] mb-3">
+          <span>2. Core Credentials & Contact Verification</span>
+        </label>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Full Legal Name -->
+          <div>
+            <label class="block text-xs font-bold text-[#212121] mb-1">
+              Full Legal Name *
+            </label>
+            <div class="relative">
+              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[#878787] text-xs">
+                <i class="fas fa-user"></i>
+              </span>
+              <input 
+                type="text" 
+                name="name" 
+                id="inputName"
+                value="{{ form_data.name if form_data else '' }}"
+                placeholder="e.g. Ramesh Kumar Verma" 
+                class="w-full pl-9 pr-3 py-2 text-xs font-semibold text-[#212121] bg-white border border-[#e0e0e0] rounded-sm input-focus-blue transition-all"
+                required
+              >
+            </div>
+            <p class="text-[10px] text-[#878787] mt-1">Official name as on Government ID (Aadhaar / PAN).</p>
+          </div>
+
+          <!-- Official Email Address -->
+          <div>
+            <label class="block text-xs font-bold text-[#212121] mb-1">
+              Official Email Address *
+            </label>
+            <div class="relative">
+              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[#878787] text-xs">
+                <i class="fas fa-envelope"></i>
+              </span>
+              <input 
+                type="email" 
+                name="email" 
+                id="inputEmail"
+                value="{{ form_data.email if form_data else '' }}"
+                placeholder="partner@jippystore.com" 
+                class="w-full pl-9 pr-3 py-2 text-xs font-semibold text-[#212121] bg-white border border-[#e0e0e0] rounded-sm input-focus-blue transition-all"
+                required
+              >
+            </div>
+            <p class="text-[10px] text-[#878787] mt-1">Used as primary login username & email notifications.</p>
+          </div>
+
+          <!-- 10-Digit Mobile Number (Mandatory for BOTH Vendor & Delivery) -->
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <label class="block text-xs font-bold text-[#212121]">
+                Mobile Phone Number *
+              </label>
+              <span class="text-[10px] font-bold text-[#2874f0] bg-[#f0f5ff] px-1.5 py-0.5 rounded border border-[#d2e3fc]">
+                +91 • 10 Digits
+              </span>
+            </div>
+            <div class="flex rounded-sm border border-[#e0e0e0] overflow-hidden focus-within:border-[#2874f0] focus-within:ring-2 focus-within:ring-[#2874f0]/15 transition-all">
+              <span class="bg-[#f8faff] text-[#2874f0] font-black text-xs px-3 py-2 border-r border-[#e0e0e0] flex items-center justify-center select-none">
+                +91
+              </span>
+              <input 
+                type="tel" 
+                name="phone" 
+                id="inputPhone"
+                maxlength="10"
+                inputmode="numeric"
+                value="{{ form_data.phone if form_data else '' }}"
+                placeholder="9876543210" 
+                class="flex-1 px-3 py-2 text-xs font-bold text-[#212121] bg-white outline-none"
+                required
+              >
+              <div id="phoneCheckIcon" class="hidden pr-3 flex items-center text-emerald-600">
+                <i class="fas fa-check-circle text-xs"></i>
+              </div>
+            </div>
+            <p class="text-[10px] text-[#878787] mt-1">
+              Essential for WhatsApp order updates, SMS OTPs, and customer calling.
+            </p>
+          </div>
+
+          <!-- Account Password -->
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <label class="block text-xs font-bold text-[#212121]">
+                Access Password *
+              </label>
+              <button 
+                type="button" 
+                onclick="generateStrongPassword()" 
+                class="text-[10px] font-bold text-[#2874f0] hover:underline flex items-center gap-1"
+                title="Generate Random Password"
+              >
+                <i class="fas fa-wand-magic-sparkles text-[9px]"></i>
+                <span>Generate Password</span>
+              </button>
+            </div>
+            <div class="relative">
+              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[#878787] text-xs">
+                <i class="fas fa-lock"></i>
+              </span>
+              <input 
+                type="password" 
+                name="password" 
+                id="inputPassword"
+                minlength="6"
+                placeholder="Minimum 6 characters" 
+                class="w-full pl-9 pr-10 py-2 text-xs font-semibold text-[#212121] bg-white border border-[#e0e0e0] rounded-sm input-focus-blue transition-all"
+                required
+              >
+              <button 
+                type="button" 
+                onclick="togglePasswordVisibility()" 
+                class="absolute right-3 top-1/2 -translate-y-1/2 text-[#878787] hover:text-[#212121] p-1 text-xs"
+                id="togglePasswordBtn"
+                title="Toggle Visibility"
+              >
+                <i class="fas fa-eye" id="togglePasswordIcon"></i>
+              </button>
+            </div>
+            <p class="text-[10px] text-[#878787] mt-1">Must be at least 6 characters with letters and numbers.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= STEP 3A: VENDOR SPECIFIC DETAILS ================= -->
+      <div id="vendorSpecificSection" class="pt-4 border-t border-[#e0e0e0] space-y-4 {% if current_role != 'vendor' %}hidden{% endif %}">
+        <div class="flex items-center justify-between">
+          <label class="block text-xs font-black uppercase tracking-wider text-[#212121]">
+            <span>3. Store Profile & Fulfillment Settings</span>
+          </label>
+          <span class="text-[10px] font-bold text-[#2874f0] bg-[#f0f5ff] px-2 py-0.5 rounded">
+            Vendor Configurations
+          </span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Shop Name -->
+          <div>
+            <label class="block text-xs font-bold text-[#212121] mb-1">
+              Store / Shop Name *
+            </label>
+            <div class="relative">
+              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[#878787] text-xs">
+                <i class="fas fa-shop"></i>
+              </span>
+              <input 
+                type="text" 
+                name="shop_name" 
+                id="inputShopName"
+                value="{{ form_data.shop_name if form_data else '' }}"
+                placeholder="e.g. Daily Fresh Supermarket" 
+                class="w-full pl-9 pr-3 py-2 text-xs font-semibold text-[#212121] bg-white border border-[#e0e0e0] rounded-sm input-focus-blue transition-all"
+              >
+            </div>
+            <p class="text-[10px] text-[#878787] mt-1">Customer-facing business name displayed on orders and invoices.</p>
+          </div>
+
+          <!-- Store Category Classification -->
+          <div>
+            <label class="block text-xs font-bold text-[#212121] mb-1">
+              Store Classification Category *
+            </label>
+            {% set vt = form_data.vendor_type if form_data else '' %}
+            <div class="relative">
+              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[#878787] text-xs pointer-events-none">
+                <i class="fas fa-tags"></i>
+              </span>
+              <select 
+                name="vendor_type" 
+                id="vendorTypeSelect" 
+                class="w-full pl-9 pr-8 py-2 text-xs font-semibold text-[#212121] bg-white border border-[#e0e0e0] rounded-sm input-focus-blue transition-all appearance-none cursor-pointer"
+              >
+                <option value="">-- Select Store Category --</option>
+                <option value="grocery" {% if vt == 'grocery' %}selected{% endif %}>Grocery & Staples</option>
+                <option value="dairy" {% if vt == 'dairy' %}selected{% endif %}>Dairy, Milk & Eggs</option>
+                <option value="vegetables" {% if vt == 'vegetables' %}selected{% endif %}>Fresh Vegetables & Greens</option>
+                <option value="fruits" {% if vt == 'fruits' %}selected{% endif %}>Fresh Fruits & Dry Fruits</option>
+                <option value="bakery" {% if vt == 'bakery' %}selected{% endif %}>Bakery & Snacks</option>
+                <option value="other" {% if vt == 'other' or (vt and vt not in ['grocery','dairy','vegetables','fruits','bakery']) %}selected{% endif %}>Other (Custom Category)</option>
+              </select>
+              <span class="absolute right-3 top-1/2 -translate-y-1/2 text-[#878787] text-xs pointer-events-none">
+                <i class="fas fa-chevron-down text-[10px]"></i>
+              </span>
+            </div>
+
+            <!-- Custom Category Input (reveals if 'other' selected) -->
+            <input 
+              type="text" 
+              name="vendor_type_other" 
+              id="vendorTypeOther" 
+              value="{{ form_data.vendor_type_other if form_data else '' }}"
+              placeholder="Specify custom store type (e.g. Organic Farmhouse, Pet Food)" 
+              class="w-full mt-2 px-3 py-2 text-xs font-semibold text-[#212121] bg-white border border-[#e0e0e0] rounded-sm input-focus-blue transition-all {% if vt != 'other' and (not vt or vt in ['grocery','dairy','vegetables','fruits','bakery']) %}hidden{% endif %}"
+            >
+          </div>
+        </div>
+
+        <!-- Shop Banner / Logo URL -->
+        <div>
+          <label class="block text-xs font-bold text-[#212121] mb-1">
+            Shop Banner or Logo Image URL (Optional)
+          </label>
+          <div class="relative">
+            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[#878787] text-xs">
+              <i class="fas fa-image"></i>
+            </span>
+            <input 
+              type="url" 
+              name="shop_image" 
+              id="inputShopImage"
+              value="{{ form_data.shop_image if form_data else '' }}"
+              placeholder="https://images.unsplash.com/photo-..." 
+              class="w-full pl-9 pr-3 py-2 text-xs font-semibold text-[#212121] bg-white border border-[#e0e0e0] rounded-sm input-focus-blue transition-all"
+            >
+          </div>
+          <p class="text-[10px] text-[#878787] mt-1">High-quality image URL for storefront display in customer catalog.</p>
+
+          <!-- Real-Time Live Image Preview Container -->
+          <div id="shopImagePreviewBox" class="mt-2.5 p-2.5 bg-[#f8faff] border border-[#d2e3fc] rounded-sm hidden animate-fade-in">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-[10px] font-bold text-[#2874f0] uppercase tracking-wide flex items-center gap-1">
+                <i class="fas fa-eye text-[9px]"></i>
+                <span id="shopImagePreviewStatus">Storefront Live Preview</span>
+              </span>
+              <div class="flex items-center gap-2">
+                <a 
+                  id="shopImagePreviewLink" 
+                  href="#" 
+                  target="_blank" 
+                  class="text-[10px] font-bold text-[#2874f0] hover:underline flex items-center gap-0.5"
+                >
+                  <i class="fas fa-arrow-up-right-from-square text-[9px]"></i>
+                  <span>Full View</span>
+                </a>
+                <button 
+                  type="button" 
+                  onclick="clearImageUrl('inputShopImage', 'shopImagePreviewBox', 'shopImageErrorBox')" 
+                  class="text-[10px] font-bold text-red-500 hover:text-red-700 flex items-center gap-0.5"
+                >
+                  <i class="fas fa-times text-[9px]"></i>
+                  <span>Clear</span>
+                </button>
+              </div>
+            </div>
+            <div class="relative w-full max-w-xs h-32 bg-white rounded border border-[#e0e0e0] overflow-hidden flex items-center justify-center">
+              <img 
+                id="shopImagePreviewImg" 
+                src="" 
+                alt="Store preview" 
+                class="w-full h-full object-cover"
+              >
+            </div>
+          </div>
+          <div id="shopImageErrorBox" class="mt-2 p-2 bg-red-50 border border-red-200 text-red-600 text-[11px] font-medium rounded-sm hidden flex items-center gap-1.5">
+            <i class="fas fa-triangle-exclamation text-xs flex-shrink-0"></i>
+            <span id="shopImageErrorText">Unable to load image from this URL. Please verify the URL points to a public image.</span>
+          </div>
+        </div>
+
+        <!-- Serviceable Societies Selector -->
+        <div>
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+            <div>
+              <label class="block text-xs font-bold text-[#212121]">
+                Serviceable Residential Societies (Coverage Zones)
+              </label>
+              <p class="text-[10px] text-[#878787]">
+                Orders from selected societies will be routed to this vendor store.
               </p>
             </div>
+            <div class="flex items-center gap-2">
+              <button 
+                type="button" 
+                onclick="toggleAllSocieties(true)"
+                class="px-2 py-1 text-[10px] font-bold text-[#2874f0] bg-[#f0f5ff] hover:bg-blue-100 rounded border border-[#d2e3fc] transition-colors"
+              >
+                Select All
+              </button>
+              <button 
+                type="button" 
+                onclick="toggleAllSocieties(false)"
+                class="px-2 py-1 text-[10px] font-bold text-[#878787] bg-white hover:bg-gray-100 rounded border border-[#e0e0e0] transition-colors"
+              >
+                Clear All
+              </button>
+            </div>
           </div>
 
-          <div class="space-y-5">
-            <div class="space-y-1.5">
-              <label class="block text-[11px] font-black uppercase tracking-wider text-slate-500 ml-1">Store Classification (Vendors Only)</label>
-              <select name="vendor_type" id="vendor-type-select" class="w-full border-2 border-slate-100 bg-slate-50 text-slate-900 rounded-2xl px-4 py-3.5 text-sm font-bold focus:outline-none focus:bg-white focus:border-emerald-500 transition-all appearance-none cursor-pointer mb-2">
-                <option value="">-- Select Type --</option>
-                <option value="grocery">Grocery & Staples</option>
-                <option value="dairy">Dairy & Eggs</option>
-                <option value="vegetables">Fresh Vegetables</option>
-                <option value="fruits">Fresh Fruits</option>
-                <option value="other">Other (Specify Below)</option>
-              </select>
-              <input type="text" name="vendor_type_other" id="vendor-type-other" class="w-full border-2 border-slate-100 bg-slate-50 text-slate-900 rounded-2xl px-4 py-3.5 text-sm font-bold hidden placeholder-slate-300" placeholder="Specify custom store type">
-            </div>
+          <!-- Instant Search Box for Societies -->
+          <div class="relative mb-2">
+            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[#878787] text-xs">
+              <i class="fas fa-search text-[10px]"></i>
+            </span>
+            <input 
+              type="text" 
+              id="societySearchInput" 
+              oninput="filterSocietiesList()"
+              placeholder="Type to filter societies by name, city, or pincode..." 
+              class="w-full pl-8 pr-3 py-1.5 text-xs bg-[#f8faff] border border-[#e0e0e0] rounded-sm input-focus-blue"
+            >
+          </div>
 
-            <div class="space-y-3 p-5 bg-slate-50 rounded-3xl border border-slate-200">
-                <div class="flex items-center justify-between mb-2">
-                    <label class="block text-[11px] font-black uppercase tracking-wider text-slate-500">Service Coordinates</label>
-                    <button type="button" onclick="getLocation()" class="text-[10px] font-black text-emerald-600 hover:text-emerald-700 flex items-center gap-1">
-                        <i class="fas fa-location-crosshairs"></i> Auto-Fetch
-                    </button>
-                </div>
-                <div class="flex gap-3">
-                    <input type="text" name="lat" id="lat-input" placeholder="Latitude" class="w-1/2 border-2 border-white bg-white text-slate-900 rounded-xl px-3 py-2 text-xs font-bold focus:outline-none focus:border-emerald-500 shadow-sm">
-                    <input type="text" name="lng" id="lng-input" placeholder="Longitude" class="w-1/2 border-2 border-white bg-white text-slate-900 rounded-xl px-3 py-2 text-xs font-bold focus:outline-none focus:border-emerald-500 shadow-sm">
-                </div>
-            </div>
-
-            <div class="space-y-1.5">
-              <label class="block text-[11px] font-black uppercase tracking-wider text-slate-500 ml-1">Access Password</label>
-              <input type="password" name="password" placeholder="••••••••" class="w-full border-2 border-slate-100 bg-slate-50 text-slate-900 rounded-2xl px-4 py-3.5 text-sm font-bold focus:outline-none focus:bg-white focus:border-emerald-500 transition-all" required>
-            </div>
-
-            <!-- NEW VENDOR FIELDS: Shop Info & Serviceable Societies -->
-            <div id="vendor-fields" class="space-y-5 hidden pt-4 border-t border-slate-100">
-              <h3 class="text-[11px] font-black uppercase tracking-wider text-emerald-600 ml-1">Store Setup</h3>
-              
-              <div class="space-y-1.5">
-                <label class="block text-[11px] font-black uppercase tracking-wider text-slate-500 ml-1">Shop Name</label>
-                <input type="text" name="shop_name" placeholder="e.g. Jippy Supermart" class="w-full border-2 border-slate-100 bg-slate-50 text-slate-900 rounded-2xl px-4 py-3.5 text-sm font-bold focus:outline-none focus:bg-white focus:border-emerald-500 transition-all">
+          <!-- Societies Checkbox List -->
+          <div id="societiesContainer" class="max-h-52 overflow-y-auto bg-[#fafafa] border border-[#e0e0e0] rounded-sm p-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 custom-scrollbar">
+            {% set selected_socs = form_data.getlist('serviceable_societies') if form_data else [] %}
+            {% for soc in all_societies %}
+            <label 
+              class="society-item flex items-start gap-2.5 p-2 bg-white rounded border border-[#e0e0e0] hover:border-[#2874f0] hover:bg-[#f0f5ff]/40 cursor-pointer transition-colors"
+              data-text="{{ soc.name|lower }} {{ soc.city|lower }} {{ soc.pincode }}"
+            >
+              <input 
+                type="checkbox" 
+                name="serviceable_societies" 
+                value="{{ soc._id }}"
+                {% if soc._id|string in selected_socs or soc._id in selected_socs %}checked{% endif %}
+                class="mt-0.5 w-4 h-4 text-[#2874f0] rounded border-[#c2c2c2] focus:ring-[#2874f0] cursor-pointer"
+              >
+              <div class="leading-tight overflow-hidden">
+                <div class="text-xs font-bold text-[#212121] truncate">{{ soc.name }}</div>
+                <div class="text-[10px] text-[#878787] mt-0.5">{{ soc.city }} • {{ soc.pincode }}</div>
               </div>
-              
-              <div class="space-y-1.5">
-                <label class="block text-[11px] font-black uppercase tracking-wider text-slate-500 ml-1">Shop Image URL</label>
-                <input type="text" name="shop_image" placeholder="https://..." class="w-full border-2 border-slate-100 bg-slate-50 text-slate-900 rounded-2xl px-4 py-3.5 text-sm font-bold focus:outline-none focus:bg-white focus:border-emerald-500 transition-all">
-              </div>
+            </label>
+            {% else %}
+            <div class="col-span-full text-center py-6 text-xs text-[#878787]">
+              <i class="fas fa-building text-sm mb-1 text-gray-400"></i>
+              <p>No societies configured yet. Add them in <a href="{{ url_for('admin_societies') }}" class="text-[#2874f0] font-bold underline">Societies Manager</a>.</p>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
 
-              <div class="space-y-1.5">
-                <label class="block text-[11px] font-black uppercase tracking-wider text-slate-500 ml-1">Serviceable Societies</label>
-                <div class="space-y-2 max-h-48 overflow-y-auto bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 custom-scrollbar">
-                  {% for soc in all_societies %}
-                  <label class="flex items-start gap-3 cursor-pointer p-2 rounded-xl hover:bg-white transition-colors border border-transparent hover:border-slate-200">
-                    <input type="checkbox" name="serviceable_societies" value="{{ soc._id }}" class="mt-0.5 w-4 h-4 text-emerald-500 rounded border-slate-300 focus:ring-emerald-500 cursor-pointer">
-                    <div>
-                      <div class="text-xs font-bold text-slate-800 leading-tight">{{ soc.name }}</div>
-                      <div class="text-[10px] text-slate-400 font-medium mt-0.5">{{ soc.city }} • {{ soc.pincode }}</div>
-                    </div>
-                  </label>
-                  {% else %}
-                  <div class="text-[10px] text-slate-400 italic text-center py-4">No societies found. Please add them in Manage Societies.</div>
-                  {% endfor %}
-                </div>
-              </div>
+      <!-- ================= STEP 3B: DELIVERY SPECIFIC DETAILS ================= -->
+      <div id="deliverySpecificSection" class="pt-4 border-t border-[#e0e0e0] {% if current_role != 'delivery' %}hidden{% endif %}">
+        <div class="p-4 bg-[#f8faff] border border-[#d2e3fc] rounded-sm flex items-start gap-3">
+          <div class="w-8 h-8 rounded-full bg-[#2874f0]/10 text-[#2874f0] flex items-center justify-center flex-shrink-0 text-sm">
+            <i class="fas fa-shield-halved"></i>
+          </div>
+          <div>
+            <h4 class="text-xs font-black text-[#212121] uppercase tracking-wide">
+              Logistics Delivery Operations Note
+            </h4>
+            <p class="text-[11px] text-[#555] mt-0.5 leading-relaxed">
+              Once created, the delivery partner can log in to the logistics portal using their official email and password. All dispatched order tasks, pickup notes, and navigation maps will be delivered straight to their dashboard.
+            </p>
+            <div class="mt-2 text-[10px] font-bold text-[#388e3c] flex items-center gap-1.5">
+              <i class="fas fa-check"></i>
+              <span>Mobile number verification enabled for SMS dispatch</span>
             </div>
           </div>
         </div>
+      </div>
 
-        <button type="submit" id="add-user-submit" class="w-full bg-slate-900 text-white py-4 rounded-3xl text-sm font-black uppercase tracking-[0.2em] hover:bg-emerald-600 transition-all shadow-xl shadow-slate-200 active:scale-[0.98]">
-          <span id="add-user-submit-text">Authorize & Create User</span>
-        </button>
-      </form>
-    </div>
+      <!-- ================= STEP 4: ACTION BUTTONS & NOTICES ================= -->
+      <div class="pt-5 border-t border-[#e0e0e0] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div class="text-[11px] text-[#878787] flex items-center gap-1.5">
+          <i class="fas fa-shield-alt text-[#2874f0]"></i>
+          <span>Secure AES-256 credentials hashing with MongoDB persistence</span>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button 
+            type="reset" 
+            onclick="resetFormUI()"
+            class="px-4 py-2.5 text-xs font-bold text-[#212121] bg-white border border-[#e0e0e0] hover:bg-gray-50 rounded-sm transition-all"
+          >
+            Clear Form
+          </button>
+          <button 
+            type="submit" 
+            id="submitBtn"
+            class="px-6 py-2.5 text-xs font-black uppercase tracking-wider text-white bg-[#fb641b] hover:bg-[#e05615] rounded-sm transition-all shadow-xs active:scale-95 flex items-center gap-2"
+          >
+            <i class="fas fa-user-check"></i>
+            <span id="submitBtnText">Authorize & Create User</span>
+          </button>
+        </div>
+      </div>
+    </form>
   </div>
 
-  <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-    <div class="bg-white border border-slate-200 rounded-[2.5rem] shadow-lg p-6 md:p-8">
-      <div class="flex items-center justify-between mb-6">
-        <h3 class="text-xl font-black text-slate-900 tracking-tight">Vendors</h3>
-        <span class="px-3 py-1 bg-slate-100 text-slate-500 rounded-full text-[10px] font-black uppercase">{{ vendors|length }} active</span>
-      </div>
-      {% if vendors %}
-        <div class="overflow-x-auto">
-          <table class="min-w-full text-left">
-            <tbody class="divide-y divide-slate-50">
-              {% for u in vendors %}
-              <tr class="group hover:bg-slate-50 transition-colors">
-                <td class="py-4">
-                  <div class="font-black text-sm text-slate-800">{{ u.name or u.email }}</div>
-                  <div class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">{{ u.email }}</div>
-                </td>
-                <td class="py-4">
-                  <span class="px-2 py-1 bg-emerald-50 text-emerald-600 rounded-lg text-[9px] font-black uppercase">{{ u.vendor_type or "General" }}</span>
-                </td>
-                <td class="py-4 text-right space-x-1">
-                  <a href="{{ url_for('edit_user', user_id=u._id) }}" class="p-2 text-blue-500 hover:bg-blue-50 rounded-xl transition-all inline-block"><i class="fas fa-pen-nib"></i></a>
-                  <form method="post" action="{{ url_for('delete_user', user_id=u._id) }}" class="inline-block" onsubmit="return confirm('Delete vendor?');">
-                    <button type="submit" class="p-2 text-rose-500 hover:bg-rose-50 rounded-xl transition-all"><i class="fas fa-trash-can"></i></button>
-                  </form>
-                </td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
+  <!-- ======================================================== -->
+  <!-- ACTIVE PERSONNEL DIRECTORY (VENDORS & RIDERS) -->
+  <!-- ======================================================== -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 pt-2">
+
+    <!-- ================= VENDORS TABLE ================= -->
+    <div class="bg-white border border-[#e0e0e0] rounded-sm shadow-xs overflow-hidden flex flex-col">
+      <div class="p-3.5 bg-[#fafafa] border-b border-[#e0e0e0] flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <div class="w-6 h-6 rounded bg-[#2874f0] text-white flex items-center justify-center text-[10px] font-bold">
+            <i class="fas fa-store"></i>
+          </div>
+          <h3 class="text-xs font-black text-[#212121] uppercase tracking-wide">
+            Registered Vendors
+          </h3>
         </div>
-      {% else %}
-        <p class="text-xs font-bold text-slate-400 text-center py-10">Empty Vendor Vault</p>
-      {% endif %}
+        <span class="px-2 py-0.5 bg-[#f0f5ff] text-[#2874f0] font-black text-[10px] rounded border border-[#d2e3fc]">
+          {{ vendors|length }} Active
+        </span>
+      </div>
+
+      <!-- Quick Filter for Vendors -->
+      <div class="p-2 border-b border-[#e0e0e0] bg-white">
+        <div class="relative">
+          <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#878787] text-[10px]">
+            <i class="fas fa-search"></i>
+          </span>
+          <input 
+            type="text" 
+            id="searchVendorInput" 
+            oninput="filterDirectoryTable('vendorsTable', this.value)"
+            placeholder="Search vendor by name, shop, or phone..." 
+            class="w-full pl-7 pr-3 py-1 text-xs bg-[#f8faff] border border-[#e0e0e0] rounded-sm input-focus-blue"
+          >
+        </div>
+      </div>
+
+      <!-- Table Body -->
+      <div class="flex-1 overflow-x-auto max-h-96 custom-scrollbar">
+        {% if vendors %}
+        <table class="w-full text-left border-collapse" id="vendorsTable">
+          <thead class="bg-[#f8faff] text-[10px] font-bold text-[#878787] uppercase border-b border-[#e0e0e0] sticky top-0 z-10">
+            <tr>
+              <th class="py-2 px-3">Vendor / Shop</th>
+              <th class="py-2 px-3">Phone & Contact</th>
+              <th class="py-2 px-3">Category</th>
+              <th class="py-2 px-3 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-[#f1f3f6] text-xs">
+            {% for u in vendors %}
+            <tr class="hover:bg-[#f8faff] transition-colors group">
+              <td class="py-2.5 px-3">
+                <div class="flex items-center gap-2">
+                  <div class="w-7 h-7 rounded-full bg-[#2874f0]/10 text-[#2874f0] font-bold text-[11px] flex items-center justify-center flex-shrink-0">
+                    {{ (u.shop_name or u.name or u.email)[:1]|upper }}
+                  </div>
+                  <div class="leading-tight">
+                    <div class="font-bold text-[#212121]">
+                      {{ u.shop_name or u.name or "Unnamed Vendor" }}
+                    </div>
+                    <div class="text-[10px] text-[#878787]">{{ u.email }}</div>
+                  </div>
+                </div>
+              </td>
+              <td class="py-2.5 px-3">
+                {% if u.phone %}
+                <div class="flex items-center gap-1.5">
+                  <span class="font-bold text-[#212121] font-mono text-[11px]">{{ u.phone }}</span>
+                  <!-- Quick Call -->
+                  <a href="tel:{{ u.phone }}" class="text-[#2874f0] hover:text-blue-700 p-0.5" title="Call Vendor">
+                    <i class="fas fa-phone text-[10px]"></i>
+                  </a>
+                  <!-- Quick WhatsApp -->
+                  {% set clean_p = u.phone|replace('+', '')|replace(' ', '')|replace('-', '') %}
+                  <a href="https://wa.me/{{ clean_p }}" target="_blank" class="text-emerald-600 hover:text-emerald-700 p-0.5" title="WhatsApp Vendor">
+                    <i class="fab fa-whatsapp text-[11px]"></i>
+                  </a>
+                  <!-- Copy Button -->
+                  <button type="button" onclick="copyText('{{ u.phone }}', 'Vendor Phone')" class="text-[#878787] hover:text-[#212121] p-0.5" title="Copy Number">
+                    <i class="fas fa-copy text-[9px]"></i>
+                  </button>
+                </div>
+                {% else %}
+                <span class="text-[10px] text-amber-600 font-semibold bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+                  No Phone
+                </span>
+                {% endif %}
+              </td>
+              <td class="py-2.5 px-3">
+                <span class="inline-block px-2 py-0.5 bg-blue-50 text-[#2874f0] rounded text-[10px] font-bold uppercase">
+                  {{ u.vendor_type or "General" }}
+                </span>
+              </td>
+              <td class="py-2.5 px-3 text-right whitespace-nowrap">
+                <div class="flex items-center justify-end gap-1">
+                  <a 
+                    href="{{ url_for('edit_user', user_id=u._id) }}" 
+                    class="w-7 h-7 rounded border border-[#e0e0e0] hover:border-[#2874f0] text-[#2874f0] hover:bg-blue-50 flex items-center justify-center transition-all"
+                    title="Edit Vendor"
+                  >
+                    <i class="fas fa-pen text-[10px]"></i>
+                  </a>
+                  <form method="post" action="{{ url_for('delete_user', user_id=u._id) }}" class="inline" onsubmit="return confirm('Permanently remove vendor \'{{ u.shop_name or u.name }}\'?');">
+                    <button 
+                      type="submit" 
+                      class="w-7 h-7 rounded border border-[#e0e0e0] hover:border-red-400 text-red-500 hover:bg-red-50 flex items-center justify-center transition-all"
+                      title="Delete Vendor"
+                    >
+                      <i class="fas fa-trash-alt text-[10px]"></i>
+                    </button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="py-12 text-center text-xs text-[#878787]">
+          <i class="fas fa-store-slash text-2xl text-gray-300 mb-2"></i>
+          <p class="font-bold">No registered vendors yet</p>
+          <p class="text-[11px] mt-0.5">Use the onboarding form above to register your first store partner.</p>
+        </div>
+        {% endif %}
+      </div>
     </div>
 
-    <div class="bg-white border border-slate-200 rounded-[2.5rem] shadow-lg p-6 md:p-8">
-      <div class="flex items-center justify-between mb-6">
-        <h3 class="text-xl font-black text-slate-900 tracking-tight">Riders</h3>
-        <span class="px-3 py-1 bg-slate-100 text-slate-500 rounded-full text-[10px] font-black uppercase">{{ deliveries|length }} active</span>
-      </div>
-      {% if deliveries %}
-        <div class="overflow-x-auto">
-          <table class="min-w-full text-left">
-            <tbody class="divide-y divide-slate-50">
-              {% for u in deliveries %}
-              <tr class="group hover:bg-slate-50 transition-colors">
-                <td class="py-4">
-                  <div class="font-black text-sm text-slate-800">{{ u.name or u.email }}</div>
-                  <div class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">{{ u.email }}</div>
-                </td>
-                <td class="py-4 text-right space-x-1">
-                  <a href="{{ url_for('edit_user', user_id=u._id) }}" class="p-2 text-blue-500 hover:bg-blue-50 rounded-xl transition-all inline-block"><i class="fas fa-pen-nib"></i></a>
-                  <form method="post" action="{{ url_for('delete_user', user_id=u._id) }}" class="inline-block" onsubmit="return confirm('Delete rider?');">
-                    <button type="submit" class="p-2 text-rose-500 hover:bg-rose-50 rounded-xl transition-all"><i class="fas fa-trash-can"></i></button>
-                  </form>
-                </td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
+    <!-- ================= RIDERS TABLE ================= -->
+    <div class="bg-white border border-[#e0e0e0] rounded-sm shadow-xs overflow-hidden flex flex-col">
+      <div class="p-3.5 bg-[#fafafa] border-b border-[#e0e0e0] flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <div class="w-6 h-6 rounded bg-[#388e3c] text-white flex items-center justify-center text-[10px] font-bold">
+            <i class="fas fa-motorcycle"></i>
+          </div>
+          <h3 class="text-xs font-black text-[#212121] uppercase tracking-wide">
+            Registered Delivery Riders
+          </h3>
         </div>
-      {% else %}
-        <p class="text-xs font-bold text-slate-400 text-center py-10">Empty Logistics Pipeline</p>
-      {% endif %}
+        <span class="px-2 py-0.5 bg-emerald-50 text-[#388e3c] font-black text-[10px] rounded border border-emerald-200">
+          {{ deliveries|length }} Active
+        </span>
+      </div>
+
+      <!-- Quick Filter for Riders -->
+      <div class="p-2 border-b border-[#e0e0e0] bg-white">
+        <div class="relative">
+          <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#878787] text-[10px]">
+            <i class="fas fa-search"></i>
+          </span>
+          <input 
+            type="text" 
+            id="searchRiderInput" 
+            oninput="filterDirectoryTable('ridersTable', this.value)"
+            placeholder="Search rider by name, email, or phone..." 
+            class="w-full pl-7 pr-3 py-1 text-xs bg-[#f8faff] border border-[#e0e0e0] rounded-sm input-focus-blue"
+          >
+        </div>
+      </div>
+
+      <!-- Table Body -->
+      <div class="flex-1 overflow-x-auto max-h-96 custom-scrollbar">
+        {% if deliveries %}
+        <table class="w-full text-left border-collapse" id="ridersTable">
+          <thead class="bg-[#f8faff] text-[10px] font-bold text-[#878787] uppercase border-b border-[#e0e0e0] sticky top-0 z-10">
+            <tr>
+              <th class="py-2 px-3">Rider Identity</th>
+              <th class="py-2 px-3">Phone & Contact</th>
+              <th class="py-2 px-3">Status</th>
+              <th class="py-2 px-3 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-[#f1f3f6] text-xs">
+            {% for u in deliveries %}
+            <tr class="hover:bg-[#f8faff] transition-colors group">
+              <td class="py-2.5 px-3">
+                <div class="flex items-center gap-2">
+                  <div class="w-7 h-7 rounded-full bg-[#388e3c]/10 text-[#388e3c] font-bold text-[11px] flex items-center justify-center flex-shrink-0">
+                    {{ (u.name or u.email)[:1]|upper }}
+                  </div>
+                  <div class="leading-tight">
+                    <div class="font-bold text-[#212121]">
+                      {{ u.name or "Logistics Rider" }}
+                    </div>
+                    <div class="text-[10px] text-[#878787]">{{ u.email }}</div>
+                  </div>
+                </div>
+              </td>
+              <td class="py-2.5 px-3">
+                {% if u.phone %}
+                <div class="flex items-center gap-1.5">
+                  <span class="font-bold text-[#212121] font-mono text-[11px]">{{ u.phone }}</span>
+                  <!-- Quick Call -->
+                  <a href="tel:{{ u.phone }}" class="text-[#2874f0] hover:text-blue-700 p-0.5" title="Call Rider">
+                    <i class="fas fa-phone text-[10px]"></i>
+                  </a>
+                  <!-- Quick WhatsApp -->
+                  {% set clean_p = u.phone|replace('+', '')|replace(' ', '')|replace('-', '') %}
+                  <a href="https://wa.me/{{ clean_p }}" target="_blank" class="text-emerald-600 hover:text-emerald-700 p-0.5" title="WhatsApp Rider">
+                    <i class="fab fa-whatsapp text-[11px]"></i>
+                  </a>
+                  <!-- Copy Button -->
+                  <button type="button" onclick="copyText('{{ u.phone }}', 'Rider Phone')" class="text-[#878787] hover:text-[#212121] p-0.5" title="Copy Number">
+                    <i class="fas fa-copy text-[9px]"></i>
+                  </button>
+                </div>
+                {% else %}
+                <span class="text-[10px] text-amber-600 font-semibold bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+                  No Phone
+                </span>
+                {% endif %}
+              </td>
+              <td class="py-2.5 px-3">
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-[#388e3c] rounded text-[10px] font-bold uppercase">
+                  <span class="w-1.5 h-1.5 rounded-full bg-[#388e3c]"></span>
+                  <span>Active</span>
+                </span>
+              </td>
+              <td class="py-2.5 px-3 text-right whitespace-nowrap">
+                <div class="flex items-center justify-end gap-1">
+                  <a 
+                    href="{{ url_for('edit_user', user_id=u._id) }}" 
+                    class="w-7 h-7 rounded border border-[#e0e0e0] hover:border-[#2874f0] text-[#2874f0] hover:bg-blue-50 flex items-center justify-center transition-all"
+                    title="Edit Rider"
+                  >
+                    <i class="fas fa-pen text-[10px]"></i>
+                  </a>
+                  <form method="post" action="{{ url_for('delete_user', user_id=u._id) }}" class="inline" onsubmit="return confirm('Permanently remove rider \'{{ u.name }}\'?');">
+                    <button 
+                      type="submit" 
+                      class="w-7 h-7 rounded border border-[#e0e0e0] hover:border-red-400 text-red-500 hover:bg-red-50 flex items-center justify-center transition-all"
+                      title="Delete Rider"
+                    >
+                      <i class="fas fa-trash-alt text-[10px]"></i>
+                    </button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="py-12 text-center text-xs text-[#878787]">
+          <i class="fas fa-motorcycle text-2xl text-gray-300 mb-2"></i>
+          <p class="font-bold">No delivery riders registered</p>
+          <p class="text-[11px] mt-0.5">Use the onboarding form above with Logistics Partner role to add riders.</p>
+        </div>
+        {% endif %}
+      </div>
     </div>
+
   </div>
 </div>
 
+<!-- ======================================================== -->
+<!-- PURE BLUE SPINNER (SINGLE BLUE CIRCLE, NO TEXT) -->
+<!-- ======================================================== -->
+<div id="pureBlueSpinner" class="hidden fixed inset-0 z-[200] bg-black/25 flex items-center justify-center pointer-events-none">
+  <div class="w-10 h-10 border-4 border-[#2874f0] border-t-transparent rounded-full animate-spin"></div>
+</div>
+
+<!-- ======================================================== -->
+<!-- TOAST NOTIFICATION CONTAINER -->
+<!-- ======================================================== -->
+<div id="toastNotification" class="fixed bottom-5 right-5 z-[300] hidden bg-[#212121] text-white px-3.5 py-2 rounded shadow-lg text-xs font-semibold flex items-center gap-2 animate-fade-in">
+  <i class="fas fa-check text-emerald-400 text-xs"></i>
+  <span id="toastMsg">Copied to clipboard</span>
+</div>
+
+<!-- ======================================================== -->
+<!-- CLIENT SCRIPTS -->
+<!-- ======================================================== -->
 <script>
-  // Vendor type toggle
-  const vendorTypeSelect = document.getElementById("vendor-type-select");
-  const vendorTypeOther = document.getElementById("vendor-type-other");
+  // 1. Role Selection Logic
+  function selectRole(role) {
+    const roleInput = document.getElementById('selectedRoleInput');
+    const cardVendor = document.getElementById('roleCardVendor');
+    const cardDelivery = document.getElementById('roleCardDelivery');
+    const checkVendor = document.getElementById('vendorCheckmark');
+    const checkDelivery = document.getElementById('deliveryCheckmark');
+    const vendorSection = document.getElementById('vendorSpecificSection');
+    const deliverySection = document.getElementById('deliverySpecificSection');
 
-  if (vendorTypeSelect && vendorTypeOther) {
-    vendorTypeSelect.addEventListener("change", () => {
-      if (vendorTypeSelect.value === "other") {
-        vendorTypeOther.classList.remove("hidden");
-        vendorTypeOther.required = true;
-      } else {
-        vendorTypeOther.classList.add("hidden");
-        vendorTypeOther.required = false;
-        vendorTypeOther.value = "";
-      }
-    });
-  }
+    if (roleInput) roleInput.value = role;
 
-  // Role change -> phone hint & vendor fields
-  const roleSelect = document.getElementById("role-select");
-  const riderPhoneInput = document.getElementById("rider-phone");
-  const vendorFields = document.getElementById("vendor-fields");
-  
-  if (roleSelect) {
-    roleSelect.addEventListener("change", () => {
-      // Delivery logic
-      if (riderPhoneInput) {
-        if (roleSelect.value === "delivery") {
-          riderPhoneInput.placeholder = "Required for riders";
-        } else {
-          riderPhoneInput.placeholder = "Optional";
-        }
-      }
-      
-      // Vendor logic
-      if (vendorFields) {
-        if (roleSelect.value === "vendor") {
-          vendorFields.classList.remove("hidden");
-        } else {
-          vendorFields.classList.add("hidden");
-        }
-      }
-    });
-  }
+    if (role === 'vendor') {
+      // Highlight Vendor Card
+      cardVendor.classList.add('role-card-active', 'border-[#2874f0]', 'bg-[#f0f5ff]');
+      cardVendor.classList.remove('border-[#e0e0e0]', 'bg-white');
+      checkVendor.classList.remove('hidden');
 
-  // Auto-fetch Location
-  function getLocation() {
-    const latInput = document.getElementById('lat-input');
-    const lngInput = document.getElementById('lng-input');
-    
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition((position) => {
-            latInput.value = position.coords.latitude.toFixed(6);
-            lngInput.value = position.coords.longitude.toFixed(6);
-            latInput.classList.add('bg-emerald-50', 'border-emerald-200');
-            lngInput.classList.add('bg-emerald-50', 'border-emerald-200');
-        }, (error) => {
-            alert("Error fetching location: " + error.message);
-        });
+      // Unhighlight Delivery Card
+      cardDelivery.classList.remove('role-card-active', 'border-[#2874f0]', 'bg-[#f0f5ff]');
+      cardDelivery.classList.add('border-[#e0e0e0]', 'bg-white');
+      checkDelivery.classList.add('hidden');
+
+      // Show Vendor Fields, Hide Delivery Note
+      vendorSection.classList.remove('hidden');
+      deliverySection.classList.add('hidden');
     } else {
-        alert("Geolocation is not supported by this browser.");
+      // Highlight Delivery Card
+      cardDelivery.classList.add('role-card-active', 'border-[#2874f0]', 'bg-[#f0f5ff]');
+      cardDelivery.classList.remove('border-[#e0e0e0]', 'bg-white');
+      checkDelivery.classList.remove('hidden');
+
+      // Unhighlight Vendor Card
+      cardVendor.classList.remove('role-card-active', 'border-[#2874f0]', 'bg-[#f0f5ff]');
+      cardVendor.classList.add('border-[#e0e0e0]', 'bg-white');
+      checkVendor.classList.add('hidden');
+
+      // Show Delivery Note, Hide Vendor Fields
+      vendorSection.classList.add('hidden');
+      deliverySection.classList.remove('hidden');
     }
   }
 
-  // Prevent multiple submit
-  const addForm = document.getElementById("add-user-form");
-  if (addForm) {
-    addForm.addEventListener("submit", () => {
-      const btn = document.getElementById("add-user-submit");
-      const textSpan = document.getElementById("add-user-submit-text");
-      if (btn) { btn.disabled = true; btn.classList.add("opacity-70", "cursor-not-allowed"); }
-      if (textSpan) { textSpan.textContent = "Processing Onboarding..."; }
+  // 2. Vendor Type Select & Custom Field
+  const vendorTypeSelect = document.getElementById('vendorTypeSelect');
+  const vendorTypeOther = document.getElementById('vendorTypeOther');
+  if (vendorTypeSelect && vendorTypeOther) {
+    vendorTypeSelect.addEventListener('change', () => {
+      if (vendorTypeSelect.value === 'other') {
+        vendorTypeOther.classList.remove('hidden');
+        vendorTypeOther.focus();
+      } else {
+        vendorTypeOther.classList.add('hidden');
+        vendorTypeOther.value = '';
+      }
+    });
+  }
+
+  // 3. Live Phone Input Validation (+91, 10 digits)
+  const phoneInput = document.getElementById('inputPhone');
+  const phoneCheckIcon = document.getElementById('phoneCheckIcon');
+  if (phoneInput) {
+    phoneInput.addEventListener('input', (e) => {
+      // Only keep numeric digits
+      e.target.value = e.target.value.replace(/\D/g, '').slice(0, 10);
+      const val = e.target.value;
+      if (val.length === 10 && /^[6-9]\d{9}$/.test(val)) {
+        if (phoneCheckIcon) phoneCheckIcon.classList.remove('hidden');
+      } else {
+        if (phoneCheckIcon) phoneCheckIcon.classList.add('hidden');
+      }
+    });
+  }
+
+  // 4. Password Show / Hide Toggle
+  function togglePasswordVisibility() {
+    const pwd = document.getElementById('inputPassword');
+    const icon = document.getElementById('togglePasswordIcon');
+    if (!pwd || !icon) return;
+    if (pwd.type === 'password') {
+      pwd.type = 'text';
+      icon.classList.remove('fa-eye');
+      icon.classList.add('fa-eye-slash');
+    } else {
+      pwd.type = 'password';
+      icon.classList.remove('fa-eye-slash');
+      icon.classList.add('fa-eye');
+    }
+  }
+
+  // 5. Generate Strong Password Helper
+  function generateStrongPassword() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%';
+    let pwd = '';
+    for (let i = 0; i < 10; i++) {
+      pwd += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    const input = document.getElementById('inputPassword');
+    if (input) {
+      input.value = pwd;
+      input.type = 'text';
+      const icon = document.getElementById('togglePasswordIcon');
+      if (icon) {
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+      }
+      showToast('Generated secure 10-char password');
+    }
+  }
+
+  // 6. Society Selection: Select All / Clear All
+  function toggleAllSocieties(check) {
+    const checkboxes = document.querySelectorAll('input[name="serviceable_societies"]');
+    checkboxes.forEach(cb => {
+      // Only toggle visible societies in case search is filtered
+      const parent = cb.closest('.society-item');
+      if (!parent || parent.style.display !== 'none') {
+        cb.checked = check;
+      }
+    });
+    showToast(check ? 'All visible societies selected' : 'Societies cleared');
+  }
+
+  // 7. Society Search Filter
+  function filterSocietiesList() {
+    const query = (document.getElementById('societySearchInput').value || '').toLowerCase().trim();
+    const items = document.querySelectorAll('.society-item');
+    items.forEach(item => {
+      const text = item.getAttribute('data-text') || '';
+      if (!query || text.includes(query)) {
+        item.style.display = 'flex';
+      } else {
+        item.style.display = 'none';
+      }
+    });
+  }
+
+  // 8. Filter Directory Tables (Vendors & Riders)
+  function filterDirectoryTable(tableId, query) {
+    const table = document.getElementById(tableId);
+    if (!table) return;
+    const rows = table.querySelectorAll('tbody tr');
+    const q = (query || '').toLowerCase().trim();
+    rows.forEach(row => {
+      const text = row.textContent.toLowerCase();
+      if (!q || text.includes(q)) {
+        row.style.display = '';
+      } else {
+        row.style.display = 'none';
+      }
+    });
+  }
+
+  // 9. Copy to Clipboard Toast
+  function copyText(text, label) {
+    if (!navigator.clipboard) {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    } else {
+      navigator.clipboard.writeText(text);
+    }
+    showToast(label + ' copied: ' + text);
+  }
+
+  function showToast(msg) {
+    const toast = document.getElementById('toastNotification');
+    const msgEl = document.getElementById('toastMsg');
+    if (!toast || !msgEl) return;
+    msgEl.textContent = msg;
+    toast.classList.remove('hidden');
+    setTimeout(() => {
+      toast.classList.add('hidden');
+    }, 2500);
+  }
+
+  // 10. Form Reset UI Helper
+  function resetFormUI() {
+    selectRole('vendor');
+    if (phoneCheckIcon) phoneCheckIcon.classList.add('hidden');
+    if (vendorTypeOther) vendorTypeOther.classList.add('hidden');
+    clearImageUrl('inputShopImage', 'shopImagePreviewBox', 'shopImageErrorBox');
+  }
+
+  // 11. Live Image URL Preview Engine
+  function setupImagePreview(inputId, boxId, imgId, linkId, errorBoxId, statusId) {
+    const input = document.getElementById(inputId);
+    const box = document.getElementById(boxId);
+    const img = document.getElementById(imgId);
+    const link = document.getElementById(linkId);
+    const errorBox = document.getElementById(errorBoxId);
+    const status = document.getElementById(statusId);
+    if (!input || !box || !img) return;
+
+    let debounceTimer;
+
+    function updatePreview() {
+      const url = (input.value || '').trim();
+      if (!url) {
+        box.classList.add('hidden');
+        if (errorBox) errorBox.classList.add('hidden');
+        return;
+      }
+
+      if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        box.classList.add('hidden');
+        if (errorBox) {
+          errorBox.classList.remove('hidden');
+          errorBox.querySelector('span').textContent = 'Image URL must start with http:// or https://';
+        }
+        return;
+      }
+
+      if (status) status.textContent = 'Verifying Image...';
+      const testImg = new Image();
+      testImg.onload = function() {
+        img.src = url;
+        if (link) link.href = url;
+        box.classList.remove('hidden');
+        if (errorBox) errorBox.classList.add('hidden');
+        if (status) status.textContent = `Valid Image (${testImg.naturalWidth}×${testImg.naturalHeight})`;
+      };
+      testImg.onerror = function() {
+        box.classList.add('hidden');
+        if (errorBox) {
+          errorBox.classList.remove('hidden');
+          errorBox.querySelector('span').textContent = 'Unable to load image from this URL. Please verify the URL points to a public image.';
+        }
+      };
+      testImg.src = url;
+    }
+
+    input.addEventListener('input', () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(updatePreview, 300);
+    });
+
+    input.addEventListener('paste', () => {
+      setTimeout(updatePreview, 60);
+    });
+
+    if (input.value && input.value.trim()) {
+      updatePreview();
+    }
+  }
+
+  function clearImageUrl(inputId, boxId, errorBoxId) {
+    const input = document.getElementById(inputId);
+    const box = document.getElementById(boxId);
+    const errorBox = document.getElementById(errorBoxId);
+    if (input) input.value = '';
+    if (box) box.classList.add('hidden');
+    if (errorBox) errorBox.classList.add('hidden');
+  }
+
+  // Initialize Shop Image Preview
+  setupImagePreview('inputShopImage', 'shopImagePreviewBox', 'shopImagePreviewImg', 'shopImagePreviewLink', 'shopImageErrorBox', 'shopImagePreviewStatus');
+
+  // 11. Strict Pre-Submit Validation & Blue Spinner
+  const form = document.getElementById('addUserForm');
+  if (form) {
+    form.addEventListener('submit', (e) => {
+      const role = document.getElementById('selectedRoleInput').value;
+      const name = (document.getElementById('inputName').value || '').trim();
+      const email = (document.getElementById('inputEmail').value || '').trim();
+      const phone = (document.getElementById('inputPhone').value || '').trim();
+      const password = (document.getElementById('inputPassword').value || '');
+
+      // Validation Checks
+      if (!role) {
+        e.preventDefault();
+        alert('Please select an account role (Vendor or Delivery Partner).');
+        return;
+      }
+      if (!name || name.length < 2) {
+        e.preventDefault();
+        alert('Please enter a valid legal name (minimum 2 characters).');
+        document.getElementById('inputName').focus();
+        return;
+      }
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        e.preventDefault();
+        alert('Please enter a valid official email address.');
+        document.getElementById('inputEmail').focus();
+        return;
+      }
+      if (!phone || phone.length !== 10 || !/^[6-9]\d{9}$/.test(phone)) {
+        e.preventDefault();
+        alert('Please enter a valid 10-digit Indian mobile number starting with 6, 7, 8, or 9.');
+        document.getElementById('inputPhone').focus();
+        return;
+      }
+      if (!password || password.length < 6) {
+        e.preventDefault();
+        alert('Password must be at least 6 characters long.');
+        document.getElementById('inputPassword').focus();
+        return;
+      }
+
+      // Vendor Specific Checks
+      if (role === 'vendor') {
+        const shopName = (document.getElementById('inputShopName').value || '').trim();
+        const vendorType = document.getElementById('vendorTypeSelect').value;
+        const vendorTypeOtherVal = (document.getElementById('vendorTypeOther').value || '').trim();
+
+        if (!shopName) {
+          e.preventDefault();
+          alert('Shop Name is required for Store Vendor registration.');
+          document.getElementById('inputShopName').focus();
+          return;
+        }
+        if (!vendorType) {
+          e.preventDefault();
+          alert('Please select a Store Classification Category.');
+          document.getElementById('vendorTypeSelect').focus();
+          return;
+        }
+        if (vendorType === 'other' && !vendorTypeOtherVal) {
+          e.preventDefault();
+          alert('Please specify the custom store category.');
+          document.getElementById('vendorTypeOther').focus();
+          return;
+        }
+      }
+
+      // If all valid: Show pure blue spinner with NO text, and disable button
+      const spinner = document.getElementById('pureBlueSpinner');
+      if (spinner) spinner.classList.remove('hidden');
+
+      const submitBtn = document.getElementById('submitBtn');
+      const submitText = document.getElementById('submitBtnText');
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.classList.add('opacity-75', 'cursor-not-allowed');
+      }
+      if (submitText) {
+        submitText.textContent = 'Creating User...';
+      }
     });
   }
 </script>
-
-<style>
-    body { background-color: #fcfdfe !important; }
-    .animate-fade-in { animation: fadeIn 0.5s ease-out forwards; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-</style>
 {% endblock %}
