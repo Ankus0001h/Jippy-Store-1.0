@@ -1,0 +1,1542 @@
+{% extends "base_admin.html" %}
+
+{% block extra_head %}
+<style>
+  /* 🛍️ Flipkart Seller Hub Orders Experience */
+  .fk-order-card {
+    background: #ffffff;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .fk-order-card:hover {
+    border-color: #c2c2c2;
+    box-shadow: 0 4px 14px 0 rgba(0, 0, 0, 0.08);
+  }
+  .fk-order-card.new-order-highlight {
+    animation: newOrderPulse 2s infinite ease-in-out;
+    border-color: #2874f0 !important;
+  }
+  @keyframes newOrderPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(40, 116, 240, 0.45); }
+    50% { box-shadow: 0 0 0 8px rgba(40, 116, 240, 0); }
+  }
+  
+  .filter-pill {
+    transition: all 0.15s ease-in-out;
+  }
+  .filter-pill.active {
+    background-color: #2874f0 !important;
+    color: #ffffff !important;
+    border-color: #2874f0 !important;
+    font-weight: 700;
+  }
+  .filter-pill.active span.pill-count {
+    background-color: #ffffff !important;
+    color: #2874f0 !important;
+  }
+  
+  /* Rotating chevron on accordion */
+  .accordion-chevron {
+    transition: transform 0.25s ease;
+  }
+  .accordion-open .accordion-chevron {
+    transform: rotate(180deg);
+  }
+
+  /* Micro status badges */
+  .status-badge-pending {
+    background-color: #fff7ed;
+    color: #c2410c;
+    border: 1px solid #ffedd5;
+  }
+  .status-badge-out {
+    background-color: #f0f9ff;
+    color: #0369a1;
+    border: 1px solid #e0f2fe;
+  }
+  .status-badge-delivered {
+    background-color: #f0fdf4;
+    color: #15803d;
+    border: 1px solid #dcfce7;
+  }
+  .status-badge-cancelled {
+    background-color: #fff1f2;
+    color: #be123c;
+    border: 1px solid #ffe4e6;
+  }
+
+  /* Custom Flipkart Select Inputs */
+  .fk-select-clean {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%232874f0'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.6rem center;
+    background-size: 0.75rem;
+    padding-right: 1.8rem;
+    appearance: none;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-4 font-['Roboto',sans-serif] pb-16">
+
+  <!-- ======================================================== -->
+  <!-- 1. TOP HEADER & REAL-TIME CONTROLS BAR -->
+  <!-- ======================================================== -->
+  <div class="bg-white border border-[#e0e0e0] rounded-sm p-4 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
+    <div>
+      <div class="flex items-center gap-2">
+        <h1 class="text-lg sm:text-xl font-black text-[#212121] tracking-tight flex items-center gap-2">
+          <i class="fas fa-boxes-packing text-[#2874f0]"></i>
+          <span>Order Fulfillment &amp; Operations</span>
+        </h1>
+        <span class="bg-[#f0f5ff] text-[#2874f0] border border-[#d2e3fc] text-[10px] font-bold px-2 py-0.5 rounded-sm uppercase tracking-wide">
+          Seller Hub
+        </span>
+      </div>
+      <p class="text-xs text-[#878787] mt-0.5">
+        Live incoming customer orders, vendor store fulfillment, order details, and real-time operations
+      </p>
+    </div>
+
+    <!-- Live Sync, Sound Control & Refresh Buttons -->
+    <div class="flex flex-wrap items-center gap-2 self-start md:self-auto">
+      <!-- Live Sync Status Indicator -->
+      <div class="flex items-center gap-2 bg-[#f8f9fa] border border-[#e0e0e0] px-2.5 py-1.5 rounded-sm text-xs font-semibold text-[#212121]" title="Automatic background polling active (every 5 seconds)">
+        <span class="relative flex h-2.5 w-2.5">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+        </span>
+        <span class="text-[11px] font-bold tracking-tight">Live Sync: Active</span>
+      </div>
+
+      <!-- Sound Toggle Button -->
+      <button 
+        type="button" 
+        id="soundToggleBtn" 
+        onclick="toggleSoundAlerts()" 
+        class="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#e0e0e0] hover:bg-[#f0f5ff] text-xs font-bold text-[#212121] rounded-sm transition-all active:scale-95 shadow-2xs"
+        title="Toggle audio alert on new orders"
+      >
+        <i class="fas fa-volume-high text-[#2874f0]" id="soundIcon"></i>
+        <span id="soundLabel" class="text-[11px]">Sound: ON</span>
+      </button>
+
+      <!-- Test Alert Sound Button -->
+      <button 
+        type="button" 
+        onclick="testAlertSound()" 
+        class="flex items-center gap-1.5 px-2.5 py-1.5 bg-[#f0f5ff] border border-[#d2e3fc] hover:bg-[#e1edff] text-xs font-bold text-[#2874f0] rounded-sm transition-all active:scale-95 shadow-2xs"
+        title="Play sample of the new order alert chime"
+      >
+        <i class="fas fa-play text-[10px]"></i>
+        <span class="text-[11px]">Test Tune</span>
+      </button>
+
+      <!-- Desktop Notifications Toggle Button -->
+      <button 
+        type="button" 
+        id="notifToggleBtn" 
+        onclick="enableBrowserNotifications()" 
+        class="flex items-center gap-1.5 px-2.5 py-1.5 bg-white border border-[#e0e0e0] hover:bg-[#f0f5ff] text-xs font-bold text-[#212121] rounded-sm transition-all active:scale-95 shadow-2xs"
+        title="Toggle or enable browser desktop notifications"
+      >
+        <i class="fas fa-bell text-[#2874f0]" id="notifIcon"></i>
+        <span id="notifLabel" class="text-[11px]">Desktop Alerts</span>
+      </button>
+
+      <!-- Install Desktop App (PWA) Button -->
+      <button 
+        type="button" 
+        id="pwaInstallBtn" 
+        onclick="installDesktopApp()" 
+        class="hidden flex items-center gap-1.5 px-2.5 py-1.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-xs font-bold text-white rounded-sm transition-all active:scale-95 shadow-2xs"
+        title="Install Jippy Store Admin as a Standalone Desktop App (Runs in its own window)"
+      >
+        <i class="fas fa-download text-[11px]"></i>
+        <span class="text-[11px]">Install App</span>
+      </button>
+
+      <!-- App Mode Badge (Visible when running as Desktop App) -->
+      <div id="pwaStandaloneBadge" class="hidden flex items-center gap-1.5 px-2 py-1 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-sm text-[11px] font-bold shadow-2xs">
+        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+        <i class="fas fa-desktop text-[11px]"></i>
+        <span>Desktop App</span>
+      </div>
+
+      <!-- Instant Silent Refresh Button -->
+      <button 
+        type="button" 
+        id="manualRefreshBtn"
+        onclick="manualRefreshFeed()" 
+        class="flex items-center gap-1.5 px-3 py-1.5 bg-[#2874f0] hover:bg-blue-600 text-xs font-bold text-white rounded-sm transition-all active:scale-95 shadow-2xs"
+        title="Sync orders immediately"
+      >
+        <i class="fas fa-arrows-rotate text-[11px]" id="refreshSpinner"></i>
+        <span class="text-[11px]">Sync Now</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Notification Permission Prompt Banner (Visible if browser notifications not yet enabled) -->
+  <div id="notifPermissionBanner" style="display: none;" class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-[#2874f0]/25 rounded-sm p-3 shadow-2xs flex flex-wrap items-center justify-between gap-3">
+    <div class="flex items-center gap-2.5">
+      <div class="w-8 h-8 rounded-full bg-[#2874f0] text-white flex items-center justify-center shrink-0 text-sm shadow-2xs">
+        <i class="fas fa-bell"></i>
+      </div>
+      <div>
+        <h4 class="text-xs font-bold text-[#212121]">Enable Desktop Order Popups</h4>
+        <p class="text-[11px] text-[#555]">Get instant popups on your computer screen even when your browser is minimized or you are on another tab.</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-2">
+      <button 
+        type="button" 
+        onclick="quickEnableNotifications()" 
+        class="px-3 py-1.5 bg-[#2874f0] hover:bg-blue-600 active:scale-95 text-white text-xs font-bold rounded-sm shadow-2xs transition-all flex items-center gap-1.5"
+      >
+        <i class="fas fa-check text-xs"></i>
+        <span>Enable Notifications</span>
+      </button>
+      <button 
+        type="button" 
+        onclick="dismissNotifBanner()" 
+        class="px-2.5 py-1.5 bg-white border border-[#e0e0e0] hover:bg-slate-50 text-slate-600 text-xs font-semibold rounded-sm transition-all"
+      >
+        Dismiss
+      </button>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- 2. OVERVIEW KPI METRICS CARDS (FLIPKART STYLE) -->
+  <!-- ======================================================== -->
+  <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-3">
+    <!-- Metric 1: Total Orders -->
+    <div class="bg-white border border-[#e0e0e0] rounded-sm p-3.5 shadow-2xs flex flex-col justify-between">
+      <div class="flex items-center justify-between">
+        <span class="text-[11px] font-bold uppercase tracking-wider text-[#878787]">All Orders</span>
+        <div class="w-6 h-6 rounded-full bg-blue-50 text-[#2874f0] flex items-center justify-center text-xs">
+          <i class="fas fa-box-open"></i>
+        </div>
+      </div>
+      <div class="mt-2">
+        <span class="text-xl sm:text-2xl font-black text-[#212121]" id="kpiTotalOrders">
+          {{ overview.total if overview else orders|length }}
+        </span>
+        <p class="text-[10px] text-[#878787] font-medium truncate mt-0.5">
+          ₹<span id="kpiTotalRevenue">{{ overview.total_revenue if overview else orders|sum(attribute='total')|round(2) }}</span> GMV
+        </p>
+      </div>
+    </div>
+
+    <!-- Metric 2: Today's Orders (Live) -->
+    <div class="bg-white border border-[#e0e0e0] rounded-sm p-3.5 shadow-2xs flex flex-col justify-between">
+      <div class="flex items-center justify-between">
+        <span class="text-[11px] font-bold uppercase tracking-wider text-[#878787]">Today's Sales</span>
+        <div class="w-6 h-6 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center text-xs">
+          <i class="fas fa-chart-line"></i>
+        </div>
+      </div>
+      <div class="mt-2">
+        <span class="text-xl sm:text-2xl font-black text-emerald-600" id="kpiTodayOrders">
+          {{ overview.today_orders if overview else 0 }}
+        </span>
+        <p class="text-[10px] text-emerald-700 font-bold truncate mt-0.5">
+          ₹<span id="kpiTodayRevenue">{{ overview.today_revenue if overview else 0 }}</span> Today
+        </p>
+      </div>
+    </div>
+
+    <!-- Metric 3: Active / Processing in Society Store -->
+    <div class="bg-[#fffbf0] border border-[#ffe58f] rounded-sm p-3.5 shadow-2xs flex flex-col justify-between">
+      <div class="flex items-center justify-between">
+        <span class="text-[11px] font-bold uppercase tracking-wider text-[#d48806]">Pending / Active</span>
+        <div class="w-6 h-6 rounded-full bg-[#ffe500] text-[#874d00] flex items-center justify-center text-xs font-bold animate-pulse">
+          <i class="fas fa-store"></i>
+        </div>
+      </div>
+      <div class="mt-2">
+        <span class="text-xl sm:text-2xl font-black text-[#d48806]" id="kpiPendingOrders">
+          {{ overview.pending if overview else 0 }}
+        </span>
+        <p class="text-[10px] text-[#ad6800] font-bold truncate mt-0.5">In Society Store</p>
+      </div>
+    </div>
+
+    <!-- Metric 4: Delivered -->
+    <div class="bg-white border border-[#e0e0e0] rounded-sm p-3.5 shadow-2xs flex flex-col justify-between">
+      <div class="flex items-center justify-between">
+        <span class="text-[11px] font-bold uppercase tracking-wider text-[#878787]">Delivered</span>
+        <div class="w-6 h-6 rounded-full bg-emerald-50 text-[#388e3c] flex items-center justify-center text-xs">
+          <i class="fas fa-circle-check"></i>
+        </div>
+      </div>
+      <div class="mt-2">
+        <span class="text-xl sm:text-2xl font-black text-[#388e3c]" id="kpiDeliveredOrders">
+          {{ overview.delivered if overview else 0 }}
+        </span>
+        <p class="text-[10px] text-[#878787] font-medium truncate mt-0.5">Doorstep Complete</p>
+      </div>
+    </div>
+
+    <!-- Metric 5: Cancelled -->
+    <div class="bg-white border border-[#e0e0e0] rounded-sm p-3.5 shadow-2xs flex flex-col justify-between">
+      <div class="flex items-center justify-between">
+        <span class="text-[11px] font-bold uppercase tracking-wider text-[#878787]">Cancelled</span>
+        <div class="w-6 h-6 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center text-xs">
+          <i class="fas fa-circle-xmark"></i>
+        </div>
+      </div>
+      <div class="mt-2">
+        <span class="text-xl sm:text-2xl font-black text-rose-600" id="kpiCancelledOrders">
+          {{ overview.cancelled if overview else 0 }}
+        </span>
+        <p class="text-[10px] text-[#878787] font-medium truncate mt-0.5">Rejected / Void</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- 3. QUICK STATUS TABS & SEARCH / FILTER CONTROLS -->
+  <!-- ======================================================== -->
+  <div class="bg-white border border-[#e0e0e0] rounded-sm p-3 shadow-xs space-y-3">
+    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+      
+      <!-- Filter Status Tabs (Flipkart Pills) -->
+      <div class="flex flex-wrap items-center gap-1.5" id="statusTabsGroup">
+        <button 
+          type="button" 
+          onclick="applyStatusFilter('all')" 
+          class="filter-pill active px-3 py-1.5 rounded-sm border border-[#e0e0e0] text-xs font-semibold text-[#212121] bg-white flex items-center gap-1.5"
+          data-filter="all"
+        >
+          <span>All Orders</span>
+          <span class="pill-count px-1.5 py-0.2 rounded-full text-[10px] bg-slate-100 font-bold" id="countAllTab">
+            {{ orders|length }}
+          </span>
+        </button>
+
+        <button 
+          type="button" 
+          onclick="applyStatusFilter('pending')" 
+          class="filter-pill px-3 py-1.5 rounded-sm border border-[#e0e0e0] text-xs font-semibold text-[#212121] bg-white flex items-center gap-1.5"
+          data-filter="pending"
+        >
+          <span class="w-2 h-2 rounded-full bg-[#fb641b] {% if overview and overview.pending > 0 %}animate-pulse{% endif %}"></span>
+          <span>Pending / Store Processing</span>
+          <span class="pill-count px-1.5 py-0.2 rounded-full text-[10px] bg-amber-50 text-amber-800 font-bold" id="countPendingTab">
+            {{ overview.pending if overview else 0 }}
+          </span>
+        </button>
+
+        <button 
+          type="button" 
+          onclick="applyStatusFilter('delivered')" 
+          class="filter-pill px-3 py-1.5 rounded-sm border border-[#e0e0e0] text-xs font-semibold text-[#212121] bg-white flex items-center gap-1.5"
+          data-filter="delivered"
+        >
+          <span>Delivered</span>
+          <span class="pill-count px-1.5 py-0.2 rounded-full text-[10px] bg-emerald-50 text-emerald-800 font-bold" id="countDeliveredTab">
+            {{ overview.delivered if overview else 0 }}
+          </span>
+        </button>
+
+        <button 
+          type="button" 
+          onclick="applyStatusFilter('cancelled')" 
+          class="filter-pill px-3 py-1.5 rounded-sm border border-[#e0e0e0] text-xs font-semibold text-[#212121] bg-white flex items-center gap-1.5"
+          data-filter="cancelled"
+        >
+          <span>Cancelled</span>
+          <span class="pill-count px-1.5 py-0.2 rounded-full text-[10px] bg-rose-50 text-rose-800 font-bold" id="countCancelledTab">
+            {{ overview.cancelled if overview else 0 }}
+          </span>
+        </button>
+      </div>
+
+      <!-- Live Search & Sort Controls -->
+      <div class="flex items-center gap-2 w-full lg:w-auto">
+        <!-- Search Input -->
+        <div class="relative flex-1 lg:w-72">
+          <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[#878787] text-xs">
+            <i class="fas fa-search"></i>
+          </span>
+          <input 
+            type="text" 
+            id="orderSearchInput" 
+            oninput="filterAndRenderOrders()" 
+            placeholder="Search order ID, customer, phone, society..." 
+            class="w-full pl-8 pr-3 py-1.5 text-xs text-[#212121] bg-[#f8faff] border border-[#e0e0e0] rounded-sm focus:outline-none focus:border-[#2874f0] focus:ring-1 focus:ring-[#2874f0]/20 font-medium"
+          >
+        </div>
+
+        <!-- Sort Dropdown -->
+        <select 
+          id="orderSortSelect" 
+          onchange="filterAndRenderOrders()" 
+          class="fk-select-clean text-xs font-semibold text-[#212121] bg-white border border-[#e0e0e0] rounded-sm px-2.5 py-1.5 outline-none focus:border-[#2874f0] cursor-pointer"
+        >
+          <option value="newest">Latest Orders First</option>
+          <option value="oldest">Oldest Orders First</option>
+          <option value="amount_desc">Amount: High to Low</option>
+          <option value="amount_asc">Amount: Low to High</option>
+        </select>
+      </div>
+
+    </div>
+
+    <!-- Filter Counter Badge Bar -->
+    <div class="flex items-center justify-between text-[11px] text-[#878787] pt-2 border-t border-[#f0f0f0]">
+      <span id="filteredOrdersCount">Showing {{ orders|length }} orders</span>
+      <span class="font-medium text-[#2874f0]">Auto-refreshing live orders without page reload</span>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- 4. ORDERS LIST ACCORDION CONTAINER -->
+  <!-- ======================================================== -->
+  <div id="ordersContainer" class="space-y-3">
+    {% if orders %}
+      {% for o in orders %}
+        {% include "admin_order_card_snippet.html" %}
+      {% endfor %}
+    {% else %}
+      <div id="noOrdersPlaceholder" class="bg-white border border-dashed border-[#e0e0e0] rounded-sm p-12 text-center shadow-2xs">
+        <div class="w-16 h-16 mx-auto rounded-full bg-blue-50 text-[#2874f0] flex items-center justify-center text-2xl mb-3">
+          <i class="fas fa-boxes-packing"></i>
+        </div>
+        <h3 class="text-base font-bold text-[#212121]">No Customer Orders Found</h3>
+        <p class="text-xs text-[#878787] max-w-sm mx-auto mt-1">
+          When customers place grocery orders on Jippy Store, they will instantly appear here with real-time sound alert and live status tracking.
+        </p>
+      </div>
+    {% endif %}
+  </div>
+
+</div>
+
+<!-- ======================================================== -->
+  <!-- REAL-TIME NEW ORDER AUDIO ELEMENT & FLOATING TOAST -->
+<!-- ======================================================== -->
+<audio id="newOrderAudio" preload="auto">
+  <source src="/static/sounds/new_order.wav?v=2" type="audio/wav">
+  <source src="/static/sounds/new_order.mp3?v=2" type="audio/mpeg">
+</audio>
+
+<!-- Floating Toast Notification on Top Right -->
+<div id="newOrderToast" class="fixed top-16 right-4 z-[9999] bg-[#172337] text-white p-3.5 rounded-sm shadow-xl border border-white/20 hidden transition-all duration-300 max-w-sm">
+  <div class="flex items-start gap-3">
+    <div class="w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0 animate-bounce">
+      <i class="fas fa-bell text-sm"></i>
+    </div>
+    <div class="flex-1 min-w-0">
+      <div class="flex items-center justify-between gap-2">
+        <span class="text-xs font-black uppercase text-[#ffe500] tracking-wide">New Order Alert!</span>
+        <button type="button" onclick="dismissToast()" class="text-white/60 hover:text-white text-xs">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <p class="text-xs font-bold text-white mt-0.5 truncate" id="toastOrderTitle">#ORD-...</p>
+      <p class="text-[11px] text-white/80 mt-0.5" id="toastOrderSubtitle">Placed just now</p>
+    </div>
+</div>
+
+<!-- Interactive Notification Diagnostic & Fix Modal -->
+<div id="notificationDiagModal" class="fixed inset-0 z-[10000] bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 hidden animate-fade-in">
+  <div class="bg-white w-full max-w-lg rounded-sm shadow-2xl border border-[#e0e0e0] overflow-hidden flex flex-col">
+    <!-- Header -->
+    <div class="bg-[#2874f0] text-white px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <i class="fas fa-satellite-dish text-[#ffe500] text-sm"></i>
+        <h3 class="text-sm font-bold">Browser Alerts Diagnostic &amp; Fix Center</h3>
+      </div>
+      <button type="button" onclick="closeNotificationDiagnostics()" class="text-white/80 hover:text-white text-base">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+
+    <!-- Body -->
+    <div class="p-4 space-y-3.5 text-xs">
+      <!-- Status Cards Grid -->
+      <div class="grid grid-cols-2 gap-2">
+        <div class="p-2.5 bg-slate-50 border border-slate-200 rounded-xs">
+          <div class="text-[10px] text-slate-500 font-bold uppercase">1. Browser Support</div>
+          <div class="text-xs font-black text-emerald-600 mt-0.5 flex items-center gap-1.5" id="diagSupportStatus">
+            <i class="fas fa-check-circle"></i> Supported
+          </div>
+        </div>
+        <div class="p-2.5 bg-slate-50 border border-slate-200 rounded-xs">
+          <div class="text-[10px] text-slate-500 font-bold uppercase">2. Permission Status</div>
+          <div class="text-xs font-black mt-0.5 flex items-center gap-1.5" id="diagPermissionStatus">
+            <span class="w-2 h-2 rounded-full bg-amber-400"></span> Checking...
+          </div>
+        </div>
+        <div class="p-2.5 bg-slate-50 border border-slate-200 rounded-xs">
+          <div class="text-[10px] text-slate-500 font-bold uppercase">3. Service Worker</div>
+          <div class="text-xs font-black text-slate-700 mt-0.5 flex items-center gap-1.5" id="diagSwStatus">
+            <i class="fas fa-spinner fa-spin"></i> Checking SW...
+          </div>
+        </div>
+        <div class="p-2.5 bg-slate-50 border border-slate-200 rounded-xs">
+          <div class="text-[10px] text-slate-500 font-bold uppercase">4. Windows Alerts</div>
+          <div class="text-xs font-bold text-slate-700 mt-0.5 flex items-center gap-1.5" id="diagWinStatus">
+            <i class="fab fa-windows text-blue-500"></i> Active Channel
+          </div>
+        </div>
+      </div>
+
+      <!-- Action & Fix Box -->
+      <div id="diagFixBox" class="p-3 bg-amber-50 border border-amber-200 rounded-xs space-y-1.5">
+        <div class="font-bold text-amber-900 flex items-center gap-1.5 text-xs">
+          <i class="fas fa-exclamation-triangle text-amber-600"></i>
+          <span id="diagFixTitle">Action Needed to Receive Alerts</span>
+        </div>
+        <p class="text-[11px] text-amber-800 leading-relaxed" id="diagFixDesc">
+          Loading instructions...
+        </p>
+        <div id="diagFixActionArea" class="pt-1 flex gap-2">
+          <!-- Dynamically populated buttons -->
+        </div>
+      </div>
+
+      <!-- Live Test Execution Box -->
+      <div class="p-3 bg-[#172337] text-white rounded-xs space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="text-[10px] font-black uppercase tracking-wider text-slate-400">Live Test Terminal</span>
+          <button type="button" onclick="runDiagnosticTest()" class="px-2.5 py-1 bg-[#2874f0] hover:bg-blue-600 text-[11px] font-bold text-white rounded-xs transition-all active:scale-95 flex items-center gap-1.5">
+            <i class="fas fa-bolt text-[#ffe500]"></i> Run Live Alert Test
+          </button>
+        </div>
+        <div id="diagLogBox" class="font-mono text-[10.5px] bg-black/40 p-2 rounded-xs max-h-28 overflow-y-auto space-y-1 text-slate-300">
+          <div>Click "Run Live Alert Test" to test audio chime + Windows toast popup.</div>
+        </div>
+      </div>
+
+      <!-- Windows Notification Guidance -->
+      <div class="text-[10.5px] text-slate-500 bg-slate-50 p-2.5 rounded-xs border border-slate-200 space-y-1">
+        <div class="font-bold text-slate-700 flex items-center gap-1">
+          <i class="fab fa-windows text-blue-600"></i> Important for Windows 10 &amp; 11:
+        </div>
+        <div>
+          If sound plays but popup doesn't appear on screen: Turn <strong>OFF "Do Not Disturb / Focus Assist"</strong> (moon icon near the clock at bottom-right of Windows).
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="bg-slate-50 px-4 py-2.5 border-t border-slate-200 flex justify-end gap-2">
+      <button type="button" onclick="closeNotificationDiagnostics()" class="px-3 py-1 bg-white border border-slate-300 text-slate-700 text-xs font-bold rounded-xs hover:bg-slate-100">
+        Close
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================== -->
+<!-- CLIENT-SIDE SCRIPT: ZERO RELOAD & REAL-TIME DISPATCH -->
+<!-- ======================================================== -->
+<script>
+  let currentFilter = 'all';
+  let soundAlertsEnabled = localStorage.getItem('adminOrderSoundEnabled') !== 'false';
+  let knownOrderIds = new Set();
+
+  // Populate known IDs on initial page load
+  document.querySelectorAll('#ordersContainer [data-order-id]').forEach(el => {
+    knownOrderIds.add(el.getAttribute('data-order-id'));
+  });
+
+  // Sound State Initializer
+  function updateSoundButtonUI() {
+    const icon = document.getElementById('soundIcon');
+    const label = document.getElementById('soundLabel');
+    if (soundAlertsEnabled) {
+      icon.className = 'fas fa-volume-high text-[#2874f0]';
+      label.innerText = 'Sound: ON';
+    } else {
+      icon.className = 'fas fa-volume-xmark text-slate-400';
+      label.innerText = 'Sound: MUTED';
+    }
+  }
+  updateSoundButtonUI();
+
+  // Desktop Browser Notification Management
+  function updateNotificationButtonUI() {
+    const btn = document.getElementById('notifToggleBtn');
+    const label = document.getElementById('notifLabel');
+    const icon = document.getElementById('notifIcon');
+    const banner = document.getElementById('notifPermissionBanner');
+    if (!btn || !label || !icon) return;
+
+    if (!("Notification" in window)) {
+      btn.style.display = 'none';
+      if (banner) banner.style.display = 'none';
+      return;
+    }
+
+    if (Notification.permission === 'granted') {
+      icon.className = 'fas fa-bell text-emerald-600';
+      label.innerText = 'Desktop: ON';
+      btn.className = 'flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 text-xs font-bold text-emerald-700 rounded-sm transition-all active:scale-95 shadow-2xs';
+      btn.title = 'Browser notifications are active. Click to test.';
+      if (banner) {
+        banner.classList.add('hidden');
+        banner.style.setProperty('display', 'none', 'important');
+      }
+    } else if (Notification.permission === 'denied') {
+      icon.className = 'fas fa-bell-slash text-slate-400';
+      label.innerText = 'Desktop: BLOCKED';
+      btn.className = 'flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-50 border border-slate-200 text-xs font-bold text-slate-400 rounded-sm transition-all shadow-2xs';
+      btn.title = 'Notifications are blocked in your browser settings. Click your browser lock icon to allow.';
+      if (banner) {
+        banner.classList.add('hidden');
+        banner.style.setProperty('display', 'none', 'important');
+      }
+    } else {
+      icon.className = 'fas fa-bell text-[#2874f0] animate-bounce';
+      label.innerText = 'Desktop Alerts';
+      btn.className = 'flex items-center gap-1.5 px-2.5 py-1.5 bg-blue-50 border border-[#2874f0]/30 hover:bg-[#2874f0] hover:text-white text-xs font-bold text-[#2874f0] rounded-sm transition-all active:scale-95 shadow-2xs';
+      btn.title = 'Click to enable instant desktop notifications';
+      if (banner) {
+        if (sessionStorage.getItem('dismissNotifBanner') !== 'true') {
+          banner.classList.remove('hidden');
+          banner.style.removeProperty('display');
+          banner.style.display = 'flex';
+        } else {
+          banner.classList.add('hidden');
+          banner.style.setProperty('display', 'none', 'important');
+        }
+      }
+    }
+  }
+  updateNotificationButtonUI();
+
+  // Listen for real-time permission changes (e.g. if user unblocks or changes permission in address bar)
+  if ('permissions' in navigator && navigator.permissions.query) {
+    try {
+      navigator.permissions.query({ name: 'notifications' }).then(status => {
+        status.onchange = () => {
+          updateNotificationButtonUI();
+        };
+      }).catch(() => {});
+    } catch (e) {}
+  }
+
+  // Service Worker Registration for Guaranteed Desktop Notifications on localhost
+  let swRegistration = null;
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js').then(reg => {
+      swRegistration = reg;
+      if (typeof syncPushSubscription === 'function' && Notification.permission === 'granted') {
+        syncPushSubscription();
+      }
+    }).catch(err => {
+      navigator.serviceWorker.register('/static/sw.js').then(reg => {
+        swRegistration = reg;
+        if (typeof syncPushSubscription === 'function' && Notification.permission === 'granted') {
+          syncPushSubscription();
+        }
+      }).catch(e => console.warn('SW registration skipped:', e));
+    });
+
+    navigator.serviceWorker.addEventListener('message', event => {
+      if (event.data && event.data.type === 'FOCUS_ORDER') {
+        focusOrderCard(event.data.orderId);
+      }
+    });
+  }
+
+  // Desktop PWA Installation & Standalone Mode Detection
+  let deferredInstallPrompt = null;
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    const btn = document.getElementById('pwaInstallBtn');
+    if (btn) btn.classList.remove('hidden');
+  });
+
+  async function installDesktopApp() {
+    if (!deferredInstallPrompt) {
+      alert("💡 To Install as a Desktop App on your PC:\n\n1. Look at your Chrome address bar (URL bar) on the right side: Click the computer icon 🖥️ (Install Jippy Store Admin Hub).\n\nOR\n2. Click the 3 dots menu (⋮) -> 'Save and Share' / 'Apps' -> 'Install Jippy Store Admin Hub'.\n\nOnce installed, it opens in its own window like a native Windows software and has its own Taskbar icon!");
+      return;
+    }
+    deferredInstallPrompt.prompt();
+    const { outcome } = await deferredInstallPrompt.userChoice;
+    if (outcome === 'accepted') {
+      const btn = document.getElementById('pwaInstallBtn');
+      if (btn) btn.classList.add('hidden');
+      showInlineToast("Jippy Store Admin Desktop App installed!", "success");
+    }
+    deferredInstallPrompt = null;
+  }
+
+  function checkStandaloneMode() {
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    const badge = document.getElementById('pwaStandaloneBadge');
+    const installBtn = document.getElementById('pwaInstallBtn');
+    if (isStandalone) {
+      if (badge) badge.classList.remove('hidden');
+      if (installBtn) installBtn.classList.add('hidden');
+    } else {
+      if (installBtn) installBtn.classList.remove('hidden');
+    }
+  }
+  window.addEventListener('DOMContentLoaded', checkStandaloneMode);
+  checkStandaloneMode();
+
+  function focusOrderCard(orderId) {
+    const card = document.getElementById(`orderCard-${orderId}`);
+    if (card) {
+      card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      card.classList.add('new-order-highlight');
+      toggleOrderAccordion(orderId);
+    }
+  }
+
+  // Open Notification Diagnostics & Fix Center
+  async function openNotificationDiagnostics() {
+    const modal = document.getElementById('notificationDiagModal');
+    if (!modal) return;
+    modal.classList.remove('hidden');
+
+    const permStatus = document.getElementById('diagPermissionStatus');
+    const fixTitle = document.getElementById('diagFixTitle');
+    const fixDesc = document.getElementById('diagFixDesc');
+    const fixAction = document.getElementById('diagFixActionArea');
+    const swStatus = document.getElementById('diagSwStatus');
+
+    // 1. Check SW status
+    if ('serviceWorker' in navigator) {
+      try {
+        const reg = await navigator.serviceWorker.getRegistration();
+        if (reg) {
+          swStatus.innerHTML = '<i class="fas fa-check-circle text-emerald-600"></i> Active &amp; Ready';
+          swStatus.className = 'text-xs font-black text-emerald-600 mt-0.5 flex items-center gap-1.5';
+        } else {
+          swStatus.innerHTML = '<i class="fas fa-exclamation-circle text-amber-500"></i> Registering...';
+        }
+      } catch (e) {
+        swStatus.innerHTML = '<i class="fas fa-times-circle text-red-500"></i> Error';
+      }
+    } else {
+      swStatus.innerHTML = '<i class="fas fa-times-circle text-red-500"></i> Unsupported';
+    }
+
+    // 2. Check Permission
+    const perm = ("Notification" in window) ? Notification.permission : 'unsupported';
+    if (perm === 'granted') {
+      permStatus.innerHTML = '<i class="fas fa-check-circle text-emerald-600"></i> GRANTED (Allowed)';
+      permStatus.className = 'text-xs font-black text-emerald-600 mt-0.5 flex items-center gap-1.5';
+
+      fixTitle.innerText = '✅ Browser Permission is Active!';
+      fixDesc.innerHTML = 'Chrome has allowed notifications for localhost. Click <strong>"Run Live Alert Test"</strong> below to send a live test toast directly to your Windows desktop screen.';
+      fixAction.innerHTML = '<button type="button" onclick="runDiagnosticTest()" class="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xs text-xs flex items-center gap-1.5"><i class="fas fa-bell"></i> Test Windows Popup Now</button>';
+    } else if (perm === 'denied') {
+      permStatus.innerHTML = '<i class="fas fa-ban text-red-600"></i> BLOCKED (Denied)';
+      permStatus.className = 'text-xs font-black text-red-600 mt-0.5 flex items-center gap-1.5';
+
+      fixTitle.innerText = '❌ Notifications are Currently BLOCKED in Browser';
+      fixDesc.innerHTML = '<strong>How to fix in 3 seconds:</strong><br>1. Look at your browser address bar on top: Click the <strong>🎚️ Tune/Lock icon</strong> to the left of <code>localhost:5000</code>.<br>2. Toggle <strong>Notifications</strong> to <strong>"Allow"</strong> (or ON).<br>3. Click the Reload button below!';
+      fixAction.innerHTML = '<button type="button" onclick="window.location.reload()" class="px-3 py-1 bg-[#2874f0] hover:bg-blue-600 text-white font-bold rounded-xs text-xs flex items-center gap-1.5"><i class="fas fa-arrows-rotate"></i> Reload Page After Unblocking</button>';
+    } else {
+      permStatus.innerHTML = '<i class="fas fa-question-circle text-amber-500"></i> NOT GRANTED (Default)';
+      permStatus.className = 'text-xs font-black text-amber-500 mt-0.5 flex items-center gap-1.5';
+
+      fixTitle.innerText = '⚠️ Permission Required';
+      fixDesc.innerHTML = 'Click the button below to grant notification permission. A browser prompt will ask: <em>"localhost:5000 wants to show notifications"</em>. Select <strong>"Allow"</strong>.';
+      fixAction.innerHTML = '<button type="button" onclick="requestBrowserPermissionFromModal()" class="px-3 py-1 bg-[#2874f0] hover:bg-blue-600 text-white font-bold rounded-xs text-xs flex items-center gap-1.5"><i class="fas fa-check"></i> Allow Notifications Prompt</button>';
+    }
+  }
+
+  function closeNotificationDiagnostics() {
+    const modal = document.getElementById('notificationDiagModal');
+    if (modal) modal.classList.add('hidden');
+  }
+
+  async function requestBrowserPermissionFromModal() {
+    try {
+      const res = await Notification.requestPermission();
+      const banner = document.getElementById('notifPermissionBanner');
+      if (banner && (res === 'granted' || res === 'denied')) {
+        banner.classList.add('hidden');
+        banner.style.setProperty('display', 'none', 'important');
+        sessionStorage.setItem('dismissNotifBanner', 'true');
+      }
+      updateNotificationButtonUI();
+      openNotificationDiagnostics();
+      if (res === 'granted') {
+        runDiagnosticTest();
+      }
+    } catch (e) {
+      alert("Error requesting permission: " + e.message);
+    }
+  }
+
+  function logDiag(msg, type = 'info') {
+    const box = document.getElementById('diagLogBox');
+    if (!box) return;
+    const time = new Date().toLocaleTimeString();
+    const color = type === 'success' ? 'text-emerald-400' : (type === 'error' ? 'text-red-400' : 'text-slate-300');
+    const line = document.createElement('div');
+    line.className = color;
+    line.innerText = `[${time}] ${msg}`;
+    box.appendChild(line);
+    box.scrollTop = box.scrollHeight;
+  }
+
+  async function runDiagnosticTest() {
+    logDiag("🚀 Starting end-to-end notification test...", "info");
+    
+    // 1. Play chime audio
+    logDiag("1. Playing signature Flipkart prosperity chime...", "info");
+    try {
+      playAlertSound(true);
+      logDiag("✅ Audio chime triggered successfully!", "success");
+    } catch (e) {
+      logDiag("⚠️ Audio play warning: " + e.message, "error");
+    }
+
+    // 2. Check Permission
+    if (!("Notification" in window)) {
+      logDiag("❌ Notification API not supported in this browser!", "error");
+      return;
+    }
+    if (Notification.permission !== "granted") {
+      logDiag(`❌ Cannot trigger popup: Permission is currently "${Notification.permission}". Please grant permission above.`, "error");
+      return;
+    }
+
+    // 3. Trigger Notification
+    logDiag("2. Sending native notification to Windows Action Center...", "info");
+    const result = await triggerDesktopNotification("🛒 Jippy Store: Test Alert Received!", {
+      body: "Test notification delivered successfully on localhost! Real incoming orders will pop up here.",
+      icon: "/static/logo.jpeg",
+      tag: "test-diag-" + Date.now()
+    });
+
+    if (result) {
+      logDiag("✅ Native Notification dispatched to Windows OS!", "success");
+      logDiag("👉 Look at the bottom-right corner of your screen for the popup toast banner.", "info");
+      logDiag("ℹ️ Note: If no popup appears on screen, check that Windows 'Do Not Disturb' (moon icon near clock) is OFF.", "info");
+    } else {
+      logDiag("⚠️ Notification dispatch finished with fallback.", "info");
+    }
+
+    // 4. Trigger floating in-page toast as visible fallback
+    showInlineToast("Notification test dispatched! Check screen bottom-right.", "success");
+  }
+
+  async function triggerDesktopNotification(title, options = {}) {
+    if (!("Notification" in window) || Notification.permission !== "granted") {
+      console.warn("Desktop notification skipped: permission is " + (window.Notification ? Notification.permission : "unavailable"));
+      return false;
+    }
+
+    const absoluteIcon = options.icon 
+      ? (options.icon.startsWith('http') ? options.icon : window.location.origin + options.icon)
+      : (window.location.origin + '/static/logo.jpeg');
+
+    const swOptions = {
+      body: options.body || '',
+      icon: absoluteIcon,
+      badge: absoluteIcon,
+      tag: options.tag || 'jippy-alert-' + Date.now(),
+      renotify: true,
+      requireInteraction: true,
+      data: options.data || { url: '/admin/orders' },
+      actions: [
+        { action: 'open_order', title: '👀 View' }
+      ]
+    };
+
+    // 1. Attempt Service Worker showNotification (Windows Native Priority)
+    if ('serviceWorker' in navigator) {
+      try {
+        const reg = await Promise.race([
+          navigator.serviceWorker.ready,
+          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 1200))
+        ]);
+        if (reg && reg.showNotification) {
+          await reg.showNotification(title, swOptions);
+          console.log("[Notification] Successfully dispatched via Service Worker:", title);
+          return true;
+        }
+      } catch (swErr) {
+        console.warn("[Notification] SW showNotification fallback:", swErr);
+      }
+    }
+
+    // 2. Fallback to standard new Notification (Sanitized options for maximum browser compatibility)
+    try {
+      const nativeNotif = new Notification(title, {
+        body: options.body || '',
+        icon: absoluteIcon,
+        tag: options.tag || 'jippy-alert-' + Date.now()
+      });
+      nativeNotif.onclick = function() {
+        window.focus();
+        if (options.data && options.data.orderId) {
+          focusOrderCard(options.data.orderId);
+        }
+        this.close();
+      };
+      console.log("[Notification] Successfully dispatched via native Notification:", title);
+      return true;
+    } catch (nativeErr) {
+      console.error("[Notification] Native Notification constructor failed:", nativeErr);
+      return false;
+    }
+  }
+
+  // Sync push subscription with server for closed-browser notifications
+  async function syncPushSubscription() {
+    try {
+      if (swRegistration && 'pushManager' in swRegistration) {
+        let subscription = await swRegistration.pushManager.getSubscription();
+        if (subscription) {
+          await fetch('/admin/api/register-push-token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              subscription: subscription.toJSON(),
+              type: 'webpush'
+            })
+          });
+        }
+      }
+    } catch (e) {
+      console.warn("Push subscription sync:", e);
+    }
+  }
+
+  async function enableBrowserNotifications() {
+    openNotificationDiagnostics();
+  }
+
+  // Instant one-click enable directly from banner (0ms lag, zero page reload needed)
+  async function quickEnableNotifications() {
+    const banner = document.getElementById('notifPermissionBanner');
+    // Immediately hide banner with 0ms delay
+    if (banner) {
+      banner.classList.add('hidden');
+      banner.style.setProperty('display', 'none', 'important');
+    }
+    sessionStorage.setItem('dismissNotifBanner', 'true');
+
+    if (!("Notification" in window)) {
+      showInlineToast("This browser does not support desktop notifications.", "warning");
+      return;
+    }
+
+    try {
+      const permission = await Notification.requestPermission();
+      updateNotificationButtonUI();
+
+      if (permission === 'granted') {
+        showInlineToast("🔔 Desktop notifications enabled successfully!", "success");
+        playAlertSound(true);
+        if (typeof syncPushSubscription === 'function') {
+          syncPushSubscription();
+        }
+        triggerDesktopNotification("🔔 Jippy Store Alerts Active!", {
+          body: "Desktop notifications enabled! Incoming orders will alert here in real-time.",
+          icon: "/static/logo.jpeg"
+        });
+      } else if (permission === 'denied') {
+        showInlineToast("Notifications are blocked in your browser settings.", "warning");
+        openNotificationDiagnostics();
+      }
+    } catch (err) {
+      console.warn("quickEnableNotifications error:", err);
+      updateNotificationButtonUI();
+    }
+  }
+
+  function dismissNotifBanner() {
+    const banner = document.getElementById('notifPermissionBanner');
+    if (banner) {
+      banner.classList.add('hidden');
+      banner.style.setProperty('display', 'none', 'important');
+    }
+    sessionStorage.setItem('dismissNotifBanner', 'true');
+  }
+
+  function toggleSoundAlerts() {
+    soundAlertsEnabled = !soundAlertsEnabled;
+    localStorage.setItem('adminOrderSoundEnabled', soundAlertsEnabled);
+    updateSoundButtonUI();
+    showInlineToast(soundAlertsEnabled ? 'Sound alert enabled for incoming orders.' : 'Sound muted.', 'info');
+  }
+
+  // Test Tune Button Handler
+  function testAlertSound() {
+    playAlertSound(true);
+    showInlineToast('Playing New Order Signature Tune 🔔', 'info');
+  }
+
+  // Play audio alert with high-fidelity Web Audio API chime fallback
+  function playAlertSound(force = false) {
+    if (!soundAlertsEnabled && !force) return;
+    const audio = document.getElementById('newOrderAudio');
+    let played = false;
+    if (audio) {
+      audio.currentTime = 0;
+      audio.play().then(() => {
+        played = true;
+      }).catch(() => {
+        // Fallback to high-end Web Audio API synthesizer
+        playWebAudioChime();
+      });
+    } else {
+      playWebAudioChime();
+    }
+  }
+
+  // Studio-Quality Multi-Harmonic Marimba/Chime Synthesizer
+  function playWebAudioChime() {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      if (ctx.state === 'suspended') ctx.resume();
+
+      // Signature 5-note melodic prosperity arpeggio: C5 -> E5 -> G5 -> C6 -> E6 + Sparkles
+      const notes = [
+        { f: 523.25, t: 0.00, d: 0.45, v: 0.25 }, // C5
+        { f: 659.25, t: 0.14, d: 0.45, v: 0.28 }, // E5
+        { f: 783.99, t: 0.28, d: 0.50, v: 0.30 }, // G5
+        { f: 1046.50, t: 0.42, d: 0.70, v: 0.35 }, // C6
+        { f: 1318.51, t: 0.58, d: 1.10, v: 0.38 }, // E6
+        { f: 1567.98, t: 0.78, d: 0.85, v: 0.20 }, // G6 sparkle
+        { f: 2093.00, t: 0.92, d: 1.05, v: 0.22 }  // C7 sparkle
+      ];
+
+      notes.forEach(n => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle'; // warm, pleasant bell/marimba harmonic
+        osc.frequency.setValueAtTime(n.f, ctx.currentTime + n.t);
+
+        // Quick attack, smooth exponential decay
+        gain.gain.setValueAtTime(0.0001, ctx.currentTime + n.t);
+        gain.gain.exponentialRampToValueAtTime(n.v, ctx.currentTime + n.t + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + n.t + n.d);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(ctx.currentTime + n.t);
+        osc.stop(ctx.currentTime + n.t + n.d + 0.05);
+      });
+    } catch (e) {
+      console.warn("Audio chime error:", e);
+    }
+  }
+
+  let titleAlertInterval = null;
+  const originalDocTitle = document.title || 'Jippy Store | Master Admin';
+
+  function startTitleFlashing(orderId, amount) {
+    if (titleAlertInterval) clearInterval(titleAlertInterval);
+    let flash = false;
+    titleAlertInterval = setInterval(() => {
+      document.title = flash ? `🚨 (1) NEW ORDER ₹${amount}! 🛒` : `🔔 Order #${orderId.slice(-6).toUpperCase()} Placed!`;
+      flash = !flash;
+    }, 900);
+
+    const stopFlashing = () => {
+      if (titleAlertInterval) {
+        clearInterval(titleAlertInterval);
+        titleAlertInterval = null;
+        document.title = originalDocTitle;
+      }
+      window.removeEventListener('focus', stopFlashing);
+      window.removeEventListener('click', stopFlashing);
+    };
+    window.addEventListener('focus', stopFlashing);
+    window.addEventListener('click', stopFlashing);
+  }
+
+  // Toast Notification
+  function showNewOrderToast(orderId, customerName, totalAmount) {
+    const toast = document.getElementById('newOrderToast');
+    document.getElementById('toastOrderTitle').innerText = `Order #${orderId.slice(-8).toUpperCase()} (₹${totalAmount})`;
+    document.getElementById('toastOrderSubtitle').innerText = `Customer: ${customerName || 'Resident'}`;
+    toast.classList.remove('hidden');
+    playAlertSound();
+    startTitleFlashing(orderId, totalAmount);
+
+    // Trigger Rich Native Desktop Notification
+    triggerDesktopNotification(`🛒 New Order: ₹${totalAmount}`, {
+      body: `Order #${orderId.slice(-8).toUpperCase()} by ${customerName || 'Resident'}\nClick to view and inspect order details.`,
+      icon: "/static/logo.jpeg",
+      badge: "/static/logo.jpeg",
+      tag: `order-${orderId}`,
+      renotify: true,
+      data: { orderId: orderId }
+    });
+
+    setTimeout(() => {
+      toast.classList.add('hidden');
+    }, 8000);
+  }
+
+  function dismissToast() {
+    document.getElementById('newOrderToast').classList.add('hidden');
+  }
+
+  // Accordion Toggle Function
+  function toggleOrderAccordion(orderId) {
+    const card = document.getElementById(`orderCard-${orderId}`);
+    const details = document.getElementById(`orderDetails-${orderId}`);
+    if (!card || !details) return;
+
+    const isCurrentlyOpen = card.classList.contains('accordion-open');
+    if (isCurrentlyOpen) {
+      card.classList.remove('accordion-open');
+      details.classList.add('hidden');
+    } else {
+      card.classList.add('accordion-open');
+      details.classList.remove('hidden');
+    }
+  }
+
+  // Copy text helper
+  function copyTextToClipboard(text, btnElement) {
+    navigator.clipboard.writeText(text).then(() => {
+      const originalHTML = btnElement.innerHTML;
+      btnElement.innerHTML = '<i class="fas fa-check text-emerald-600"></i> Copied';
+      setTimeout(() => {
+        btnElement.innerHTML = originalHTML;
+      }, 1800);
+    }).catch(() => {});
+  }
+
+  // Tab Filtering
+  function applyStatusFilter(status) {
+    currentFilter = status;
+    document.querySelectorAll('#statusTabsGroup .filter-pill').forEach(btn => {
+      if (btn.getAttribute('data-filter') === status) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    });
+    filterAndRenderOrders();
+  }
+
+  // Filter and Sort Orders client-side instantly
+  function filterAndRenderOrders() {
+    const searchQuery = (document.getElementById('orderSearchInput').value || '').trim().toLowerCase();
+    const sortVal = document.getElementById('orderSortSelect').value;
+    const cards = Array.from(document.querySelectorAll('#ordersContainer > [data-order-id]'));
+
+    let visibleCount = 0;
+
+    cards.forEach(card => {
+      const cardStatus = (card.getAttribute('data-status') || '').toLowerCase();
+      const cardSearchText = (card.getAttribute('data-search') || '').toLowerCase();
+
+      // Check Status tab filter
+      let matchesStatus = false;
+      if (currentFilter === 'all') {
+        matchesStatus = true;
+      } else if (currentFilter === 'pending') {
+        matchesStatus = (cardStatus !== 'delivered' && cardStatus !== 'cancelled' && cardStatus !== 'canceled');
+      } else if (currentFilter === 'delivered') {
+        matchesStatus = (cardStatus === 'delivered');
+      } else if (currentFilter === 'cancelled') {
+        matchesStatus = (cardStatus === 'cancelled' || cardStatus === 'canceled');
+      }
+
+      // Check Search Query
+      const matchesSearch = !searchQuery || cardSearchText.includes(searchQuery);
+
+      if (matchesStatus && matchesSearch) {
+        card.style.display = '';
+        visibleCount++;
+      } else {
+        card.style.display = 'none';
+      }
+    });
+
+    // Sort visible cards
+    const container = document.getElementById('ordersContainer');
+    cards.sort((a, b) => {
+      const timeA = parseFloat(a.getAttribute('data-timestamp') || 0);
+      const timeB = parseFloat(b.getAttribute('data-timestamp') || 0);
+      const amtA = parseFloat(a.getAttribute('data-amount') || 0);
+      const amtB = parseFloat(b.getAttribute('data-amount') || 0);
+
+      if (sortVal === 'newest') return timeB - timeA;
+      if (sortVal === 'oldest') return timeA - timeB;
+      if (sortVal === 'amount_desc') return amtB - amtA;
+      if (sortVal === 'amount_asc') return amtA - amtB;
+      return 0;
+    });
+
+    cards.forEach(card => container.appendChild(card));
+    document.getElementById('filteredOrdersCount').innerText = `Showing ${visibleCount} order${visibleCount !== 1 ? 's' : ''}`;
+  }
+
+  // ========================================================
+  // AJAX ACTIONS: ZERO RELOAD STATUS & ASSIGNMENT
+  // ========================================================
+
+  // 1. Update Main Order Status via AJAX
+  async function ajaxUpdateOrderStatus(orderId, selectElement) {
+    const newStatus = selectElement.value;
+    if (!newStatus) return;
+
+    let cancelReason = '';
+    if (newStatus === 'CANCELLED') {
+      cancelReason = prompt('Please specify a cancellation reason for the customer:');
+      if (cancelReason === null) {
+        // cancelled prompt, revert selection
+        selectElement.value = selectElement.getAttribute('data-current-status') || '';
+        return;
+      }
+    }
+
+    try {
+      selectElement.disabled = true;
+      const formData = new FormData();
+      formData.append('status', newStatus);
+      if (cancelReason) formData.append('cancel_reason', cancelReason);
+      formData.append('is_ajax', '1');
+
+      const response = await fetch(`/admin/order/${orderId}/status`, {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        body: formData
+      });
+
+      const res = await response.json();
+      if (res.success) {
+        selectElement.setAttribute('data-current-status', newStatus);
+        
+        // Update status badge UI in card header
+        const card = document.getElementById(`orderCard-${orderId}`);
+        if (card) {
+          card.setAttribute('data-status', newStatus.toLowerCase());
+          const badge = card.querySelector('.order-status-pill');
+          if (badge) {
+            badge.className = `order-status-pill text-[11px] font-bold px-2 py-0.5 rounded-sm uppercase tracking-wider flex items-center gap-1.5 ${getStatusBadgeClass(newStatus)}`;
+            badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full ${getStatusDotClass(newStatus)}"></span><span>${newStatus.replace(/_/g, ' ')}</span>`;
+          }
+          // Update timeline stepper
+          updateStepperUI(card, newStatus);
+        }
+        showInlineToast(`Order #${orderId.slice(-8)} updated to ${newStatus.replace(/_/g, ' ')}`, 'success');
+        refreshKPIStats();
+      } else {
+        alert(res.message || 'Failed to update order status');
+      }
+    } catch (e) {
+      alert('Network error while updating status');
+    } finally {
+      selectElement.disabled = false;
+    }
+  }
+
+  // 2. Assign Delivery Partner via AJAX
+  async function ajaxAssignDelivery(orderId, selectElement) {
+    const deliveryId = selectElement.value;
+    try {
+      selectElement.disabled = true;
+      const formData = new FormData();
+      formData.append('delivery_id', deliveryId);
+      formData.append('is_ajax', '1');
+
+      const response = await fetch(`/admin/order/${orderId}/assign-delivery`, {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        body: formData
+      });
+
+      const res = await response.json();
+      if (res.success) {
+        const card = document.getElementById(`orderCard-${orderId}`);
+        if (card) {
+          const riderBadge = card.querySelector('.rider-assigned-name');
+          if (riderBadge) {
+            riderBadge.innerText = res.delivery_name ? res.delivery_name : 'Unassigned';
+            riderBadge.className = `rider-assigned-name text-xs font-bold ${res.delivery_name ? 'text-emerald-700' : 'text-slate-400'}`;
+          }
+        }
+        showInlineToast(res.message, 'success');
+      } else {
+        alert(res.message || 'Failed to assign delivery partner');
+      }
+    } catch (e) {
+      alert('Network error while assigning delivery partner');
+    } finally {
+      selectElement.disabled = false;
+    }
+  }
+
+  // 3. Commit Vendor Items Matrix via AJAX
+  async function ajaxCommitVendorItems(orderId, formElement) {
+    try {
+      const submitBtn = formElement.querySelector('button[type="submit"]');
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin text-xs"></i> Saving...';
+      }
+
+      const formData = new FormData(formElement);
+      formData.append('is_ajax', '1');
+
+      const response = await fetch(`/admin/order/${orderId}/assign-vendor-items`, {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        body: formData
+      });
+
+      const res = await response.json();
+      if (res.success) {
+        const card = document.getElementById(`orderCard-${orderId}`);
+        if (card) {
+          const vendorStatusBadge = card.querySelector('.vendor-sourcing-status');
+          if (vendorStatusBadge) {
+            vendorStatusBadge.innerText = res.vendor_status.toUpperCase();
+            vendorStatusBadge.className = `vendor-sourcing-status px-2 py-0.5 rounded text-[10px] font-bold uppercase ${res.vendor_status === 'assigned' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200'}`;
+          }
+        }
+        showInlineToast(res.message, 'success');
+      } else {
+        alert(res.message || 'Failed to save store allocations');
+      }
+    } catch (e) {
+      alert('Network error while assigning stores');
+    } finally {
+      const submitBtn = formElement.querySelector('button[type="submit"]');
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fas fa-check text-xs"></i> Save Store Allocation';
+      }
+    }
+  }
+
+  // 4. Delete Order via AJAX
+  async function ajaxDeleteOrder(orderId) {
+    if (!confirm(`Are you sure you want to permanently delete order #${orderId.slice(-8)}? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const formData = new FormData();
+      formData.append('is_ajax', '1');
+
+      const response = await fetch(`/admin/order/${orderId}/delete`, {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        body: formData
+      });
+
+      const res = await response.json();
+      if (res.success) {
+        const card = document.getElementById(`orderCard-${orderId}`);
+        if (card) {
+          card.style.transition = 'all 0.3s ease';
+          card.style.opacity = '0';
+          card.style.transform = 'scale(0.95)';
+          setTimeout(() => {
+            card.remove();
+            knownOrderIds.delete(orderId);
+            filterAndRenderOrders();
+            refreshKPIStats();
+          }, 300);
+        }
+        showInlineToast(`Order #${orderId.slice(-8)} removed.`, 'info');
+      } else {
+        alert(res.message || 'Failed to delete order');
+      }
+    } catch (e) {
+      alert('Network error while deleting order');
+    }
+  }
+
+  // Helper classes for statuses
+  function getStatusBadgeClass(status) {
+    status = (status || '').toUpperCase();
+    if (status === 'DELIVERED') return 'status-badge-delivered';
+    if (status === 'OUT_FOR_DELIVERY') return 'status-badge-out';
+    if (status === 'CANCELLED') return 'status-badge-cancelled';
+    return 'status-badge-pending';
+  }
+  function getStatusDotClass(status) {
+    status = (status || '').toUpperCase();
+    if (status === 'DELIVERED') return 'bg-emerald-500';
+    if (status === 'OUT_FOR_DELIVERY') return 'bg-sky-500';
+    if (status === 'CANCELLED') return 'bg-rose-500';
+    return 'bg-amber-500';
+  }
+
+  function updateStepperUI(card, newStatus) {
+    const stepper = card.querySelector('.workflow-stepper-box');
+    if (!stepper) return;
+    status = (newStatus || '').toUpperCase();
+
+    const step1 = stepper.querySelector('.step-placed');
+    const step2 = stepper.querySelector('.step-packed');
+    const step3 = stepper.querySelector('.step-delivered');
+
+    if (step1) step1.className = 'step-placed flex items-center gap-1.5 text-xs font-bold text-emerald-600';
+    if (step2) step2.className = `step-packed flex items-center gap-1.5 text-xs font-bold ${['PACKED', 'READY', 'DELIVERED'].includes(status) ? 'text-emerald-600' : 'text-slate-400'}`;
+    if (step3) step3.className = `step-delivered flex items-center gap-1.5 text-xs font-bold ${status === 'DELIVERED' ? 'text-emerald-600' : (status === 'CANCELLED' || status === 'CANCELED' ? 'text-rose-600' : 'text-slate-400')}`;
+  }
+
+  // Smart Invoice Handler: Check availability before redirecting
+  function handleInvoiceDownload(orderId, fallbackStatus) {
+    const card = document.getElementById(`orderCard-${orderId}`);
+    const status = (card ? (card.getAttribute('data-status') || '') : (fallbackStatus || '')).toLowerCase();
+    
+    if (status !== 'delivered') {
+      const displayStatus = status ? status.replace(/_/g, ' ').toUpperCase() : 'PENDING';
+      showInlineToast(`Invoice not available! Order is currently "${displayStatus}". Tax invoices are generated only for DELIVERED orders.`, 'error');
+      return false;
+    }
+
+    // If delivered, proceed and open invoice in new tab
+    window.open(`/download-invoice/${orderId}`, '_blank');
+    return true;
+  }
+
+  // Floating Micro Toast for AJAX actions
+  function showInlineToast(msg, type = 'success') {
+    const el = document.createElement('div');
+    const bgClass = type === 'success' ? 'bg-emerald-600' : (type === 'error' ? 'bg-rose-600' : 'bg-slate-800');
+    const iconClass = type === 'success' ? 'fa-check-circle' : (type === 'error' ? 'fa-triangle-exclamation' : 'fa-info-circle');
+    el.className = `fixed bottom-5 right-5 z-[9999] px-4 py-2.5 rounded-sm shadow-xl text-xs font-bold text-white flex items-center gap-2 animate-fade-in ${bgClass}`;
+    el.innerHTML = `<i class="fas ${iconClass} text-sm shrink-0"></i><span>${msg}</span>`;
+    document.body.appendChild(el);
+    setTimeout(() => {
+      el.style.opacity = '0';
+      el.style.transform = 'translateY(10px)';
+      el.style.transition = 'all 0.3s ease';
+      setTimeout(() => el.remove(), 300);
+    }, 3800);
+  }
+
+  // ========================================================
+  // REAL-TIME AUTO-POLLING & HIGHLIGHTING FOR NEW ORDERS
+  // ========================================================
+  async function checkIncomingOrders() {
+    try {
+      const resp = await fetch('/admin/api/orders-feed');
+      if (!resp.ok) return;
+      const data = await resp.json();
+      if (data.status !== 'success') return;
+
+      // Update KPI counters
+      if (data.total !== undefined) {
+        document.getElementById('kpiTotalOrders').innerText = data.total;
+        document.getElementById('countAllTab').innerText = data.total;
+      }
+      if (data.pending !== undefined) {
+        document.getElementById('kpiPendingOrders').innerText = data.pending;
+        document.getElementById('countPendingTab').innerText = data.pending;
+      }
+      if (data.delivered !== undefined) {
+        document.getElementById('kpiDeliveredOrders').innerText = data.delivered;
+        document.getElementById('countDeliveredTab').innerText = data.delivered;
+      }
+      if (data.cancelled !== undefined) {
+        document.getElementById('kpiCancelledOrders').innerText = data.cancelled;
+        document.getElementById('countCancelledTab').innerText = data.cancelled;
+      }
+      if (data.today_orders !== undefined) {
+        document.getElementById('kpiTodayOrders').innerText = data.today_orders;
+      }
+      if (data.today_revenue !== undefined) {
+        document.getElementById('kpiTodayRevenue').innerText = data.today_revenue;
+      }
+      if (data.total_revenue !== undefined) {
+        document.getElementById('kpiTotalRevenue').innerText = data.total_revenue;
+      }
+
+      // Check if there are newly arrived order IDs
+      const feedOrderIds = data.order_ids || [];
+      const newArrivedIds = feedOrderIds.filter(id => !knownOrderIds.has(id));
+
+      if (newArrivedIds.length > 0) {
+        // Fetch HTML partial to inject the new cards
+        const partialResp = await fetch('/admin/command-center/partial');
+        if (partialResp.ok) {
+          const html = await partialResp.text();
+          const tempDiv = document.createElement('div');
+          tempDiv.innerHTML = html.trim();
+
+          const container = document.getElementById('ordersContainer');
+          const placeholder = document.getElementById('noOrdersPlaceholder');
+          if (placeholder) placeholder.remove();
+
+          newArrivedIds.forEach(newId => {
+            const newCard = tempDiv.querySelector(`[data-order-id="${newId}"]`);
+            if (newCard && !document.querySelector(`[data-order-id="${newId}"]`)) {
+              // Highlight newly arrived order card
+              newCard.classList.add('new-order-highlight');
+              
+              // Add shiny NEW ORDER Ribbon
+              const ribbon = document.createElement('div');
+              ribbon.className = 'new-order-badge bg-[#2874f0] text-white text-[10px] font-black px-2 py-0.5 rounded-sm uppercase tracking-wider animate-pulse inline-flex items-center gap-1 mr-2';
+              ribbon.innerHTML = '<i class="fas fa-bolt text-yellow-300"></i> NEW ORDER';
+              const refBadge = newCard.querySelector('.order-ref-title');
+              if (refBadge) refBadge.prepend(ribbon);
+
+              container.prepend(newCard);
+              knownOrderIds.add(newId);
+
+              // Pull order info for toast
+              const custName = newCard.querySelector('.customer-display-name')?.innerText || 'Customer';
+              const totalAmt = newCard.getAttribute('data-amount') || '0';
+              showNewOrderToast(newId, custName, totalAmt);
+            }
+          });
+
+          filterAndRenderOrders();
+        }
+      }
+    } catch (e) {
+      console.warn("Live order feed poll:", e);
+    }
+  }
+
+  // Manual refresh button
+  async function manualRefreshFeed() {
+    const btn = document.getElementById('manualRefreshBtn');
+    const spinner = document.getElementById('refreshSpinner');
+    if (spinner) spinner.classList.add('fa-spin');
+    await checkIncomingOrders();
+    setTimeout(() => {
+      if (spinner) spinner.classList.remove('fa-spin');
+      showInlineToast('Orders synchronized successfully', 'info');
+    }, 500);
+  }
+
+  function refreshKPIStats() {
+    checkIncomingOrders();
+  }
+
+  // Request browser Notification permission on first user click if not already prompted
+  document.addEventListener('click', () => {
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission().then(res => {
+        if (res === 'granted' || res === 'denied') {
+          const banner = document.getElementById('notifPermissionBanner');
+          if (banner) {
+            banner.classList.add('hidden');
+            banner.style.setProperty('display', 'none', 'important');
+          }
+          sessionStorage.setItem('dismissNotifBanner', 'true');
+          updateNotificationButtonUI();
+        }
+      }).catch(() => {});
+    }
+  }, { once: true });
+
+  // Start background polling every 5 seconds
+  setInterval(checkIncomingOrders, 5000);
+</script>
+{% endblock %}

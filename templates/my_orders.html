@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+
+{% block navbar %}
+<!-- 🛍️ Flipkart Style Blue Header -->
+<nav class="sticky top-0 z-[60] bg-[#2874f0] text-white px-3 sm:px-4 py-2.5 flex items-center justify-between font-['Plus_Jakarta_Sans'] shadow-md">
+   <div class="flex items-center justify-between max-w-[540px] mx-auto w-full">
+     <div class="flex items-center gap-2.5">
+       <a href="{{ url_for('index') }}" class="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center text-white hover:bg-white/15 active:scale-90 rounded-full transition-all" title="Back to Home">
+         <i class="fas fa-arrow-left text-sm sm:text-base"></i>
+       </a>
+       <div>
+         <h1 class="text-[15px] sm:text-[16px] font-bold text-white leading-tight">My Orders</h1>
+         <p class="text-[10.5px] sm:text-[11px] font-medium text-blue-100 truncate mt-0.5">Order History & Tracking</p>
+       </div>
+     </div>
+     <div class="flex items-center gap-1.5 px-2.5 py-1 bg-white/15 border border-white/20 rounded-md text-[10px] sm:text-[10.5px] font-bold text-white shadow-2xs">
+       <i class="fas fa-box-open text-yellow-300"></i>
+       <span>{{ orders|length }} ORDER{% if orders|length != 1 %}S{% endif %}</span>
+     </div>
+   </div>
+</nav>
+{% endblock %}
+
+{% block full_content %}
+<div class="bg-[#f1f3f6] min-h-[100dvh] font-['Plus_Jakarta_Sans'] pb-20 pt-2 sm:pt-3">
+  <div class="max-w-[540px] mx-auto px-2.5 sm:px-4 space-y-2">
+
+    {% if orders|length == 0 %}
+    <!-- 🛒 Empty Orders State -->
+    <div class="bg-white border border-[#e0e0e0] rounded-none sm:rounded-sm p-8 sm:p-10 flex flex-col items-center justify-center text-center shadow-2xs mt-3">
+      <div class="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mb-4 text-[#2874f0]">
+        <i class="fas fa-box-open text-3xl"></i>
+      </div>
+      <h3 class="text-[18px] font-bold text-[#212121] mb-1">No orders yet!</h3>
+      <p class="text-[12px] text-[#878787] mb-5 max-w-xs leading-relaxed">
+        Looks like you haven't placed any orders yet. Start exploring and shopping now!
+      </p>
+      <a href="{{ url_for('index') }}" class="w-full py-3 bg-[#fb641b] hover:bg-[#e85a15] active:scale-[0.98] text-white font-bold rounded-sm transition-all shadow-sm text-center text-[13px] uppercase tracking-wider">
+        Start Shopping
+      </a>
+    </div>
+
+    {% else %}
+    <div class="space-y-2">
+      {% for order in orders %}
+        {% set raw = (order.status or 'pending')|lower %}
+        {% set status =
+            'DELIVERED' if raw in ['delivered'] else
+            'CANCELLED' if raw in ['cancelled', 'canceled'] else
+            'RECEIVED'
+        %}
+        {% set is_cancelled = (status == 'CANCELLED') %}
+        {% set is_delivered = (status == 'DELIVERED') %}
+        {% set order_items = order.get('items', []) if order.get('items') else [] %}
+
+        <!-- ══════════ COMPACT ORDER CARD (Overview) ══════════ -->
+        <a href="{{ url_for('order_detail', order_id=order.order_id) }}"
+           class="block bg-white border border-[#e0e0e0] rounded-none sm:rounded-sm shadow-2xs overflow-hidden hover:shadow-md active:scale-[0.995] transition-all">
+
+          <!-- Top Row: Status Badge + Order ID + Date -->
+          <div class="px-3.5 sm:px-4 pt-3 pb-2 flex items-start justify-between gap-2">
+            <div class="min-w-0">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="px-2 py-0.5 text-[10px] font-bold rounded-sm uppercase tracking-wide
+                       {% if is_cancelled %}
+                         bg-rose-50 text-rose-700 border border-rose-200
+                       {% elif is_delivered %}
+                         bg-emerald-50 text-[#388e3c] border border-emerald-200
+                       {% else %}
+                         bg-blue-50 text-[#2874f0] border border-blue-200
+                       {% endif %}">
+                  {{ status }}
+                </span>
+                <span class="text-[11px] font-bold font-mono text-[#878787]">#{{ order.order_id[-8:]|upper }}</span>
+              </div>
+              <p class="text-[10.5px] text-[#878787] font-medium mt-1">
+                {{ order.created_at|ist_time }}
+              </p>
+            </div>
+            <i class="fas fa-chevron-right text-[#878787] text-xs mt-1 shrink-0"></i>
+          </div>
+
+          <!-- Items Preview Row -->
+          <div class="px-3.5 sm:px-4 pb-3 flex items-center gap-3">
+            <!-- Thumbnails (max 3) -->
+            <div class="flex items-center -space-x-2">
+              {% for item in order_items[:3] %}
+                {% if item.image %}
+                <div class="w-10 h-10 bg-white rounded-sm border border-[#e0e0e0] p-0.5 flex items-center justify-center shrink-0 {{ 'ring-2 ring-white' if not loop.first }}">
+                  <img src="{{ item.image }}" alt="{{ item.name }}" class="max-w-full max-h-full object-contain mix-blend-multiply" onerror="this.parentElement.innerHTML='<i class=\'fas fa-box text-slate-300 text-xs\'></i>'">
+                </div>
+                {% else %}
+                <div class="w-10 h-10 rounded-sm bg-slate-50 border border-[#e0e0e0] flex items-center justify-center text-[#878787] shrink-0 text-xs {{ 'ring-2 ring-white' if not loop.first }}">
+                  <i class="fas fa-box"></i>
+                </div>
+                {% endif %}
+              {% endfor %}
+              {% if order_items|length > 3 %}
+              <div class="w-10 h-10 rounded-sm bg-slate-50 border border-[#e0e0e0] flex items-center justify-center text-[10px] font-bold text-[#878787] ring-2 ring-white shrink-0">
+                +{{ order_items|length - 3 }}
+              </div>
+              {% endif %}
+            </div>
+
+            <!-- Item names preview -->
+            <div class="min-w-0 flex-1">
+              <p class="text-[12px] font-medium text-[#212121] truncate">
+                {{ order_items[0].name if order_items|length > 0 else 'Order' }}{% if order_items|length > 1 %}, {{ order_items[1].name }}{% endif %}
+              </p>
+              {% if order_items|length > 2 %}
+              <p class="text-[10.5px] text-[#878787] mt-0.5">
+                & {{ order_items|length - 2 }} more item{% if order_items|length - 2 != 1 %}s{% endif %}
+              </p>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Bottom Row: Total + Delivery info -->
+          <div class="px-3.5 sm:px-4 py-2.5 bg-[#f5f5f5] border-t border-[#f0f0f0] flex items-center justify-between">
+            <span class="text-[14px] font-bold text-[#212121]">₹{{ '{:,.2f}'.format((order.get('total', 0) or 0)|float) }}</span>
+            <div class="flex items-center gap-1.5 text-[10.5px] font-bold
+              {% if is_cancelled %}text-rose-600{% elif is_delivered %}text-[#388e3c]{% else %}text-[#2874f0]{% endif %}">
+              {% if is_delivered %}
+                <i class="fas fa-check-circle"></i>
+                <span>Delivered</span>
+              {% elif is_cancelled %}
+                <i class="fas fa-times-circle"></i>
+                <span>Cancelled</span>
+              {% else %}
+                <i class="fas fa-receipt"></i>
+                <span>Received</span>
+              {% endif %}
+            </div>
+          </div>
+
+        </a>
+      {% endfor %}
+    </div>
+
+    <!-- 🛡️ Trust Footer -->
+    <div class="p-3 bg-white border border-[#e0e0e0] rounded-none sm:rounded-sm flex items-center justify-center gap-2 text-[#878787] text-[11px] font-medium text-center mt-1">
+      <i class="fas fa-shield-halved text-[#388e3c]"></i>
+      <span>100% Safe & Contactless Delivery Guaranteed</span>
+    </div>
+
+    {% endif %}
+
+  </div>
+</div>
+
+<style>
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .space-y-2 > a { animation: fadeUp 0.3s ease-out both; }
+  .space-y-2 > a:nth-child(2) { animation-delay: 50ms; }
+  .space-y-2 > a:nth-child(3) { animation-delay: 100ms; }
+  .space-y-2 > a:nth-child(4) { animation-delay: 150ms; }
+  .space-y-2 > a:nth-child(5) { animation-delay: 200ms; }
+</style>
+{% endblock %}
+
+{% block mobile_nav %}{% endblock %}
+{% block footer %}{% endblock %}

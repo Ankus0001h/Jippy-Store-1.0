@@ -1,0 +1,553 @@
+{% extends "base.html" %}
+{% block content %}
+<!-- 🛍️ Flipkart Style Page Background (#f1f3f6) -->
+<div class="min-h-[100dvh] bg-[#f1f3f6] flex flex-col font-['Plus_Jakarta_Sans']">
+
+  <!-- Mobile Top Header (Flipkart Signature Blue Header) -->
+  <header class="sm:hidden sticky top-0 z-50 bg-[#2874f0] text-white px-3.5 py-3 flex items-center justify-between shadow-md">
+    <div class="flex items-center gap-3">
+      <button id="step-back-btn" type="button" onclick="handleHeaderBack()" class="w-8 h-8 flex items-center justify-center text-white hover:bg-white/15 rounded-full transition-all" title="Back">
+        <i class="fas fa-arrow-left text-sm"></i>
+      </button>
+      <div>
+        <h1 id="mobile-header-title" class="text-[16px] font-bold text-white leading-tight">Register</h1>
+        <p class="text-[10.5px] text-blue-100 font-medium">Create your Jippy Account</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-1.5 px-2 py-0.5 bg-white/15 rounded text-[10px] font-bold uppercase tracking-wide">
+      <span id="step-indicator">Step 1 of 2</span>
+    </div>
+  </header>
+
+  <!-- Step Progress Bar (Subtle Flipkart Blue Line) -->
+  <div class="w-full bg-slate-200 h-1 relative overflow-hidden">
+    <div id="progress-bar" class="h-full bg-[#2874f0] transition-all duration-300 ease-out" style="width: 50%;"></div>
+  </div>
+
+  <!-- Main Centered Modal / Split Card -->
+  <div class="flex-1 flex items-start sm:items-center justify-center p-2.5 sm:p-6 sm:py-10">
+    <div class="w-full max-w-[760px] bg-white rounded-none sm:rounded-sm border border-[#e0e0e0] shadow-md flex flex-col sm:flex-row overflow-hidden relative">
+
+      <!-- Alert Notification Banner (Flipkart Style Alert) -->
+      <div id="alert-msg" style="display: none;" class="absolute top-3 left-3 right-3 sm:left-[305px] sm:right-5 z-50 p-2.5 rounded-sm bg-red-50 border border-red-200 flex gap-2 items-center animate-fade-in shadow-xs">
+        <i class="fas fa-circle-exclamation text-red-500 text-xs shrink-0"></i>
+        <p id="alert-text" class="text-[12px] font-semibold text-red-700 leading-tight flex-1"></p>
+        <button type="button" onclick="hideAlert()" class="text-red-400 hover:text-red-700 p-0.5">
+          <i class="fas fa-times text-xs"></i>
+        </button>
+      </div>
+
+      <!-- 🟦 Left Panel (Flipkart Signature Royal Blue #2874f0) -->
+      <div class="hidden sm:flex sm:w-[290px] bg-[#2874f0] text-white p-7 sm:p-8 flex-col justify-between shrink-0 select-none">
+        <div>
+          <!-- Registration Info Text (Flipkart Authentic Greeting) -->
+          <div id="panel-reg-info">
+            <h2 class="text-[26px] font-bold text-white leading-tight tracking-tight">Looks like you're new here!</h2>
+            <p class="text-[13.5px] text-blue-100 font-medium leading-relaxed mt-3">
+              Sign up with your mobile number to get started with instant 10-minute grocery delivery.
+            </p>
+          </div>
+
+          <!-- OTP Info Text (Toggled dynamically when OTP is sent) -->
+          <div id="panel-otp-info" style="display: none;">
+            <h2 class="text-[24px] font-bold text-white leading-tight tracking-tight">Verify Mobile Number</h2>
+            <p class="text-[13.5px] text-blue-100 font-medium leading-relaxed mt-3">
+              Enter the 6-digit verification code sent to your WhatsApp number to complete registration.
+            </p>
+          </div>
+        </div>
+
+        <!-- Flipkart Decorative Graphic Illustration -->
+        <div class="pt-8">
+          <div class="w-full h-36 bg-blue-600/30 rounded-sm border border-white/15 p-4 flex flex-col items-center justify-center text-center">
+            <div class="w-14 h-14 rounded-full bg-white/15 flex items-center justify-center text-white text-2xl mb-2.5 shadow-inner">
+              <i class="fas fa-gift"></i>
+            </div>
+            <span class="text-[11.5px] font-bold text-white tracking-wider uppercase">Welcome Offers Inside</span>
+            <span class="text-[10px] text-blue-200 mt-0.5">Free Delivery on Orders Above ₹49</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ⬜ Right Panel (Clean White Content Form) -->
+      <div class="flex-1 bg-white p-5 sm:p-8 flex flex-col justify-between">
+
+        {# STEP 1: Registration Form #}
+        <form id="reg-form" class="flex flex-col flex-1 justify-between">
+          <div class="space-y-4">
+            <!-- Mobile Brand Greeting (Only on small screens) -->
+            <div class="sm:hidden text-center pt-1 pb-1">
+              <div class="w-12 h-12 rounded-sm bg-white shadow-xs border border-[#e0e0e0] mx-auto mb-2 p-1 flex items-center justify-center">
+                <img src="/static/logo.jpeg" alt="Jippy" class="max-w-full max-h-full object-contain" onerror="this.src='/static/images/placeholder.png'">
+              </div>
+              <h2 class="text-[18px] font-bold text-[#212121]">Create Jippy Account</h2>
+              <p class="text-[12px] text-[#878787] font-medium mt-0.5">Groceries delivered in 10 minutes</p>
+            </div>
+
+            <!-- Full Name Input -->
+            <div class="pt-1 sm:pt-2">
+              <label for="name" class="block text-[11px] font-bold uppercase tracking-wider text-[#878787] mb-1">
+                Full Name
+              </label>
+              <div class="flex items-center border border-[#c2c2c2] focus-within:border-[#2874f0] focus-within:ring-1 focus-within:ring-[#2874f0] rounded-sm transition-all overflow-hidden bg-white h-11">
+                <span class="w-10 flex items-center justify-center text-[#878787] shrink-0 border-r border-[#f0f0f0] bg-slate-50/50 h-full">
+                  <i class="fas fa-user text-xs"></i>
+                </span>
+                <input
+                  type="text"
+                  id="name"
+                  name="name"
+                  required
+                  class="w-full h-full px-3 text-[#212121] text-[13.5px] font-bold border-none outline-none focus:outline-none focus:ring-0 placeholder:text-[#878787] placeholder:font-normal"
+                  placeholder="e.g. Rahul Sharma"
+                  autocomplete="name"
+                />
+              </div>
+            </div>
+
+            <!-- Mobile Number Input -->
+            <div>
+              <label for="phone" class="block text-[11px] font-bold uppercase tracking-wider text-[#878787] mb-1">
+                Mobile Number
+              </label>
+              <div class="flex items-center border border-[#c2c2c2] focus-within:border-[#2874f0] focus-within:ring-1 focus-within:ring-[#2874f0] rounded-sm transition-all overflow-hidden bg-white h-11">
+                <div class="px-3 text-[13.5px] font-bold text-[#212121] bg-slate-50 border-r border-[#e0e0e0] h-full flex items-center shrink-0 select-none">
+                  🇮🇳 +91
+                </div>
+                <input
+                  type="tel"
+                  id="phone"
+                  name="phone"
+                  required
+                  maxlength="10"
+                  inputmode="numeric"
+                  pattern="[0-9]*"
+                  class="w-full h-full px-3 text-[#212121] font-bold text-[14px] outline-none border-none focus:outline-none focus:ring-0 placeholder:text-[#878787] placeholder:font-normal tracking-wide"
+                  placeholder="Enter 10-digit number"
+                  autocomplete="tel"
+                />
+              </div>
+            </div>
+
+            <!-- Email (Optional) Input -->
+            <div>
+              <div class="flex items-center justify-between mb-1">
+                <label for="email" class="block text-[11px] font-bold uppercase tracking-wider text-[#878787]">
+                  Email Address
+                </label>
+                <span class="text-[10px] text-[#878787] font-medium">Optional</span>
+              </div>
+              <div class="flex items-center border border-[#c2c2c2] focus-within:border-[#2874f0] focus-within:ring-1 focus-within:ring-[#2874f0] rounded-sm transition-all overflow-hidden bg-white h-11">
+                <span class="w-10 flex items-center justify-center text-[#878787] shrink-0 border-r border-[#f0f0f0] bg-slate-50/50 h-full">
+                  <i class="fas fa-envelope text-xs"></i>
+                </span>
+                <input
+                  type="email"
+                  id="email"
+                  name="email"
+                  class="w-full h-full px-3 text-[#212121] text-[13.5px] font-bold border-none outline-none focus:outline-none focus:ring-0 placeholder:text-[#878787] placeholder:font-normal"
+                  placeholder="name@example.com"
+                  autocomplete="email"
+                />
+              </div>
+            </div>
+
+            <!-- WhatsApp OTP Notice Pill -->
+            <div class="p-2 px-3 rounded-sm bg-emerald-50 border border-emerald-200 flex items-center gap-2">
+              <i class="fab fa-whatsapp text-emerald-600 text-sm shrink-0"></i>
+              <p class="text-[11px] font-medium text-emerald-900 leading-tight">
+                6-digit verification code will be sent to your WhatsApp
+              </p>
+            </div>
+
+            <!-- Terms & Conditions Note -->
+            <p class="text-[11px] text-[#878787] leading-relaxed">
+              By continuing, you agree to Jippy's
+              <a href="#" class="text-[#2874f0] font-semibold hover:underline">Terms of Use</a> and
+              <a href="#" class="text-[#2874f0] font-semibold hover:underline">Privacy Policy</a>.
+            </p>
+
+            <!-- Flipkart Signature Orange CTA Button (#fb641b) -->
+            <button
+              type="submit"
+              id="reg-send-btn"
+              class="w-full h-12 bg-[#fb641b] hover:bg-[#e85a15] active:scale-[0.98] text-white font-bold text-[14px] uppercase tracking-wider rounded-sm shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <span>CONTINUE</span>
+              <i class="fas fa-arrow-right text-[11px]"></i>
+            </button>
+          </div>
+
+          <!-- Bottom Footer Link (Existing User) -->
+          <div class="pt-6 sm:pt-8 mt-4 border-t border-[#f0f0f0]">
+            <a
+              href="{{ url_for('login') }}"
+              class="w-full h-11 border border-[#e0e0e0] hover:bg-slate-50 text-[#2874f0] font-bold text-[13px] uppercase tracking-wider rounded-sm transition-all flex items-center justify-center"
+            >
+              Existing User? Log In
+            </a>
+          </div>
+        </form>
+
+        {# STEP 2: WhatsApp OTP Verification Form #}
+        <form id="otp-form" class="flex flex-col flex-1 justify-between animate-fade-in" style="display:none">
+          <div class="space-y-4">
+            <!-- Header with Back to Form Button -->
+            <div class="flex items-center justify-between pb-2.5 border-b border-[#f0f0f0]">
+              <button type="button" onclick="goBackToForm()" class="inline-flex items-center gap-1.5 text-[12px] font-bold text-[#2874f0] hover:underline cursor-pointer">
+                <i class="fas fa-arrow-left text-[11px]"></i>
+                <span>Change Mobile Number</span>
+              </button>
+              <span class="text-[10px] font-bold uppercase tracking-wider text-[#388e3c] bg-green-50 px-2 py-0.5 rounded-sm border border-green-200">
+                OTP Sent
+              </span>
+            </div>
+
+            <!-- WhatsApp Phone Badge -->
+            <div class="bg-blue-50/70 border border-blue-200 rounded-sm p-3 flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <i class="fab fa-whatsapp text-emerald-600 text-lg"></i>
+                <div>
+                  <p class="text-[11px] text-[#878787] font-medium leading-none">Code sent to WhatsApp</p>
+                  <p id="display-phone" class="text-[13.5px] font-bold text-[#212121] mt-0.5"></p>
+                </div>
+              </div>
+              <button type="button" onclick="goBackToForm()" class="text-[11px] font-bold text-[#2874f0] hover:underline">
+                Edit
+              </button>
+            </div>
+
+            <!-- 6 Digit OTP Inputs -->
+            <div class="py-2">
+              <label class="block text-[11px] font-bold uppercase tracking-wider text-[#878787] mb-2 text-center">
+                Enter 6-Digit OTP Code
+              </label>
+              <div class="flex items-center justify-center gap-1.5 sm:gap-2">
+                {% for i in range(1,7) %}
+                  <input
+                    type="text"
+                    id="code{{ i }}"
+                    maxlength="1"
+                    inputmode="numeric"
+                    pattern="[0-9]*"
+                    autocomplete="one-time-code"
+                    class="w-10 h-12 sm:w-11 sm:h-13 text-center rounded-sm bg-white border border-[#c2c2c2] text-xl font-bold text-[#212121] focus:outline-none focus:border-[#2874f0] focus:ring-1 focus:ring-[#2874f0] transition-all otp-input"
+                  />
+                {% endfor %}
+              </div>
+
+              <!-- Resend Timer -->
+              <div class="flex items-center justify-center mt-4 text-[12px] font-medium">
+                <div id="resend-container" class="text-[#878787] flex items-center gap-1.5">
+                  <i class="fas fa-clock text-[10px]"></i>
+                  <span id="resend-text">Resend in <b id="timer" class="text-[#212121] font-bold">30</b>s</span>
+                </div>
+                <button type="button" id="resend-link" onclick="resendOTP()" class="text-[#2874f0] font-bold hover:underline hidden flex items-center gap-1 cursor-pointer">
+                  <i class="fas fa-rotate text-xs"></i>
+                  <span>Resend OTP on WhatsApp</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Flipkart Signature Orange Verify Button -->
+            <button
+              type="submit"
+              id="reg-verify-btn"
+              class="w-full h-12 bg-[#fb641b] hover:bg-[#e85a15] active:scale-[0.98] text-white font-bold text-[14px] uppercase tracking-wider rounded-sm shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <i class="fas fa-lock text-xs"></i>
+              <span>COMPLETE REGISTRATION</span>
+            </button>
+          </div>
+
+          <!-- Trust Badge -->
+          <div class="pt-6 mt-4 border-t border-[#f0f0f0] text-center">
+            <p class="text-[10.5px] font-medium text-[#878787] flex items-center justify-center gap-1.5">
+              <i class="fas fa-shield-halved text-[#388e3c]"></i>
+              <span>100% Safe &amp; 256-Bit Encrypted Verification</span>
+            </p>
+          </div>
+        </form>
+
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<style>
+  #reg-form input,
+  #reg-form input:focus,
+  #reg-form input:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
+    border: none !important;
+    -webkit-tap-highlight-color: transparent !important;
+  }
+  input::-webkit-outer-spin-button,
+  input::-webkit-inner-spin-button { 
+    -webkit-appearance: none; 
+    margin: 0; 
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .animate-fade-in { 
+    animation: fadeIn 0.2s ease-out forwards; 
+  }
+</style>
+
+<script>
+  let countdown;
+  let timeLeft = 30;
+
+  document.querySelectorAll('input').forEach(input => {
+    input.addEventListener('focus', () => {
+      setTimeout(() => {
+        input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 250);
+    });
+  });
+
+  function showAlert(msg) {
+    document.getElementById('alert-text').innerText = msg;
+    document.getElementById('alert-msg').style.display = 'flex';
+  }
+
+  function hideAlert() {
+    document.getElementById('alert-msg').style.display = 'none';
+  }
+
+  function handleHeaderBack() {
+    const otpForm = document.getElementById('otp-form');
+    if (otpForm.style.display !== 'none') {
+      goBackToForm();
+    } else {
+      window.location.href = "{{ url_for('login') }}";
+    }
+  }
+
+  function startCountdown() {
+    clearInterval(countdown);
+    timeLeft = 30;
+    document.getElementById('resend-container').style.display = 'inline-flex';
+    document.getElementById('resend-text').style.display = 'inline';
+    document.getElementById('resend-link').style.display = 'none';
+    document.getElementById('timer').innerText = timeLeft;
+
+    countdown = setInterval(() => {
+      timeLeft--;
+      document.getElementById('timer').innerText = timeLeft;
+      if (timeLeft <= 0) {
+        clearInterval(countdown);
+        document.getElementById('resend-container').style.display = 'none';
+        document.getElementById('resend-link').style.display = 'inline-flex';
+      }
+    }, 1000);
+  }
+
+  function resendOTP() {
+    hideAlert();
+    const rawPhone = document.getElementById('phone').value;
+    const phone = rawPhone.replace(/\D/g, "");
+    
+    const resendBtn = document.getElementById('resend-link');
+    resendBtn.innerHTML = `<i class="fas fa-circle-notch fa-spin text-xs"></i> <span>Sending...</span>`;
+    resendBtn.disabled = true;
+    
+    fetch('/api/send-whatsapp-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone: phone, action: 'register' })
+    })
+    .then(res => res.json())
+    .then(data => {
+      resendBtn.disabled = false;
+      resendBtn.innerHTML = `<i class="fas fa-rotate text-xs"></i> <span>Resend OTP on WhatsApp</span>`;
+      if (data.success) {
+        startCountdown();
+      } else {
+        showAlert(data.error || "Failed to resend OTP.");
+      }
+    })
+    .catch(err => {
+      resendBtn.disabled = false;
+      resendBtn.innerHTML = `<i class="fas fa-rotate text-xs"></i> <span>Resend OTP on WhatsApp</span>`;
+      showAlert("An error occurred. Please try again.");
+    });
+  }
+
+  document.getElementById('reg-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    hideAlert();
+    
+    const rawPhone = document.getElementById('phone').value;
+    const phone = rawPhone.replace(/\D/g, "");
+    const name = document.getElementById('name').value;
+    const btn = document.getElementById('reg-send-btn');
+
+    if (!name.trim()) {
+      showAlert("Please enter your full name.");
+      return;
+    }
+
+    if (phone.length !== 10) {
+      showAlert("Please enter a valid 10-digit mobile number.");
+      return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = `<i class="fas fa-circle-notch fa-spin mr-2"></i> <span>CONTINUING...</span>`;
+
+    fetch('/api/send-whatsapp-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone: phone, action: 'register' })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        document.getElementById('display-phone').innerText = "+91 " + phone;
+        document.getElementById('reg-form').style.display = 'none';
+        document.getElementById('otp-form').style.display = 'flex';
+        
+        // Update Desktop & Mobile Headers
+        const regInfo = document.getElementById('panel-reg-info');
+        const otpInfo = document.getElementById('panel-otp-info');
+        if (regInfo && otpInfo) {
+          regInfo.style.display = 'none';
+          otpInfo.style.display = 'block';
+        }
+        const mobTitle = document.getElementById('mobile-header-title');
+        if (mobTitle) mobTitle.innerText = "Verify OTP";
+
+        // Update progress bar
+        document.getElementById('step-indicator').innerText = "Step 2 of 2";
+        document.getElementById('progress-bar').style.width = "100%";
+        
+        // Focus first OTP field
+        setTimeout(() => {
+          const firstCode = document.getElementById('code1');
+          if (firstCode) firstCode.focus();
+        }, 150);
+
+        startCountdown();
+      } else {
+        showAlert(data.error || "Failed to send OTP.");
+      }
+      btn.disabled = false;
+      btn.innerHTML = `<span>CONTINUE</span> <i class="fas fa-arrow-right text-[11px]"></i>`;
+    })
+    .catch((error) => {
+      console.error(error);
+      showAlert("An error occurred. Please try again.");
+      btn.disabled = false;
+      btn.innerHTML = `<span>CONTINUE</span> <i class="fas fa-arrow-right text-[11px]"></i>`;
+    });
+  });
+
+  document.getElementById('otp-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    hideAlert();
+    
+    let code = "";
+    for (let i = 1; i <= 6; i++) {
+      code += document.getElementById(`code${i}`).value;
+    }
+
+    if (code.length < 6) {
+      showAlert("Please enter the complete 6-digit OTP code.");
+      return;
+    }
+
+    const btn = document.getElementById('reg-verify-btn');
+    btn.disabled = true;
+    btn.innerHTML = `<i class="fas fa-circle-notch fa-spin mr-2"></i> <span>VERIFYING...</span>`;
+
+    const name = document.getElementById('name').value;
+    const email = document.getElementById('email').value;
+
+    fetch('/api/verify-whatsapp-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        code: code, 
+        action: 'register',
+        name: name,
+        email: email
+      })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        window.location.href = data.redirect;
+      } else {
+        showAlert(data.error || "Registration failed. Invalid OTP.");
+        btn.disabled = false;
+        btn.innerHTML = `<i class="fas fa-lock text-xs"></i> <span>COMPLETE REGISTRATION</span>`;
+      }
+    })
+    .catch((error) => {
+      console.error("Verification Error:", error);
+      showAlert(error.message || "Invalid OTP. Please try again.");
+      btn.disabled = false;
+      btn.innerHTML = `<i class="fas fa-lock text-xs"></i> <span>COMPLETE REGISTRATION</span>`;
+    });
+  });
+
+  function goBackToForm() {
+    document.getElementById('otp-form').style.display = 'none';
+    document.getElementById('reg-form').style.display = 'flex';
+    
+    const regInfo = document.getElementById('panel-reg-info');
+    const otpInfo = document.getElementById('panel-otp-info');
+    if (regInfo && otpInfo) {
+      regInfo.style.display = 'block';
+      otpInfo.style.display = 'none';
+    }
+    const mobTitle = document.getElementById('mobile-header-title');
+    if (mobTitle) mobTitle.innerText = "Register";
+
+    document.getElementById('step-indicator').innerText = "Step 1 of 2";
+    document.getElementById('progress-bar').style.width = "50%";
+    hideAlert();
+    clearInterval(countdown);
+  }
+
+  // Enhanced OTP Auto-focus & Paste handling
+  const otpInputs = document.querySelectorAll('.otp-input');
+  otpInputs.forEach((input, idx) => {
+    input.addEventListener("input", (e) => {
+      const val = e.target.value.replace(/\D/g, "");
+      e.target.value = val ? val[0] : "";
+      if (e.target.value && idx < otpInputs.length - 1) {
+        otpInputs[idx + 1].focus();
+      }
+    });
+
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Backspace" && !e.target.value && idx > 0) {
+        otpInputs[idx - 1].focus();
+      }
+    });
+
+    input.addEventListener("paste", (e) => {
+      e.preventDefault();
+      const pasteText = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '').slice(0, 6);
+      if (!pasteText) return;
+      pasteText.split('').forEach((char, i) => {
+        if (otpInputs[i]) {
+          otpInputs[i].value = char;
+        }
+      });
+      const nextFocus = Math.min(pasteText.length, otpInputs.length - 1);
+      otpInputs[nextFocus].focus();
+    });
+  });
+</script>
+{% endblock %}
+
+{% block navbar %}{% endblock %}
+{% block mobile_nav %}{% endblock %}
+{% block footer %}{% endblock %}

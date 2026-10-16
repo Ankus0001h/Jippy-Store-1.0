@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+{% block content %}
+<!-- 🛍️ Flipkart Style Sticky Blue Header (#2874f0) -->
+<header class="sticky top-0 z-50 bg-[#2874f0] text-white px-3 sm:px-6 py-2.5 shadow-md font-['Plus_Jakarta_Sans']">
+  <div class="max-w-6xl mx-auto flex items-center justify-between gap-3">
+    <div class="flex items-center gap-2.5 min-w-0 flex-1">
+      <a href="{{ url_for('societies_page') }}" class="w-8 h-8 flex items-center justify-center text-white hover:bg-white/15 rounded-full transition-all shrink-0" title="Back to Societies">
+        <i class="fas fa-arrow-left text-sm"></i>
+      </a>
+      {% if society.image %}
+      <img src="{{ society.image }}" alt="{{ society.name }}" class="w-8 h-8 rounded-sm object-cover border border-white/30 shrink-0 shadow-2xs" onerror="this.style.display='none'">
+      {% endif %}
+      <div class="min-w-0">
+        <h1 class="text-[14px] sm:text-[15px] font-bold text-white leading-tight truncate">
+          Stores in {{ society.name }}
+        </h1>
+        <p class="text-[10.5px] text-blue-100 font-medium truncate mt-0.5">
+          {{ society.city }}{% if society.pincode %} • {{ society.pincode }}{% endif %} • Fastest Grocery Delivery
+        </p>
+      </div>
+    </div>
+    
+    <div class="shrink-0 flex items-center gap-1.5 px-2.5 py-1 bg-white/15 border border-white/20 rounded-sm text-[10.5px] font-bold text-white uppercase tracking-wide">
+      <i class="fas fa-bolt text-yellow-300"></i>
+      <span>10 Mins</span>
+    </div>
+  </div>
+</header>
+
+<!-- Main Page Body (Flipkart Style #f1f3f6) -->
+<div class="min-h-[88vh] bg-[#f1f3f6] py-3 sm:py-5 px-2.5 sm:px-4 font-['Plus_Jakarta_Sans'] pb-20">
+  <div class="max-w-6xl mx-auto w-full space-y-3">
+    
+    <!-- Section Title & Counter -->
+    <div class="bg-white border border-[#e0e0e0] rounded-none sm:rounded-sm p-3.5 flex items-center justify-between shadow-2xs">
+      <div>
+        <h2 class="text-[14px] sm:text-[16px] font-bold text-[#212121] tracking-tight">Available Partner Stores</h2>
+        <p class="text-[11px] text-[#878787] font-medium mt-0.5">Pick a store to start shopping fresh daily groceries</p>
+      </div>
+      {% if shops %}
+      <span class="text-[11px] font-bold text-[#2874f0] bg-blue-50 px-2 py-0.5 rounded-sm uppercase tracking-wide shrink-0">
+        {{ shops|length }} Store{% if shops|length != 1 %}s{% endif %}
+      </span>
+      {% endif %}
+    </div>
+
+    <!-- Stores Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 sm:gap-3.5">
+      {% for shop in shops %}
+      <a href="{{ url_for('shop_home', shop_id=shop._id) }}" class="group bg-white border border-[#e0e0e0] hover:border-[#2874f0] rounded-none sm:rounded-sm overflow-hidden shadow-2xs hover:shadow-md transition-all flex flex-col justify-between">
+        
+        <!-- Shop Image Container -->
+        <div class="aspect-[16/9] w-full bg-slate-100 relative overflow-hidden">
+          {% set s_img = shop.shop_image or shop.image %}
+          {% if s_img %}
+            <img
+              src="{{ s_img }}"
+              class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              alt="{{ shop.shop_name or shop.name }}"
+              loading="lazy"
+              onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1578916171728-46686eac8d58?auto=format&fit=crop&q=80&w=600';"
+            />
+          {% else %}
+            {% set cat_key = (shop.vendor_type or '')|lower %}
+            {% if 'dairy' in cat_key or 'milk' in cat_key %}
+              {% set default_shop_img = 'https://images.unsplash.com/photo-1528750997573-59b89d56f4f7?auto=format&fit=crop&q=80&w=600' %}
+            {% elif 'veg' in cat_key %}
+              {% set default_shop_img = 'https://images.unsplash.com/photo-1610348725531-843dff563e2c?auto=format&fit=crop&q=80&w=600' %}
+            {% elif 'fruit' in cat_key %}
+              {% set default_shop_img = 'https://images.unsplash.com/photo-1619566636858-adf3ef46400b?auto=format&fit=crop&q=80&w=600' %}
+            {% elif 'bake' in cat_key or 'snack' in cat_key %}
+              {% set default_shop_img = 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&q=80&w=600' %}
+            {% else %}
+              {% set default_shop_img = 'https://images.unsplash.com/photo-1578916171728-46686eac8d58?auto=format&fit=crop&q=80&w=600' %}
+            {% endif %}
+            <img
+              src="{{ default_shop_img }}"
+              class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              alt="{{ shop.shop_name or shop.name }}"
+              loading="lazy"
+              onerror="this.onerror=null; this.src='/static/images/placeholder.png';"
+            />
+          {% endif %}
+          <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent"></div>
+          
+          <!-- Vendor Type Pill Top Left -->
+          <div class="absolute top-2 left-2">
+            <span class="bg-black/70 backdrop-blur-xs text-white text-[10px] font-bold px-2 py-0.5 rounded-sm border border-white/20 uppercase tracking-wide">
+              {{ shop.vendor_type or 'Grocery Store' }}
+            </span>
+          </div>
+
+          <!-- Fast Delivery Badge Bottom -->
+          <div class="absolute bottom-2 left-3 right-3 flex items-center justify-between">
+            <span class="text-[10.5px] font-bold text-emerald-300 bg-emerald-950/80 px-1.5 py-0.5 rounded-sm flex items-center gap-1">
+              <i class="fas fa-bolt text-yellow-400 text-[9px]"></i>
+              <span>10-15 Min Delivery</span>
+            </span>
+          </div>
+        </div>
+
+        <!-- Shop Information Card Body -->
+        <div class="p-3 sm:p-3.5 flex flex-col justify-between flex-1 space-y-2.5">
+          <div>
+            <div class="flex items-center justify-between gap-2">
+              <h3 class="text-[14.5px] sm:text-[15px] font-bold text-[#212121] group-hover:text-[#2874f0] transition-colors leading-snug line-clamp-1">
+                {{ shop.shop_name or shop.name }}
+              </h3>
+              <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-emerald-600 text-white text-[10px] font-bold rounded-xs shrink-0">
+                <span>4.8</span>
+                <i class="fas fa-star text-[8px]"></i>
+              </span>
+            </div>
+            <p class="text-[11.5px] text-[#878787] font-medium mt-1 flex items-center gap-1.5 truncate">
+              <i class="fas fa-basket-shopping text-[10.5px] text-[#2874f0]"></i>
+              <span>Fresh Groceries &amp; Daily Essentials</span>
+            </p>
+          </div>
+
+          <!-- Action Link Bar -->
+          <div class="pt-2 border-t border-[#f0f0f0] flex items-center justify-between text-[12px] font-bold text-[#2874f0]">
+            <span class="uppercase tracking-wide text-[11px]">Enter Store</span>
+            <i class="fas fa-chevron-right text-[10px] group-hover:translate-x-0.5 transition-transform"></i>
+          </div>
+        </div>
+
+      </a>
+      {% else %}
+      <div class="col-span-full bg-white border border-[#e0e0e0] rounded-none sm:rounded-sm p-8 sm:p-12 flex flex-col items-center justify-center text-center shadow-2xs space-y-3">
+        <div class="w-14 h-14 bg-red-50 text-red-500 rounded-full flex items-center justify-center text-2xl border border-red-100">
+          <i class="fas fa-store-slash"></i>
+        </div>
+        <div>
+          <h3 class="text-[16px] font-bold text-[#212121]">No Stores Available</h3>
+          <p class="text-[12.5px] text-[#878787] font-medium max-w-sm mx-auto mt-1 leading-snug">
+            Currently there are no partner stores active for this society. Please choose another society or area.
+          </p>
+        </div>
+        <a href="{{ url_for('societies_page') }}" class="mt-2 inline-flex items-center gap-2 px-5 py-2.5 bg-[#2874f0] hover:bg-blue-600 active:scale-95 text-white text-[13px] font-bold rounded-sm transition-all shadow-xs uppercase tracking-wider">
+          <i class="fas fa-arrow-left text-xs"></i>
+          <span>Choose Another Society</span>
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block mobile_nav %}{% endblock %}
+{% block footer %}{% endblock %}
