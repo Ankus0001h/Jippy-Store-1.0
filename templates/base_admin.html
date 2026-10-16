@@ -2,224 +2,432 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Jippy | Master Admin</title>
+  <title>Jippy Store | Master Admin</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
 
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,300;0,400;0,500;0,700;0,900;1,400;1,700;1,900&display=swap" rel="stylesheet">
 
   <style>
+    :root {
+      --fk-blue: #2874f0;
+      --fk-dark-blue: #172337;
+      --fk-yellow: #ffe500;
+      --fk-orange: #fb641b;
+      --fk-green: #388e3c;
+      --fk-bg: #f1f3f6;
+      --fk-text-dark: #212121;
+      --fk-text-muted: #878787;
+      --fk-border: #e0e0e0;
+    }
+
     body { 
-      font-family: 'Plus Jakarta Sans', sans-serif; 
-      background-color: #f1f5f9;
-      background-image: radial-gradient(#cbd5e1 0.5px, transparent 0.5px);
-      background-size: 24px 24px;
-    }
-    
-    .glass-sidebar {
-      background: rgba(15, 23, 42, 0.95);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
+      font-family: 'Roboto', -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; 
+      background-color: var(--fk-bg);
+      color: var(--fk-text-dark);
+      -webkit-font-smoothing: antialiased;
     }
 
-    .nav-active {
-      background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
-      color: white !important;
-      box-shadow: 0 10px 20px -5px rgba(16, 185, 129, 0.4);
+    .fk-header {
+      background-color: var(--fk-blue);
+      box-shadow: 0 1px 4px 0 rgba(0,0,0,.2);
     }
 
-    .admin-card {
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    .fk-sidebar {
+      background-color: #ffffff;
+      border-right: 1px solid var(--fk-border);
     }
 
-    .mobile-bottom-nav {
-      background: rgba(255, 255, 255, 0.85);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border-top: 1px solid rgba(255, 255, 255, 0.3);
+    .fk-nav-item {
+      color: #212121;
+      transition: all 0.15s ease-in-out;
+      border-left: 3px solid transparent;
     }
 
-    /* Floating Animation */
-    @keyframes float {
-      0% { transform: translateY(0px); }
-      50% { transform: translateY(-10px); }
-      100% { transform: translateY(0px); }
+    .fk-nav-item:hover {
+      background-color: #f0f5ff;
+      color: var(--fk-blue);
+      border-left-color: var(--fk-blue);
     }
-    .float-icon { animation: float 3s ease-in-out infinite; }
+
+    .fk-nav-active {
+      background-color: #f0f5ff !important;
+      color: var(--fk-blue) !important;
+      font-weight: 700 !important;
+      border-left-color: var(--fk-blue) !important;
+    }
+
+    .fk-card {
+      background: #ffffff;
+      border: 1px solid #e0e0e0;
+      box-shadow: 0 1px 2px 0 rgba(0,0,0,.08);
+      border-radius: 4px;
+      transition: box-shadow 0.2s ease, border-color 0.2s ease;
+    }
+
+    .fk-card:hover {
+      box-shadow: 0 3px 12px 0 rgba(0,0,0,.12);
+      border-color: #c2c2c2;
+    }
+
+    .fk-btn-primary {
+      background-color: var(--fk-blue);
+      color: #ffffff;
+      font-weight: 600;
+      transition: background-color 0.15s ease;
+    }
+    .fk-btn-primary:hover {
+      background-color: #1259cb;
+    }
+
+    .fk-btn-orange {
+      background-color: var(--fk-orange);
+      color: #ffffff;
+      font-weight: 700;
+      transition: background-color 0.15s ease;
+    }
+    .fk-btn-orange:hover {
+      background-color: #e05615;
+    }
+
+    .fk-btn-green {
+      background-color: var(--fk-green);
+      color: #ffffff;
+      font-weight: 700;
+      transition: background-color 0.15s ease;
+    }
+    .fk-btn-green:hover {
+      background-color: #2e7d32;
+    }
+
+    .fk-badge-plus {
+      color: var(--fk-yellow);
+      font-weight: 900;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #c7cbd1;
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f3f6;
+    }
   </style>
 </head>
 
-<body class="min-h-screen text-slate-900 overflow-x-hidden pb-24 lg:pb-0">
+<body class="min-h-screen flex flex-col overflow-x-hidden pb-20 lg:pb-0">
 
-  <aside class="fixed top-4 left-4 bottom-4 w-64 glass-sidebar text-white hidden lg:flex flex-col z-50 rounded-[2.5rem] border border-white/10 shadow-2xl">
-    <div class="p-8">
+  <!-- ================= TOP FLIPKART NAVIGATION BAR ================= -->
+  <header class="fk-header sticky top-0 z-50 text-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-2.5 flex items-center justify-between gap-4">
+      
+      <!-- Brand Logo in Flipkart Signature Style -->
       <div class="flex items-center gap-3">
-        <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-emerald-400 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/30">
-          <i class="fas fa-bolt text-white text-xl"></i>
-        </div>
-        <div>
-          <span class="text-xl font-black tracking-tighter block leading-none">Jippy</span>
-          <span class="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Admin Pro</span>
-        </div>
-      </div>
-    </div>
-
-    <nav class="flex-1 px-4 space-y-2 mt-4 overflow-y-auto no-scrollbar">
-      <p class="px-4 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4">Operations</p>
-      
-      {% set nav_items = [
-        {'endpoint': 'admin_dashboard', 'icon': 'fa-grid-2', 'label': 'Control Panel'},
-        {'endpoint': 'admin_orders', 'icon': 'fa-receipt', 'label': 'Live Orders'},
-        {'endpoint': 'add_product', 'icon': 'fa-plus-circle', 'label': 'Inventory'},
-        {'endpoint': 'admin_inventory', 'icon': 'fa-boxes-stacked', 'label': 'Stock Sync'},
-        {'endpoint': 'add_user', 'icon': 'fa-user-shield', 'label': 'Team Access'}
-      ] %}
-
-      {% for item in nav_items %}
-      <a href="{{ url_for(item.endpoint) }}" 
-         class="flex items-center gap-3 px-4 py-3.5 rounded-2xl text-sm font-bold text-slate-400 hover:bg-white/5 hover:text-white transition-all 
-         {{ 'nav-active' if request.endpoint == item.endpoint }}">
-        <i class="fas {{ item.icon }} w-5 text-center"></i>
-        {{ item.label }}
-      </a>
-      {% endfor %}
-
-      <p class="px-4 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mt-8 mb-4">System</p>
-      <a href="{{ url_for('admin_fees_settings') }}" class="flex items-center gap-3 px-4 py-3.5 rounded-2xl text-sm font-bold text-slate-400 hover:text-white transition-all">
-        <i class="fas fa-sliders w-5"></i> Settings
-      </a>
-
-      <p class="px-4 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mt-8 mb-4">Store & User</p>
-      <a href="{{ url_for('index') }}" target="_blank" class="flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold text-slate-400 hover:bg-white/5 hover:text-white transition-all">
-        <i class="fas fa-store w-5 text-emerald-400"></i> Home Page
-      </a>
-      <a href="{{ url_for('login') }}" target="_blank" class="flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold text-slate-400 hover:bg-white/5 hover:text-white transition-all">
-        <i class="fas fa-user-circle w-5 text-blue-400"></i> Customer Login
-      </a>
-      
-      <div class="mt-10 px-4">
-        <a href="{{ url_for('admin_logout') }}" class="flex items-center justify-center gap-2 w-full py-4 rounded-2xl bg-rose-500/10 text-rose-400 text-sm font-black hover:bg-rose-500 hover:text-white transition-all group">
-          <i class="fas fa-power-off group-hover:rotate-90 transition-transform"></i> Exit System
+        <a href="{{ url_for('admin_dashboard') }}" class="flex flex-col group leading-none">
+          <div class="flex items-center gap-1.5">
+            <span class="text-1xl font-black italic tracking-wide text-white">Jippy Store</span>
+            <span class="text-[10px] font-bold uppercase tracking-wider bg-[#ffe500] text-[#2874f0] px-1.5 py-0.5 rounded-sm font-sans not-italic">
+              Admin
+            </span>
+          </div>
+  
         </a>
-      </div>
-    </nav>
-  </aside>
 
-  <nav class="lg:hidden sticky top-0 z-[60] bg-white/80 backdrop-blur-md border-b border-slate-200 px-6 py-4 flex items-center justify-between">
-    <div class="flex items-center gap-2">
-      <div class="w-9 h-9 rounded-xl bg-slate-900 flex items-center justify-center text-emerald-400 shadow-lg">
-        <i class="fas fa-leaf"></i>
+        <div class="hidden xl:flex items-center pl-3 border-l border-white/20 text-xs text-white/90 font-medium">
+          <span class="bg-white/10 px-2 py-0.5 rounded text-[11px] font-semibold text-white">
+            Operations Hub
+          </span>
+        </div>
       </div>
-      <span class="font-black text-lg tracking-tighter uppercase">Jippy</span>
-    </div>
-    <div class="flex items-center gap-2">
-      <a href="{{ url_for('index') }}" class="p-2 rounded-xl bg-slate-100 text-emerald-700 text-xs font-bold hover:bg-emerald-50" title="Home Store">
-        <i class="fas fa-store"></i>
-      </a>
-      <a href="{{ url_for('login') }}" class="p-2 rounded-xl bg-slate-100 text-blue-700 text-xs font-bold hover:bg-blue-50" title="Customer Login">
-        <i class="fas fa-user"></i>
-      </a>
-      <div id="clock-mobile" class="text-[10px] font-black bg-slate-100 px-3 py-1 rounded-full text-slate-500">00:00</div>
-    </div>
-  </nav>
 
-  <main class="lg:ml-72 min-h-screen p-4 md:p-10 lg:p-12 transition-all">
-    <header class="hidden lg:flex items-center justify-between mb-12">
-      <div>
-        <h2 class="text-3xl font-black text-slate-900 tracking-tight" id="greeting">System Dashboard</h2>
-        <p class="text-slate-400 text-sm font-bold mt-1">Operational Status: <span class="text-emerald-500">Healthy</span></p>
+      <!-- Quick Search Bar (Flipkart Signature White Pill/Input) -->
+      <div class="hidden md:flex flex-1 max-w-xl mx-4">
+        <div class="w-full relative flex items-center bg-white rounded-sm shadow-sm">
+          <input type="text" 
+                 placeholder="Search for orders, products, inventory, users and more..." 
+                 class="w-full px-4 py-2 text-xs text-gray-800 placeholder-gray-400 focus:outline-none rounded-sm">
+          <button class="px-4 text-[#2874f0] hover:text-[#1259cb] flex items-center justify-center">
+            <i class="fas fa-search text-sm"></i>
+          </button>
+        </div>
       </div>
-      <div class="flex items-center gap-3">
-        <a href="{{ url_for('index') }}" target="_blank" class="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 text-xs font-bold transition-all border border-slate-200 shadow-sm">
-          <i class="fas fa-store text-emerald-600"></i>
+
+      <!-- Right Action Items -->
+      <div class="flex items-center gap-2 sm:gap-3">
+        <!-- Home Store Button -->
+        <a href="{{ url_for('index') }}" target="_blank" 
+           class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-[#2874f0] bg-white rounded-sm shadow-sm hover:bg-yellow-50 transition-colors"
+           title="View Customer Storefront">
+          <i class="fas fa-store text-xs text-[#2874f0]"></i>
           <span>Home Store</span>
         </a>
-        <a href="{{ url_for('login') }}" target="_blank" class="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white hover:bg-blue-50 text-slate-700 hover:text-blue-700 text-xs font-bold transition-all border border-slate-200 shadow-sm">
-          <i class="fas fa-user text-blue-600"></i>
-          <span>Customer Login</span>
+
+        <!-- Customer Login Button -->
+        <a href="{{ url_for('login') }}" target="_blank" 
+           class="hidden md:flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-white/10 hover:bg-white/20 rounded-sm border border-white/20 transition-colors"
+           title="Go to Customer Login">
+          <i class="fas fa-user text-xs text-[#ffe500]"></i>
+          <span>User Login</span>
         </a>
-        <div class="flex items-center gap-4 bg-white p-2 rounded-[1.5rem] shadow-sm border border-slate-100">
-          <div class="px-4 py-2 text-right">
-            <p id="clock" class="text-lg font-black text-slate-900 leading-none">--:--:--</p>
-            <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">Live Server Time</p>
+
+        <!-- Live Server Time Chip -->
+        <div class="flex items-center gap-2 bg-[#172337]/50 border border-white/10 px-3 py-1 rounded-sm text-right">
+          <i class="fas fa-clock text-[11px] text-[#ffe500]"></i>
+          <div>
+            <p id="clock" class="text-xs font-bold font-mono text-white leading-none">--:--:--</p>
+            <p class="text-[8px] font-bold text-white/70 uppercase tracking-widest mt-0.5 hidden sm:block">Live IST</p>
           </div>
-          <div class="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400">
-            <i class="fas fa-bell"></i>
+        </div>
+
+        <!-- Exit / Logout -->
+        <a href="{{ url_for('admin_logout') }}" 
+           class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-[#fb641b] hover:bg-[#e05615] rounded-sm shadow-sm transition-colors"
+           title="Exit Admin Panel">
+          <i class="fas fa-power-off text-xs"></i>
+          <span class="hidden sm:inline">Logout</span>
+        </a>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- ================= MAIN CONTAINER WITH SELLER HUB SIDEBAR ================= -->
+  <div class="flex-1 flex max-w-7xl w-full mx-auto px-2 sm:px-4 lg:px-6 py-4 gap-5">
+    
+    <!-- DESKTOP SIDEBAR (Flipkart Seller Hub Navigation) -->
+    <aside class="w-60 hidden lg:block shrink-0">
+      <div class="fk-card p-4 sticky top-20">
+        
+        <!-- Seller Info Profile Strip -->
+        <div class="flex items-center gap-3 pb-3 mb-3 border-b border-[#e0e0e0]">
+          <div class="w-10 h-10 rounded-full bg-[#f0f5ff] border border-[#2874f0]/30 flex items-center justify-center text-[#2874f0] font-black text-xs">
+            JS
           </div>
+          <div class="overflow-hidden">
+            <h4 class="text-xs font-bold text-[#212121] truncate leading-tight">Jippy Store Admin</h4>
+            <div class="flex items-center gap-1 mt-0.5">
+              <span class="w-2 h-2 rounded-full bg-[#388e3c]"></span>
+              <span class="text-[10px] font-semibold text-[#388e3c] uppercase">Verified Seller ✦</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Operations Navigation Links -->
+        <div class="space-y-1">
+          <p class="px-3 pt-1 pb-1 text-[10px] font-bold text-[#878787] uppercase tracking-wider">
+            Operations
+          </p>
+
+          <a href="{{ url_for('admin_dashboard') }}" 
+             class="fk-nav-item flex items-center gap-3 px-3 py-2.5 rounded-sm text-xs font-medium {{ 'fk-nav-active' if request.endpoint == 'admin_dashboard' }}">
+            <i class="fas fa-chart-line w-4 text-center"></i>
+            <span>Dashboard</span>
+          </a>
+
+          <a href="{{ url_for('admin_orders') }}" 
+             class="fk-nav-item flex items-center justify-between px-3 py-2.5 rounded-sm text-xs font-medium {{ 'fk-nav-active' if request.endpoint == 'admin_orders' }}">
+            <div class="flex items-center gap-3">
+              <i class="fas fa-boxes-packing w-4 text-center"></i>
+              <span>Live Orders</span>
+            </div>
+            <span class="text-[10px] font-bold bg-[#fb641b] text-white px-1.5 py-0.2 rounded-full">New</span>
+          </a>
+
+          <a href="{{ url_for('add_product') }}" 
+             class="fk-nav-item flex items-center gap-3 px-3 py-2.5 rounded-sm text-xs font-medium {{ 'fk-nav-active' if request.endpoint == 'add_product' }}">
+            <i class="fas fa-plus-circle w-4 text-center"></i>
+            <span>Add Product</span>
+          </a>
+
+          <a href="{{ url_for('admin_inventory') }}" 
+             class="fk-nav-item flex items-center gap-3 px-3 py-2.5 rounded-sm text-xs font-medium {{ 'fk-nav-active' if request.endpoint == 'admin_inventory' }}">
+            <i class="fas fa-warehouse w-4 text-center"></i>
+            <span>Inventory & Stock</span>
+          </a>
+
+          <a href="{{ url_for('add_user') }}" 
+             class="fk-nav-item flex items-center gap-3 px-3 py-2.5 rounded-sm text-xs font-medium {{ 'fk-nav-active' if request.endpoint == 'add_user' }}">
+            <i class="fas fa-user-plus w-4 text-center"></i>
+            <span>Add Team Member</span>
+          </a>
+
+          <a href="{{ url_for('admin_all_users') }}" 
+             class="fk-nav-item flex items-center gap-3 px-3 py-2.5 rounded-sm text-xs font-medium {{ 'fk-nav-active' if request.endpoint == 'admin_all_users' }}">
+            <i class="fas fa-users-gear w-4 text-center"></i>
+            <span>User Directory</span>
+          </a>
+
+          <p class="px-3 pt-3 pb-1 text-[10px] font-bold text-[#878787] uppercase tracking-wider border-t border-[#f0f0f0] mt-2">
+            Configurations
+          </p>
+
+          <a href="{{ url_for('admin_fees_settings') }}" 
+             class="fk-nav-item flex items-center gap-3 px-3 py-2.5 rounded-sm text-xs font-medium {{ 'fk-nav-active' if request.endpoint == 'admin_fees_settings' }}">
+            <i class="fas fa-sliders w-4 text-center"></i>
+            <span>Pricing & Delivery Fees</span>
+          </a>
+
+          <a href="{{ url_for('admin_societies') }}" 
+             class="fk-nav-item flex items-center gap-3 px-3 py-2.5 rounded-sm text-xs font-medium {{ 'fk-nav-active' if request.endpoint == 'admin_societies' }}">
+            <i class="fas fa-building w-4 text-center"></i>
+            <span>Manage Societies</span>
+          </a>
+
+          <a href="{{ url_for('admin_service_area') }}" 
+             class="fk-nav-item flex items-center gap-3 px-3 py-2.5 rounded-sm text-xs font-medium {{ 'fk-nav-active' if request.endpoint == 'admin_service_area' }}">
+            <i class="fas fa-location-dot w-4 text-center"></i>
+            <span>Service Geofence</span>
+          </a>
+
+          <p class="px-3 pt-3 pb-1 text-[10px] font-bold text-[#878787] uppercase tracking-wider border-t border-[#f0f0f0] mt-2">
+            Store Links
+          </p>
+
+          <a href="{{ url_for('index') }}" target="_blank" 
+             class="fk-nav-item flex items-center gap-3 px-3 py-2 rounded-sm text-xs font-medium">
+            <i class="fas fa-external-link-alt w-4 text-center text-[#2874f0]"></i>
+            <span>Visit Storefront</span>
+          </a>
+
+          <a href="{{ url_for('login') }}" target="_blank" 
+             class="fk-nav-item flex items-center gap-3 px-3 py-2 rounded-sm text-xs font-medium">
+            <i class="fas fa-user-circle w-4 text-center text-[#2874f0]"></i>
+            <span>Customer Portal</span>
+          </a>
+
+          <div class="pt-3 mt-3 border-t border-[#e0e0e0]">
+            <a href="{{ url_for('admin_logout') }}" 
+               class="flex items-center justify-center gap-2 w-full py-2 bg-red-50 text-red-600 hover:bg-red-600 hover:text-white rounded-sm text-xs font-bold transition-all">
+              <i class="fas fa-power-off text-xs"></i>
+              <span>Logout Admin</span>
+            </a>
+          </div>
+
         </div>
       </div>
-    </header>
+    </aside>
 
-    {% block content %}{% endblock %}
-  </main>
+    <!-- MAIN PAGE CONTENT -->
+    <main class="flex-1 min-w-0">
+      {% block content %}{% endblock %}
+    </main>
 
-  <div class="lg:hidden fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-md z-[100]">
-    <div class="mobile-bottom-nav rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.15)] p-2 flex justify-between items-center border border-white">
-      <a href="{{ url_for('admin_dashboard') }}" class="flex-1 flex flex-col items-center py-2 transition-all {{ 'text-emerald-600' if request.endpoint == 'admin_dashboard' else 'text-slate-400' }}">
-        <i class="fas fa-grid-2 text-xl"></i>
-        <span class="text-[8px] font-black uppercase mt-1">Control</span>
-      </a>
-      <a href="{{ url_for('admin_orders') }}" class="flex-1 flex flex-col items-center py-2 transition-all {{ 'text-emerald-600' if request.endpoint == 'admin_orders' else 'text-slate-400' }}">
-        <div class="relative">
-            <i class="fas fa-receipt text-xl"></i>
-            <span class="absolute -top-1 -right-1 w-2 h-2 bg-rose-500 rounded-full border border-white"></span>
-        </div>
-        <span class="text-[8px] font-black uppercase mt-1">Orders</span>
-      </a>
-      
-      <a href="{{ url_for('add_product') }}" class="w-14 h-14 -mt-10 bg-slate-900 rounded-2xl flex items-center justify-center text-emerald-400 shadow-xl shadow-slate-900/30 border-4 border-white transition-transform active:scale-90">
-        <i class="fas fa-plus text-xl"></i>
-      </a>
-
-      <a href="{{ url_for('admin_inventory') }}" class="flex-1 flex flex-col items-center py-2 transition-all {{ 'text-emerald-600' if request.endpoint == 'admin_inventory' else 'text-slate-400' }}">
-        <i class="fas fa-boxes-stacked text-xl"></i>
-        <span class="text-[8px] font-black uppercase mt-1">Stock</span>
-      </a>
-      <button onclick="toggleMobileMenu()" class="flex-1 flex flex-col items-center py-2 text-slate-400">
-        <i class="fas fa-bars-staggered text-xl"></i>
-        <span class="text-[8px] font-black uppercase mt-1">Menu</span>
-      </button>
-    </div>
   </div>
 
-  <div id="mobile-overlay" class="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-[110] hidden transition-all duration-300 opacity-0" onclick="toggleMobileMenu()"></div>
-  <aside id="mobile-drawer" class="fixed bottom-0 left-0 right-0 bg-white z-[120] rounded-t-[3rem] p-8 translate-y-full transition-transform duration-500 ease-out">
-    <div class="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-8"></div>
-    <div class="grid grid-cols-2 gap-4">
-        <a href="{{ url_for('index') }}" class="flex flex-col items-center p-6 bg-emerald-50 rounded-[2rem] border border-emerald-100">
-            <i class="fas fa-store text-2xl text-emerald-600 mb-2"></i>
-            <span class="text-xs font-black uppercase text-emerald-800">Home Store</span>
-        </a>
-        <a href="{{ url_for('login') }}" class="flex flex-col items-center p-6 bg-blue-50 rounded-[2rem] border border-blue-100">
-            <i class="fas fa-user text-2xl text-blue-600 mb-2"></i>
-            <span class="text-xs font-black uppercase text-blue-800">Customer Login</span>
-        </a>
-        <a href="{{ url_for('add_user') }}" class="flex flex-col items-center p-6 bg-slate-50 rounded-[2rem] border border-slate-100">
-            <i class="fas fa-user-shield text-2xl text-indigo-500 mb-2"></i>
-            <span class="text-xs font-black uppercase">Staff Management</span>
-        </a>
-        <a href="{{ url_for('admin_fees_settings') }}" class="flex flex-col items-center p-6 bg-slate-50 rounded-[2rem] border border-slate-100">
-            <i class="fas fa-sliders text-2xl text-amber-500 mb-2"></i>
-            <span class="text-xs font-black uppercase">Global Config</span>
-        </a>
-        <a href="{{ url_for('admin_service_area') }}" class="flex flex-col items-center p-6 bg-slate-50 rounded-[2rem] border border-slate-100">
-            <i class="fas fa-location-crosshairs text-2xl text-emerald-500 mb-2"></i>
-            <span class="text-xs font-black uppercase">Service Zone</span>
-        </a>
-        <a href="{{ url_for('admin_logout') }}" class="flex flex-col items-center p-6 bg-rose-50 rounded-[2rem] border border-rose-100">
-            <i class="fas fa-power-off text-2xl text-rose-500 mb-2"></i>
-            <span class="text-xs font-black uppercase text-rose-600">Logout</span>
-        </a>
+  <!-- ================= MOBILE BOTTOM NAVIGATION (FLIPKART STYLE) ================= -->
+  <nav class="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-[#e0e0e0] shadow-[0_-2px_10px_rgba(0,0,0,0.06)] px-2 py-1.5 flex justify-around items-center">
+    
+    <a href="{{ url_for('admin_dashboard') }}" 
+       class="flex flex-col items-center py-1 px-3 {{ 'text-[#2874f0]' if request.endpoint == 'admin_dashboard' else 'text-[#878787]' }}">
+      <i class="fas fa-chart-line text-lg"></i>
+      <span class="text-[9px] font-bold mt-1">Dashboard</span>
+    </a>
+
+    <a href="{{ url_for('admin_orders') }}" 
+       class="flex flex-col items-center py-1 px-3 relative {{ 'text-[#2874f0]' if request.endpoint == 'admin_orders' else 'text-[#878787]' }}">
+      <div class="relative">
+        <i class="fas fa-boxes-packing text-lg"></i>
+        <span class="absolute -top-1 -right-1 w-2 h-2 bg-[#fb641b] rounded-full"></span>
+      </div>
+      <span class="text-[9px] font-bold mt-1">Orders</span>
+    </a>
+
+    <!-- Center Add Action -->
+    <a href="{{ url_for('add_product') }}" 
+       class="w-11 h-11 -mt-5 bg-[#2874f0] text-white rounded-full flex items-center justify-center shadow-lg border-2 border-white hover:bg-[#1259cb] active:scale-95 transition-all">
+      <i class="fas fa-plus text-base"></i>
+    </a>
+
+    <a href="{{ url_for('admin_inventory') }}" 
+       class="flex flex-col items-center py-1 px-3 {{ 'text-[#2874f0]' if request.endpoint == 'admin_inventory' else 'text-[#878787]' }}">
+      <i class="fas fa-warehouse text-lg"></i>
+      <span class="text-[9px] font-bold mt-1">Stock</span>
+    </a>
+
+    <button onclick="toggleMobileMenu()" 
+            class="flex flex-col items-center py-1 px-3 text-[#878787] hover:text-[#2874f0]">
+      <i class="fas fa-bars text-lg"></i>
+      <span class="text-[9px] font-bold mt-1">Menu</span>
+    </button>
+  </nav>
+
+  <!-- ================= MOBILE SLIDE-UP DRAWER ================= -->
+  <div id="mobile-overlay" class="fixed inset-0 bg-black/50 z-[110] hidden opacity-0 transition-opacity duration-300" onclick="toggleMobileMenu()"></div>
+  <aside id="mobile-drawer" class="fixed bottom-0 left-0 right-0 bg-white z-[120] rounded-t-2xl p-5 translate-y-full transition-transform duration-300 ease-out border-t border-[#e0e0e0] shadow-2xl">
+    <div class="w-12 h-1 bg-gray-300 rounded-full mx-auto mb-4"></div>
+    
+    <div class="flex items-center justify-between pb-3 mb-4 border-b border-[#e0e0e0]">
+      <div class="flex items-center gap-2">
+        <span class="text-base font-black italic text-[#2874f0]">Jippy Store</span>
+        <span class="text-[10px] font-bold uppercase tracking-wider bg-[#ffe500] text-[#2874f0] px-1.5 py-0.5 rounded-sm">
+          Admin Hub
+        </span>
+      </div>
+      <button onclick="toggleMobileMenu()" class="text-gray-400 hover:text-gray-700 p-1">
+        <i class="fas fa-times text-base"></i>
+      </button>
+    </div>
+
+    <div class="grid grid-cols-2 gap-3 text-xs">
+      <a href="{{ url_for('index') }}" target="_blank" class="flex items-center gap-2.5 p-3 bg-[#f8faff] rounded border border-[#e0e0e0] text-[#212121] font-semibold">
+        <i class="fas fa-store text-[#2874f0]"></i>
+        <span>Storefront</span>
+      </a>
+
+      <a href="{{ url_for('login') }}" target="_blank" class="flex items-center gap-2.5 p-3 bg-[#f8faff] rounded border border-[#e0e0e0] text-[#212121] font-semibold">
+        <i class="fas fa-user text-[#2874f0]"></i>
+        <span>User Login</span>
+      </a>
+
+      <a href="{{ url_for('add_user') }}" class="flex items-center gap-2.5 p-3 bg-[#f8faff] rounded border border-[#e0e0e0] text-[#212121] font-semibold">
+        <i class="fas fa-user-plus text-indigo-600"></i>
+        <span>Add Staff</span>
+      </a>
+
+      <a href="{{ url_for('admin_all_users') }}" class="flex items-center gap-2.5 p-3 bg-[#f8faff] rounded border border-[#e0e0e0] text-[#212121] font-semibold">
+        <i class="fas fa-users text-purple-600"></i>
+        <span>User Records</span>
+      </a>
+
+      <a href="{{ url_for('admin_fees_settings') }}" class="flex items-center gap-2.5 p-3 bg-[#f8faff] rounded border border-[#e0e0e0] text-[#212121] font-semibold">
+        <i class="fas fa-sliders text-amber-600"></i>
+        <span>Pricing & Fees</span>
+      </a>
+
+      <a href="{{ url_for('admin_societies') }}" class="flex items-center gap-2.5 p-3 bg-[#f8faff] rounded border border-[#e0e0e0] text-[#212121] font-semibold">
+        <i class="fas fa-building text-teal-600"></i>
+        <span>Societies</span>
+      </a>
+
+      <a href="{{ url_for('admin_service_area') }}" class="flex items-center gap-2.5 p-3 bg-[#f8faff] rounded border border-[#e0e0e0] text-[#212121] font-semibold">
+        <i class="fas fa-location-dot text-[#388e3c]"></i>
+        <span>Service Zone</span>
+      </a>
+
+      <a href="{{ url_for('admin_logout') }}" class="flex items-center gap-2.5 p-3 bg-red-50 rounded border border-red-200 text-red-600 font-bold">
+        <i class="fas fa-power-off text-red-600"></i>
+        <span>Logout</span>
+      </a>
     </div>
   </aside>
 
+  <!-- ================= SCRIPTS ================= -->
   <script>
     function updateClock() {
       const now = new Date();
-      const timeStr = now.toLocaleTimeString('en-US', { hour12: true, hour: '2-digit', minute: '2-digit', second: '2-digit' });
-      if(document.getElementById('clock')) document.getElementById('clock').textContent = timeStr;
-      if(document.getElementById('clock-mobile')) document.getElementById('clock-mobile').textContent = timeStr.replace(/:\d{2} /, ' ');
+      const timeStr = now.toLocaleTimeString('en-IN', { hour12: true, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      const clockEl = document.getElementById('clock');
+      if (clockEl) clockEl.textContent = timeStr;
+      const clockMobile = document.getElementById('clock-mobile');
+      if (clockMobile) clockMobile.textContent = timeStr;
     }
     setInterval(updateClock, 1000);
     updateClock();
@@ -227,9 +435,11 @@
     function toggleMobileMenu() {
       const drawer = document.getElementById('mobile-drawer');
       const overlay = document.getElementById('mobile-overlay');
+      if (!drawer || !overlay) return;
+
       const isOpen = !drawer.classList.contains('translate-y-full');
 
-      if(isOpen) {
+      if (isOpen) {
         drawer.classList.add('translate-y-full');
         overlay.classList.add('opacity-0');
         setTimeout(() => overlay.classList.add('hidden'), 300);
@@ -241,11 +451,6 @@
         }, 10);
       }
     }
-
-    // Dynamic Greeting
-    const hour = new Date().getHours();
-    const greeting = hour < 12 ? 'Good Morning' : hour < 18 ? 'Good Afternoon' : 'Good Evening';
-    document.getElementById('greeting').textContent = `${greeting}, Admin`;
   </script>
 
 </body>
