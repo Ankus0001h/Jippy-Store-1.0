@@ -2204,7 +2204,7 @@ import requests
 def send_green_api_message(phone, message):
     if not phone:
         return False
-    url = "http://3.26.1.109:3001/send-message"
+    url = os.getenv("WHATSAPP_API_URL", "http://3.26.1.109:3001/send-message")
     
     # Strip any non-digit characters and normalize for India
     clean_digits = re.sub(r"\D", "", str(phone))
@@ -3802,8 +3802,12 @@ def service_config():
 @app.errorhandler(Exception) # Yeh line har tarah ke error ko catch karegi
 def handle_exception(e):
     import traceback
-    with open("crash.log", "w") as f:
-        traceback.print_exc(file=f)
+    traceback.print_exc()
+    try:
+        with open("crash.log", "w") as f:
+            traceback.print_exc(file=f)
+    except Exception:
+        pass
     # 1. Agar error standard HTTP error hai (jaise 404, 403, 500)
     if hasattr(e, 'code'):
         code = e.code
@@ -4193,4 +4197,5 @@ def search_societies():
     return jsonify({"societies": results})
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    port = int(os.getenv("PORT", 3001))
+    app.run(host="0.0.0.0", port=port, debug=False)
