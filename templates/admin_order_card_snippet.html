@@ -1,0 +1,463 @@
+{# admin_order_card_snippet.html: Unified Flipkart Seller Hub Order Card #}
+{% set current_oid = o.get('order_id') or (o['order_id']|string) %}
+{% set addr = o.get("address") %}
+{% set current_main_status = (o.get("status") or "pending")|lower %}
+{% set is_invoice_ready = (current_main_status == 'delivered') %}
+{% set items_list = o["items"] if "items" in o and o["items"] is iterable else [] %}
+{% set total_items = items_list|length %}
+
+{% set clean_phone = o.get('user_phone', '')|replace(' ', '')|replace('+', '') %}
+{% if clean_phone.startswith('91') and clean_phone|length == 12 %}
+  {% set wa_phone = clean_phone %}
+{% elif clean_phone|length == 10 %}
+  {% set wa_phone = '91' + clean_phone %}
+{% else %}
+  {% set wa_phone = clean_phone %}
+{% endif %}
+
+{# Resolve Society In-House Vendor Store Information #}
+{% set first_vid = o.get("vendor_id") %}
+{% if not first_vid and items_list %}
+  {% for itm in items_list %}
+    {% if itm.get("vendor_id") and not first_vid %}
+      {% set first_vid = itm.get("vendor_id") %}
+    {% endif %}
+  {% endfor %}
+{% endif %}
+
+{% set vendor_obj = namespace(name="Society In-House Store", phone="") %}
+{% if first_vid %}
+  {% for v in vendors %}
+    {% if (v['_id']|string) == (first_vid|string) %}
+      {% set vendor_obj.name = v.get("shop_name") or v.get("name") %}
+      {% set vendor_obj.phone = v.get("phone") or "" %}
+    {% endif %}
+  {% endfor %}
+{% endif %}
+
+<div 
+  class="fk-order-card overflow-hidden shadow-2xs" 
+  id="orderCard-{{ current_oid }}"
+  data-order-id="{{ current_oid }}"
+  data-status="{{ current_main_status }}"
+  data-amount="{{ o.get('total', 0) }}"
+  data-timestamp="{% if o.get('created_at') and o['created_at'].timestamp is defined %}{{ o['created_at'].timestamp() }}{% else %}0{% endif %}"
+  data-search="{{ current_oid }} {{ o.get('user_name', '') }} {{ o.get('user_phone', '') }} {% if addr is mapping %}{{ addr.get('line1', '') }} {{ addr.get('line2', '') }} {{ addr.get('city', '') }} {{ addr.get('pincode', '') }}{% else %}{{ addr }}{% endif %} {% for it in items_list %}{{ it.get('name', '') }} {% endfor %} {{ vendor_obj.name }}"
+>
+
+  <!-- ================= TOP ORDER STRIP (FLIPKART BLUE HEADER) ================= -->
+  <div class="px-3.5 sm:px-4 py-2.5 bg-[#f8faff] border-b border-[#e0e0e0] flex flex-wrap items-center justify-between gap-2">
+    
+    <!-- Left: Status Badge & Order ID -->
+    <div class="flex items-center gap-2 flex-wrap order-ref-title">
+      <!-- Status Badge (Society Flow: Placed / Processing / Delivered) -->
+      <span class="order-status-pill text-[11px] font-bold px-2 py-0.5 rounded-sm uppercase tracking-wider flex items-center gap-1.5 
+        {% if current_main_status == 'delivered' %}status-badge-delivered
+        {% elif current_main_status in ['cancelled', 'canceled'] %}status-badge-cancelled
+        {% else %}status-badge-pending{% endif %}">
+        <span class="w-1.5 h-1.5 rounded-full 
+          {% if current_main_status == 'delivered' %}bg-emerald-500
+          {% elif current_main_status in ['cancelled', 'canceled'] %}bg-rose-500
+          {% else %}bg-amber-500{% endif %}">
+        </span>
+        <span>{% if current_main_status == 'delivered' %}DELIVERED{% elif current_main_status in ['cancelled', 'canceled'] %}CANCELLED{% else %}{{ (o.get("status") or "PROCESSING")|replace('_', ' ')|upper }}{% endif %}</span>
+      </span>
+
+      <!-- Order ID with Copy Shortcut -->
+      <div class="flex items-center gap-1 bg-white border border-[#e0e0e0] px-2 py-0.5 rounded-sm">
+        <span class="text-xs font-mono font-bold text-[#212121]">
+          #{{ current_oid[-12:] }}
+        </span>
+        <button 
+          type="button" 
+          onclick="copyTextToClipboard('{{ current_oid }}', this)" 
+          class="text-[#878787] hover:text-[#2874f0] text-[10px] p-0.5 transition-colors"
+          title="Copy Full Order ID"
+        >
+          <i class="fas fa-copy"></i>
+        </button>
+      </div>
+
+      <!-- Payment Mode Badge -->
+      <span class="text-[10px] font-bold px-2 py-0.5 rounded-sm uppercase tracking-wider 
+        {% if (o.get('payment_method') or 'COD')|upper == 'COD' %}
+          bg-amber-50 text-amber-800 border border-amber-200
+        {% else %}
+          bg-emerald-50 text-emerald-800 border border-emerald-200
+        {% endif %}">
+        {{ o.get("payment_method") or "Cash on Delivery" }}
+      </span>
+    </div>
+
+    <!-- Right: Placed Time & Items Count -->
+    <div class="flex items-center gap-2 text-xs text-[#878787] font-medium">
+      <span class="flex items-center gap-1 text-[11px]">
+        <i class="far fa-clock text-[10px]"></i>
+        <span>{{ o["created_at"]|ist_time if o.get("created_at") else 'Recently' }}</span>
+      </span>
+      <span>•</span>
+      <span class="font-bold text-[#212121] text-[11px]">{{ total_items }} item{% if total_items != 1 %}s{% endif %}</span>
+    </div>
+
+  </div>
+
+  <!-- ================= COLLAPSED OVERVIEW BAR (FLIPKART METRICS ROW) ================= -->
+  <div class="p-3.5 sm:p-4 bg-white">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 sm:gap-4 items-center">
+      
+      <!-- Col 1: Customer Contact Block (Lg: col-span-3) -->
+      <div class="lg:col-span-3 space-y-1">
+        <span class="text-[10px] font-bold uppercase tracking-wider text-[#878787]">Customer</span>
+        <h4 class="text-sm font-bold text-[#212121] leading-tight customer-display-name truncate">
+          {{ o.get("user_name") or "Customer" }}
+        </h4>
+        <div class="flex items-center gap-2 pt-0.5">
+          <span class="text-xs font-bold text-[#2874f0] font-mono">{{ o.get("user_phone") or "No Phone" }}</span>
+          {% if wa_phone %}
+          <!-- 1-Click WhatsApp Shortcut -->
+          <a 
+            href="https://wa.me/{{ wa_phone }}?text=Hello%20{{ o.get('user_name', '')|urlencode }},%20regarding%20your%20Jippy%20Store%20order%20%23{{ current_oid[-8:] }}" 
+            target="_blank" 
+            class="w-6 h-6 rounded-full bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white flex items-center justify-center text-[11px] transition-all border border-emerald-200"
+            title="Chat with Customer on WhatsApp"
+          >
+            <i class="fab fa-whatsapp"></i>
+          </a>
+          <!-- 1-Click Call Shortcut -->
+          <a 
+            href="tel:{{ o.get('user_phone') }}" 
+            class="w-6 h-6 rounded-full bg-blue-50 text-[#2874f0] hover:bg-[#2874f0] hover:text-white flex items-center justify-center text-[10px] transition-all border border-blue-200"
+            title="Call Customer"
+          >
+            <i class="fas fa-phone"></i>
+          </a>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Col 2: Customer Flat & Society Destination (Lg: col-span-3) -->
+      <div class="lg:col-span-3 space-y-1">
+        <span class="text-[10px] font-bold uppercase tracking-wider text-[#878787]">Customer Flat &amp; Society</span>
+        <div class="text-xs font-semibold text-[#212121] leading-snug">
+          {% if addr is mapping %}
+            <div class="font-bold text-[#212121] text-xs flex items-center gap-1.5">
+              <i class="fas fa-door-open text-[#2874f0] text-[11px]"></i>
+              <span class="truncate">{{ addr.get("line1", "") or "Flat Address" }}</span>
+            </div>
+            {% if addr.get("line2") %}
+              <div class="text-[11.5px] font-bold text-[#2874f0] flex items-center gap-1 mt-0.5">
+                <i class="fas fa-building text-[10px]"></i>
+                <span class="truncate">{{ addr.get("line2") }}</span>
+              </div>
+            {% endif %}
+            <span class="text-[#878787] font-normal text-[10.5px] block mt-0.5">
+              {{ addr.get("city", "") }}{% if addr.get("pincode") %} - {{ addr.get("pincode") }}{% endif %}
+            </span>
+          {% else %}
+            <span>{{ addr }}</span>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Col 3: Society In-House Store & Staff (Lg: col-span-3) - READ-ONLY -->
+      <div class="lg:col-span-3 space-y-1">
+        <span class="text-[10px] font-bold uppercase tracking-wider text-[#878787] block">Society In-House Store</span>
+        <div class="flex items-center gap-1.5 text-xs font-black text-[#212121] truncate">
+          <i class="fas fa-store text-[12px] text-[#2874f0]"></i>
+          <span class="truncate">{{ vendor_obj.name }}</span>
+          <span class="px-1.5 py-0.2 rounded text-[9.5px] font-bold uppercase tracking-wide
+            {% if (o.get('vendor_status') or 'pending') in ['packed', 'ready', 'completed'] %}bg-emerald-50 text-emerald-700 border border-emerald-200
+            {% else %}bg-amber-50 text-amber-700 border border-amber-200{% endif %}">
+            {{ (o.get('vendor_status') or 'Pending')|replace('_', ' ') }}
+          </span>
+        </div>
+
+        <div class="pt-0.5 flex items-center gap-1.5 text-[11px]">
+          <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10.5px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
+            <i class="fas fa-person-walking text-[10px] text-emerald-600"></i>
+            <span>Society In-House Delivery (Store Staff)</span>
+          </span>
+        </div>
+      </div>
+
+      <!-- Col 4: Amount & View Details (Lg: col-span-3) -->
+      <div class="lg:col-span-3 flex flex-row lg:flex-col items-center lg:items-end justify-between gap-2 pt-2 sm:pt-0 border-t sm:border-t-0 border-[#f0f0f0]">
+        <div class="text-left lg:text-right">
+          <span class="text-[10px] font-bold uppercase tracking-wider text-[#878787]">Grand Total</span>
+          <div class="text-base sm:text-lg font-black text-[#212121] leading-none mt-0.5">
+            ₹{{ o.get("total", 0) }}
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <!-- Quick Invoice Download Shortcut (Checks delivery before redirecting) -->
+          <button 
+            type="button" 
+            onclick="handleInvoiceDownload('{{ current_oid }}', '{{ current_main_status }}')" 
+            class="px-2 py-1 {% if is_invoice_ready %}bg-[#f0f5ff] hover:bg-[#e1edff] text-[#2874f0] border-[#d2e3fc]{% else %}bg-slate-50 hover:bg-slate-100 text-slate-400 border-slate-200{% endif %} border text-[11px] font-bold rounded-sm transition-all flex items-center gap-1 shadow-2xs"
+            title="{% if is_invoice_ready %}Download Tax Invoice (Delivered){% else %}Invoice not generated yet (Available after delivery){% endif %}"
+          >
+            <i class="fas fa-file-invoice text-[10px] {% if is_invoice_ready %}text-[#2874f0]{% else %}text-slate-400{% endif %}"></i>
+            <span class="hidden sm:inline">Invoice</span>
+            {% if not is_invoice_ready %}
+            <i class="fas fa-lock text-[8px] text-slate-400"></i>
+            {% endif %}
+          </button>
+
+          <!-- Toggle Order Details Accordion Button -->
+          <button 
+            type="button" 
+            onclick="toggleOrderAccordion('{{ current_oid }}')" 
+            class="px-3 py-1 bg-white border border-[#e0e0e0] hover:bg-[#f8faff] hover:border-[#2874f0] text-xs font-bold text-[#2874f0] rounded-sm transition-all flex items-center gap-1.5 shadow-2xs"
+            title="Expand Order Details"
+          >
+            <span>Order Details</span>
+            <i class="fas fa-chevron-down text-[10px] accordion-chevron"></i>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ================= EXPANDED ORDER DETAILS ACCORDION DRAWER ================= -->
+  <div id="orderDetails-{{ current_oid }}" class="hidden bg-[#fafafa] border-t border-[#e0e0e0] p-4 sm:p-5 space-y-4">
+    
+    <!-- 1. Visual Workflow Stepper Timeline (Society In-House Delivery Flow) -->
+    <div class="bg-white border border-[#e0e0e0] rounded-sm p-3.5 shadow-2xs workflow-stepper-box">
+      <span class="text-[10px] font-bold uppercase tracking-wider text-[#878787] block mb-2">Order Lifecycle Progression (Inside Society)</span>
+      <div class="flex items-center justify-between gap-1 overflow-x-auto text-center no-scrollbar pb-1">
+        
+        <!-- Step 1: Placed -->
+        <div class="step-placed flex items-center gap-1.5 text-xs font-bold text-emerald-600 shrink-0">
+          <div class="w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-[10px]">
+            <i class="fas fa-check"></i>
+          </div>
+          <span>1. Order Placed</span>
+        </div>
+        <div class="flex-1 h-0.5 bg-[#e0e0e0] mx-4"></div>
+
+        <!-- Step 2: Society Store Processing -->
+        <div class="step-packed flex items-center gap-1.5 text-xs font-bold {% if current_main_status in ['packed', 'ready', 'delivered'] %}text-emerald-600{% else %}text-[#878787]{% endif %} shrink-0">
+          <div class="w-5 h-5 rounded-full {% if current_main_status in ['packed', 'ready', 'delivered'] %}bg-emerald-100 text-emerald-700{% else %}bg-slate-100 text-slate-400{% endif %} flex items-center justify-center text-[10px]">
+            <i class="fas fa-store"></i>
+          </div>
+          <span>2. Packed by Society Store</span>
+        </div>
+        <div class="flex-1 h-0.5 bg-[#e0e0e0] mx-4"></div>
+
+        <!-- Step 3: Doorstep Delivered -->
+        <div class="step-delivered flex items-center gap-1.5 text-xs font-bold {% if current_main_status == 'delivered' %}text-emerald-600{% elif current_main_status in ['cancelled', 'canceled'] %}text-rose-600{% else %}text-[#878787]{% endif %} shrink-0">
+          <div class="w-5 h-5 rounded-full {% if current_main_status == 'delivered' %}bg-emerald-100 text-emerald-700{% elif current_main_status in ['cancelled', 'canceled'] %}bg-rose-100 text-rose-700{% else %}bg-slate-100 text-slate-400{% endif %} flex items-center justify-center text-[10px]">
+            <i class="fas {% if current_main_status in ['cancelled', 'canceled'] %}fa-times{% else %}fa-circle-check{% endif %}"></i>
+          </div>
+          <span>{% if current_main_status in ['cancelled', 'canceled'] %}Cancelled{% else %}3. Delivered to Flat{% endif %}</span>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- 2. Grid: Customer Context & Ordered Items Details -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+      
+      <!-- Left: Customer Details & Coordinates Card (col-span-4) -->
+      <div class="lg:col-span-4 space-y-3">
+        <div class="bg-white border border-[#e0e0e0] rounded-sm p-3.5 shadow-2xs space-y-2.5">
+          <div class="flex items-center justify-between border-b border-[#f0f0f0] pb-2">
+            <span class="text-xs font-bold text-[#212121] uppercase tracking-wide flex items-center gap-1.5">
+              <i class="fas fa-location-dot text-[#2874f0]"></i>
+              <span>Flat Delivery Details</span>
+            </span>
+            {% if o.get("coords") %}
+            <a 
+              href="https://www.google.com/maps/search/?api=1&query={{ o['coords']['lat'] }},{{ o['coords']['lng'] }}" 
+              target="_blank" 
+              class="text-[10px] font-bold text-[#2874f0] hover:underline flex items-center gap-1"
+              title="Open Location in Google Maps"
+            >
+              <i class="fas fa-map-location-dot"></i>
+              <span>Google Maps</span>
+            </a>
+            {% endif %}
+          </div>
+
+          <div class="text-xs space-y-1 text-[#212121]">
+            <p><strong class="text-[#878787]">Customer:</strong> {{ o.get("user_name") }}</p>
+            <p><strong class="text-[#878787]">Primary Phone:</strong> <span class="font-mono font-semibold">{{ o.get("user_phone") }}</span></p>
+            {% if addr is mapping and addr.get("alt_phone") %}
+            <p><strong class="text-[#878787]">Alt Phone:</strong> <span class="font-mono font-semibold">{{ addr.get("alt_phone") }}</span></p>
+            {% endif %}
+            <div class="pt-1 text-[#555] leading-relaxed">
+              {% if addr is mapping %}
+                <p class="font-bold text-[#212121] text-xs">{{ addr.get("line1", "") }}</p>
+                {% if addr.get("line2") %}<p class="text-[#2874f0] font-bold text-xs"><i class="fas fa-building text-[10px]"></i> {{ addr.get("line2") }}</p>{% endif %}
+                <p class="text-[11px] text-[#878787]">{{ addr.get("city", "") }} - {{ addr.get("pincode", "") }}</p>
+              {% else %}
+                <p>{{ addr }}</p>
+              {% endif %}
+            </div>
+            {% if o.get("notes") %}
+            <div class="p-2 bg-amber-50 border border-amber-200 rounded text-[11px] text-amber-800 mt-2">
+              <strong>Order Note:</strong> {{ o.get("notes") }}
+            </div>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Financial Breakdown Widget -->
+        <div class="bg-white border border-[#e0e0e0] rounded-sm p-3.5 shadow-2xs space-y-2">
+          <span class="text-xs font-bold text-[#212121] uppercase tracking-wide block border-b border-[#f0f0f0] pb-1.5">
+            Bill Breakdown
+          </span>
+          <div class="text-xs space-y-1.5 text-[#555]">
+            <div class="flex justify-between">
+              <span>Item Subtotal:</span>
+              <span class="font-mono font-semibold text-[#212121]">₹{{ o.get("subtotal", 0) }}</span>
+            </div>
+            {% if o.get("handling_fee") %}
+            <div class="flex justify-between">
+              <span>Handling Fee:</span>
+              <span class="font-mono text-[#212121]">₹{{ o.get("handling_fee") }}</span>
+            </div>
+            {% endif %}
+            {% if o.get("surge_charge") %}
+            <div class="flex justify-between">
+              <span>Surge Charge:</span>
+              <span class="font-mono text-[#212121]">₹{{ o.get("surge_charge") }}</span>
+            </div>
+            {% endif %}
+            <div class="flex justify-between">
+              <span>Delivery Fee:</span>
+              <span class="font-mono text-[#212121]">₹{{ o.get("delivery_fee", 0) }}</span>
+            </div>
+            {% if o.get("platform_fee") %}
+            <div class="flex justify-between">
+              <span>Platform Fee:</span>
+              <span class="font-mono text-[#212121]">₹{{ o.get("platform_fee") }}</span>
+            </div>
+            {% endif %}
+            <div class="flex justify-between pt-2 border-t border-[#f0f0f0] text-sm font-bold text-[#212121]">
+              <span>Grand Total:</span>
+              <span class="font-mono font-black text-[#2874f0]">₹{{ o.get("total", 0) }}</span>
+            </div>
+          </div>
+
+          <!-- Invoice Download Button (Checks delivery before redirecting) -->
+          <div class="pt-2">
+            <button 
+              type="button" 
+              onclick="handleInvoiceDownload('{{ current_oid }}', '{{ current_main_status }}')" 
+              class="w-full py-1.5 px-3 {% if is_invoice_ready %}bg-white border-[#2874f0] text-[#2874f0] hover:bg-[#f0f5ff]{% else %}bg-slate-50 border-slate-200 text-slate-400 hover:bg-slate-100{% endif %} border text-xs font-bold rounded-sm transition-all flex items-center justify-center gap-1.5 shadow-2xs"
+              title="{% if is_invoice_ready %}Download Tax Invoice{% else %}Invoice available only after delivery{% endif %}"
+            >
+              <i class="fas fa-file-invoice text-xs"></i>
+              <span>{% if is_invoice_ready %}Download Tax Invoice{% else %}Tax Invoice (Available After Delivery){% endif %}</span>
+              {% if not is_invoice_ready %}
+              <i class="fas fa-lock text-[10px] text-slate-400 ml-1"></i>
+              {% endif %}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Ordered Products & Society Store Fulfillment (col-span-8) -->
+      <div class="lg:col-span-8 space-y-3">
+        <div class="bg-white border border-[#e0e0e0] rounded-sm p-4 shadow-2xs space-y-3">
+          
+          <div class="flex items-center justify-between border-b border-[#f0f0f0] pb-2">
+            <div>
+              <span class="text-xs font-bold text-[#212121] uppercase tracking-wide flex items-center gap-1.5">
+                <i class="fas fa-basket-shopping text-[#2874f0]"></i>
+                <span>Ordered Products ({{ total_items }} item{% if total_items != 1 %}s{% endif %})</span>
+              </span>
+              <p class="text-[10.5px] text-[#878787]">Fulfilled directly by resident's society in-house shop</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-[11px] font-bold text-[#212121] hidden sm:inline">{{ vendor_obj.name }}</span>
+              <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase 
+                {% if (o.get('vendor_status') or 'pending') in ['packed', 'ready', 'completed'] %}bg-emerald-50 text-emerald-700 border border-emerald-200
+                {% else %}bg-amber-50 text-amber-700 border border-amber-200{% endif %}">
+                {{ (o.get('vendor_status') or 'PENDING')|replace('_', ' ') }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Items Table -->
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr class="bg-[#f8f9fa] border-b border-[#e0e0e0] text-[#878787] uppercase text-[10px] font-bold">
+                  <th class="py-2.5 px-3">Item Details</th>
+                  <th class="py-2.5 px-3 text-center">Unit Price</th>
+                  <th class="py-2.5 px-3 text-center">Qty</th>
+                  <th class="py-2.5 px-3 text-right">Total</th>
+                  <th class="py-2.5 px-3 text-right">Fulfillment</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-[#f0f0f0]">
+                {% for it in items_list %}
+                <tr class="hover:bg-[#fbfbfb]">
+                  <td class="py-2.5 px-3">
+                    <div class="flex items-center gap-2.5">
+                      <img 
+                        src="{{ it.get('image') or '/static/images/placeholder.png' }}" 
+                        alt="{{ it.get('name') }}" 
+                        class="w-9 h-9 rounded-sm object-cover border border-[#e0e0e0] shrink-0"
+                        onerror="this.onerror=null; this.src='/static/images/placeholder.png';"
+                      >
+                      <div class="min-w-0">
+                        <span class="font-bold text-[#212121] block leading-tight">{{ it.get("name") }}</span>
+                        {% if it.get("unit") %}
+                        <span class="text-[10px] text-[#878787] font-medium">{{ it.get("unit") }}</span>
+                        {% endif %}
+                      </div>
+                    </div>
+                  </td>
+                  <td class="py-2.5 px-3 text-center font-mono font-semibold text-[#555]">
+                    ₹{{ it.get("price") }}
+                  </td>
+                  <td class="py-2.5 px-3 text-center font-bold text-[#212121]">
+                    ×{{ it.get("qty") }}
+                  </td>
+                  <td class="py-2.5 px-3 text-right font-mono font-bold text-[#212121]">
+                    ₹{{ (it.get('price', 0)|float * it.get('qty', 1)|int)|round(2) }}
+                  </td>
+                  <td class="py-2.5 px-3 text-right">
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                      <i class="fas fa-store text-[9px] text-emerald-600"></i>
+                      <span class="truncate max-w-[130px]">{{ vendor_obj.name }}</span>
+                    </span>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Bottom Operational Note & Delete Order -->
+          <div class="pt-3 border-t border-[#f0f0f0] flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-1.5 text-[11px] text-[#878787]">
+              <i class="fas fa-building text-[#2874f0]"></i>
+              <span>Society in-house grocery delivery managed directly by the store staff to resident flat.</span>
+            </div>
+
+            <!-- Delete Order Button (AJAX) -->
+            <button 
+              type="button" 
+              onclick="ajaxDeleteOrder('{{ current_oid }}')" 
+              class="text-xs font-bold text-red-600 hover:text-red-800 hover:bg-red-50 px-2.5 py-1 rounded-sm border border-red-200 transition-all flex items-center gap-1"
+              title="Delete this order record permanently"
+            >
+              <i class="fas fa-trash-can text-xs"></i>
+              <span>Delete Order</span>
+            </button>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
