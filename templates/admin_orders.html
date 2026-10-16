@@ -146,25 +146,6 @@
         <span id="notifLabel" class="text-[11px]">Desktop Alerts</span>
       </button>
 
-      <!-- Install Desktop App (PWA) Button -->
-      <button 
-        type="button" 
-        id="pwaInstallBtn" 
-        onclick="installDesktopApp()" 
-        class="hidden flex items-center gap-1.5 px-2.5 py-1.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-xs font-bold text-white rounded-sm transition-all active:scale-95 shadow-2xs"
-        title="Install Jippy Store Admin as a Standalone Desktop App (Runs in its own window)"
-      >
-        <i class="fas fa-download text-[11px]"></i>
-        <span class="text-[11px]">Install App</span>
-      </button>
-
-      <!-- App Mode Badge (Visible when running as Desktop App) -->
-      <div id="pwaStandaloneBadge" class="hidden flex items-center gap-1.5 px-2 py-1 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-sm text-[11px] font-bold shadow-2xs">
-        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-        <i class="fas fa-desktop text-[11px]"></i>
-        <span>Desktop App</span>
-      </div>
-
       <!-- Instant Silent Refresh Button -->
       <button 
         type="button" 
@@ -647,43 +628,6 @@
     });
   }
 
-  // Desktop PWA Installation & Standalone Mode Detection
-  let deferredInstallPrompt = null;
-  window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    deferredInstallPrompt = e;
-    const btn = document.getElementById('pwaInstallBtn');
-    if (btn) btn.classList.remove('hidden');
-  });
-
-  async function installDesktopApp() {
-    if (!deferredInstallPrompt) {
-      alert("💡 To Install as a Desktop App on your PC:\n\n1. Look at your Chrome address bar (URL bar) on the right side: Click the computer icon 🖥️ (Install Jippy Store Admin Hub).\n\nOR\n2. Click the 3 dots menu (⋮) -> 'Save and Share' / 'Apps' -> 'Install Jippy Store Admin Hub'.\n\nOnce installed, it opens in its own window like a native Windows software and has its own Taskbar icon!");
-      return;
-    }
-    deferredInstallPrompt.prompt();
-    const { outcome } = await deferredInstallPrompt.userChoice;
-    if (outcome === 'accepted') {
-      const btn = document.getElementById('pwaInstallBtn');
-      if (btn) btn.classList.add('hidden');
-      showInlineToast("Jippy Store Admin Desktop App installed!", "success");
-    }
-    deferredInstallPrompt = null;
-  }
-
-  function checkStandaloneMode() {
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-    const badge = document.getElementById('pwaStandaloneBadge');
-    const installBtn = document.getElementById('pwaInstallBtn');
-    if (isStandalone) {
-      if (badge) badge.classList.remove('hidden');
-      if (installBtn) installBtn.classList.add('hidden');
-    } else {
-      if (installBtn) installBtn.classList.remove('hidden');
-    }
-  }
-  window.addEventListener('DOMContentLoaded', checkStandaloneMode);
-  checkStandaloneMode();
 
   function focusOrderCard(orderId) {
     const card = document.getElementById(`orderCard-${orderId}`);
