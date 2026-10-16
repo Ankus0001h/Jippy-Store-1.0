@@ -49,10 +49,11 @@
             <!-- Society Image Container -->
             <div class="aspect-[16/9] w-full bg-slate-100 relative overflow-hidden">
               <img
-                src="{{ soc.image or 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&q=80&w=600' }}"
+                src="{{ soc.image or 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&q=80&w=800' }}"
                 class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 alt="{{ soc.name }}"
-                onerror="this.src='https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&q=80&w=600'"
+                loading="lazy"
+                onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&q=80&w=800';"
               />
               <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent"></div>
               
@@ -127,7 +128,11 @@
         {% if nearest_society %}
         <div class="pt-2 w-full max-w-xs space-y-2">
           <a href="/society/{{ nearest_society.id }}/shops" class="w-full py-2.5 px-4 bg-[#2874f0] hover:bg-blue-600 active:scale-95 text-white text-[12.5px] font-bold uppercase tracking-wider rounded-sm transition-all shadow-xs flex items-center justify-center gap-2">
+            {% if nearest_society.image %}
+            <img src="{{ nearest_society.image }}" alt="{{ nearest_society.name }}" class="w-5 h-5 rounded-sm object-cover border border-white/40" onerror="this.style.display='none'">
+            {% else %}
             <i class="fas fa-building text-xs"></i>
+            {% endif %}
             <span>Deliver to {{ nearest_society.name }}</span>
           </a>
           <p class="text-[11px] text-[#878787] font-medium">Select if you are a resident ordering for your society flat</p>
