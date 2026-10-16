@@ -1,65 +1,321 @@
 {% extends "base_admin.html" %}
+
 {% block content %}
-<div class="max-w-5xl mx-auto px-4 py-6 sm:py-8 space-y-8 animate-fade-in">
-  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
-    <div>
-      <h1 class="text-2xl font-black text-slate-900 tracking-tight mb-1">Manage Societies</h1>
-      <p class="text-xs text-slate-500 font-medium">Add or edit locations/societies that your app serves.</p>
+<style>
+  .input-focus-blue:focus {
+    border-color: #2874f0 !important;
+    box-shadow: 0 0 0 3px rgba(40, 116, 240, 0.12) !important;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .animate-fade-in {
+    animation: fadeIn 0.25s ease-out forwards;
+  }
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 5px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #c7cbd1;
+    border-radius: 4px;
+  }
+</style>
+
+<div class="max-w-7xl mx-auto px-2.5 sm:px-6 py-3 sm:py-6 space-y-5 animate-fade-in pb-16">
+
+  <!-- ======================================================== -->
+  <!-- TOP BREADCRUMB & HEADER -->
+  <!-- ======================================================== -->
+  <div class="bg-white border border-[#e0e0e0] rounded-sm shadow-xs overflow-hidden">
+    <!-- Royal Blue Brand Banner -->
+    <div class="bg-[#2874f0] px-4 sm:px-6 py-2.5 flex items-center justify-between text-white text-xs">
+      <div class="flex items-center gap-2">
+        <span class="font-extrabold tracking-tight flex items-center gap-1.5 text-xs sm:text-sm">
+          <span>Jippy</span>
+          <span class="text-[#ffe500] italic font-black">Store</span>
+        </span>
+        <span class="text-white/40">|</span>
+        <span class="text-blue-100 text-[11px] font-medium hidden sm:inline">Logistics & Service Coverage Management</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <button 
+          type="button" 
+          onclick="openAddSocietyModal()"
+          class="inline-flex items-center gap-1.5 px-3 py-1 rounded bg-[#fb641b] hover:bg-[#e05615] text-white text-[11px] font-black transition-all shadow-2xs active:scale-95"
+        >
+          <i class="fas fa-plus text-[10px]"></i>
+          <span>Add New Society</span>
+        </button>
+        <a 
+          href="{{ url_for('admin_dashboard') }}" 
+          class="inline-flex items-center gap-1.5 px-3 py-1 rounded bg-white/15 hover:bg-white/25 text-white text-[11px] font-bold transition-all border border-white/20 active:scale-95"
+        >
+          <i class="fas fa-arrow-left text-[10px]"></i>
+          <span>Dashboard</span>
+        </a>
+      </div>
     </div>
-    <button onclick="document.getElementById('add-society-modal').classList.remove('hidden')" class="bg-pink-600 hover:bg-pink-700 text-white text-xs font-black px-5 py-2.5 rounded-2xl uppercase tracking-widest shadow-lg shadow-pink-200 transition-all flex items-center gap-2">
-      <i class="fas fa-plus"></i> Add Society
-    </button>
+
+    <!-- Title & Summary Stats -->
+    <div class="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white">
+      <div>
+        <nav class="flex items-center gap-1.5 text-[11px] text-[#878787] font-medium mb-1">
+          <a href="{{ url_for('admin_dashboard') }}" class="hover:text-[#2874f0] transition-colors">Dashboard</a>
+          <span>›</span>
+          <span class="text-[#878787]">Operational Zones</span>
+          <span>›</span>
+          <span class="text-[#2874f0] font-bold">Manage Societies</span>
+        </nav>
+        <h1 class="text-lg sm:text-xl font-black text-[#212121] tracking-tight flex items-center gap-2">
+          <span>Residential Societies Directory</span>
+          <span class="text-[10px] font-extrabold uppercase px-2 py-0.5 bg-[#e8f0fe] text-[#2874f0] rounded border border-[#d2e3fc]">
+            Active Service Grid
+          </span>
+        </h1>
+        <p class="text-xs text-[#878787] mt-0.5">
+          Configure society coordinates, pin codes, and service boundaries for automatic delivery routing.
+        </p>
+      </div>
+
+      <!-- Quick Metrics Counter -->
+      <div class="flex items-center gap-2 sm:gap-3">
+        <div class="px-3.5 py-2 bg-[#f8faff] border border-[#e0e0e0] rounded-sm text-center">
+          <div class="text-[10px] uppercase font-bold text-[#878787]">Registered Societies</div>
+          <div class="text-base font-black text-[#2874f0]">{{ societies|length }}</div>
+        </div>
+        {% set cities_list = [] %}
+        {% for s in societies %}
+          {% if s.city and s.city not in cities_list %}
+            {% set _ = cities_list.append(s.city) %}
+          {% endif %}
+        {% endfor %}
+        <div class="px-3.5 py-2 bg-[#f8faff] border border-[#e0e0e0] rounded-sm text-center">
+          <div class="text-[10px] uppercase font-bold text-[#878787]">Cities Covered</div>
+          <div class="text-base font-black text-[#388e3c]">{{ cities_list|length }}</div>
+        </div>
+      </div>
+    </div>
   </div>
 
+  <!-- ======================================================== -->
+  <!-- FLASH MESSAGES / SYSTEM ALERTS -->
+  <!-- ======================================================== -->
   {% if error %}
-    <div class="rounded-2xl border border-rose-100 bg-rose-50 px-4 py-2.5 text-[11px] font-bold text-rose-700">
-      {{ error }}
+  <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-sm text-xs font-semibold flex items-center justify-between shadow-2xs animate-fade-in" id="errorAlert">
+    <div class="flex items-center gap-2.5">
+      <div class="w-6 h-6 rounded-full bg-red-100 flex items-center justify-center text-red-600 flex-shrink-0">
+        <i class="fas fa-exclamation-circle text-xs"></i>
+      </div>
+      <div>
+        <span class="font-bold">Validation Error:</span> {{ error }}
+      </div>
     </div>
-  {% endif %}
-  {% if success %}
-    <div class="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-2.5 text-[11px] font-bold text-emerald-700">
-      {{ success }}
-    </div>
+    <button type="button" onclick="document.getElementById('errorAlert').remove()" class="text-red-400 hover:text-red-700 p-1">
+      <i class="fas fa-times text-xs"></i>
+    </button>
+  </div>
   {% endif %}
 
-  <!-- Societies List -->
-  <div class="bg-white border border-slate-100 rounded-3xl overflow-hidden shadow-sm">
+  {% if success %}
+  <div class="bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-sm text-xs font-semibold flex items-center justify-between shadow-2xs animate-fade-in" id="successAlert">
+    <div class="flex items-center gap-2.5">
+      <div class="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 flex-shrink-0">
+        <i class="fas fa-check-circle text-xs"></i>
+      </div>
+      <div>
+        <span class="font-bold">Success:</span> {{ success }}
+      </div>
+    </div>
+    <button type="button" onclick="document.getElementById('successAlert').remove()" class="text-emerald-500 hover:text-emerald-800 p-1">
+      <i class="fas fa-times text-xs"></i>
+    </button>
+  </div>
+  {% endif %}
+
+  <!-- ======================================================== -->
+  <!-- SEARCH, CITY FILTERS & ACTION BAR -->
+  <!-- ======================================================== -->
+  <div class="bg-white border border-[#e0e0e0] rounded-sm p-3 shadow-xs space-y-3">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <!-- Search Input -->
+      <div class="relative flex-1 max-w-md">
+        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[#878787] text-xs">
+          <i class="fas fa-search"></i>
+        </span>
+        <input 
+          type="text" 
+          id="societySearchInput" 
+          oninput="filterSocietiesTable()"
+          placeholder="Search by society name, city, pincode, or coordinates..." 
+          class="w-full pl-9 pr-3 py-2 text-xs font-semibold text-[#212121] bg-[#f8faff] border border-[#e0e0e0] rounded-sm input-focus-blue transition-all"
+        >
+      </div>
+
+      <!-- Quick Action Button -->
+      <div class="flex items-center gap-2 self-end sm:self-auto">
+        <span id="matchCounter" class="text-[11px] text-[#878787] font-semibold">
+          Showing {{ societies|length }} societies
+        </span>
+        <button 
+          type="button" 
+          onclick="openAddSocietyModal()"
+          class="px-4 py-2 bg-[#2874f0] hover:bg-blue-600 text-white text-xs font-bold rounded-sm shadow-xs active:scale-95 transition-all flex items-center gap-1.5"
+        >
+          <i class="fas fa-plus text-[10px]"></i>
+          <span>Add Society</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- City Filter Pills -->
+    {% if cities_list %}
+    <div class="flex flex-wrap items-center gap-1.5 pt-2 border-t border-[#f1f3f6]">
+      <span class="text-[10px] font-bold uppercase text-[#878787] mr-1">Filter City:</span>
+      <button 
+        type="button" 
+        onclick="filterByCity('')"
+        class="city-filter-btn px-2.5 py-1 text-[11px] font-bold rounded bg-[#2874f0] text-white transition-all shadow-2xs"
+        data-city=""
+      >
+        All ({{ societies|length }})
+      </button>
+      {% for c in cities_list %}
+      <button 
+        type="button" 
+        onclick="filterByCity('{{ c|lower }}')"
+        class="city-filter-btn px-2.5 py-1 text-[11px] font-semibold rounded bg-[#f8faff] text-[#212121] hover:bg-blue-50 border border-[#e0e0e0] transition-all"
+        data-city="{{ c|lower }}"
+      >
+        {{ c }}
+      </button>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- SOCIETIES MASTER TABLE -->
+  <!-- ======================================================== -->
+  <div class="bg-white border border-[#e0e0e0] rounded-sm shadow-xs overflow-hidden">
     <div class="overflow-x-auto">
-      <table class="w-full text-left border-collapse">
-        <thead>
-          <tr class="bg-slate-50 border-b border-slate-100 text-[10px] uppercase tracking-widest font-black text-slate-400">
-            <th class="px-6 py-4">Society Name</th>
-            <th class="px-6 py-4">City</th>
-            <th class="px-6 py-4">Coordinates (Lat, Lng)</th>
-            <th class="px-6 py-4">Pincode</th>
-            <th class="px-6 py-4 text-right">Actions</th>
+      <table class="w-full text-left border-collapse" id="societiesMasterTable">
+        <thead class="bg-[#f8faff] text-[10px] font-bold text-[#878787] uppercase border-b border-[#e0e0e0] sticky top-0 z-10">
+          <tr>
+            <th class="py-2.5 px-4">Residential Society</th>
+            <th class="py-2.5 px-4">City</th>
+            <th class="py-2.5 px-4">Pincode</th>
+            <th class="py-2.5 px-4">GPS Coordinates</th>
+            <th class="py-2.5 px-4 text-right">Actions</th>
           </tr>
         </thead>
-        <tbody class="text-sm font-medium text-slate-700 divide-y divide-slate-50">
+        <tbody class="divide-y divide-[#f1f3f6] text-xs">
           {% for soc in societies %}
-          <tr class="hover:bg-slate-50/50 transition-colors">
-            <td class="px-6 py-4 font-bold text-slate-900">{{ soc.name }}</td>
-            <td class="px-6 py-4">{{ soc.city }}</td>
-            <td class="px-6 py-4 font-mono text-xs text-slate-500">{{ soc.location.lat }}, {{ soc.location.lng }}</td>
-            <td class="px-6 py-4">{{ soc.pincode }}</td>
-            <td class="px-6 py-4 text-right">
-              <div class="flex items-center justify-end gap-2">
-                <a href="{{ url_for('admin_edit_society', society_id=soc._id) }}" class="w-8 h-8 rounded-full bg-emerald-50 text-emerald-500 hover:bg-emerald-500 hover:text-white flex items-center justify-center transition-colors">
-                  <i class="fas fa-pen text-xs"></i>
+          {% set slat = soc.location.lat if soc.location is mapping else '' %}
+          {% set slng = soc.location.lng if soc.location is mapping else '' %}
+          <tr 
+            class="society-row hover:bg-[#f8faff] transition-colors group"
+            data-search="{{ soc.name|lower }} {{ soc.city|lower }} {{ soc.pincode }} {{ slat }} {{ slng }}"
+            data-city="{{ soc.city|lower }}"
+          >
+            <!-- Society Info -->
+            <td class="py-3 px-4">
+              <div class="flex items-center gap-3">
+                {% if soc.image %}
+                <img 
+                  src="{{ soc.image }}" 
+                  alt="{{ soc.name }}" 
+                  class="w-9 h-9 rounded object-cover border border-[#e0e0e0] flex-shrink-0"
+                  onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                >
+                <div class="w-9 h-9 rounded bg-[#2874f0]/10 text-[#2874f0] font-black text-xs hidden items-center justify-center flex-shrink-0 border border-[#e0e0e0]">
+                  <i class="fas fa-building"></i>
+                </div>
+                {% else %}
+                <div class="w-9 h-9 rounded bg-[#2874f0]/10 text-[#2874f0] font-black text-xs flex items-center justify-center flex-shrink-0 border border-[#e0e0e0]">
+                  <i class="fas fa-building"></i>
+                </div>
+                {% endif %}
+                <div class="leading-tight overflow-hidden">
+                  <div class="font-bold text-[#212121] text-xs sm:text-sm truncate">
+                    {{ soc.name }}
+                  </div>
+                  <div class="text-[10px] text-[#878787] mt-0.5 font-mono">
+                    ID: {{ soc._id }}
+                  </div>
+                </div>
+              </div>
+            </td>
+
+            <!-- City -->
+            <td class="py-3 px-4">
+              <span class="inline-block px-2 py-0.5 bg-blue-50 text-[#2874f0] rounded text-[11px] font-bold">
+                {{ soc.city }}
+              </span>
+            </td>
+
+            <!-- Pincode -->
+            <td class="py-3 px-4 font-mono font-bold text-[#212121]">
+              {{ soc.pincode }}
+            </td>
+
+            <!-- Coordinates & Google Maps Link -->
+            <td class="py-3 px-4">
+              {% if slat and slng %}
+              <div class="flex items-center gap-2">
+                <span class="font-mono text-[11px] text-[#555] bg-[#f8faff] px-2 py-0.5 rounded border border-[#e0e0e0]">
+                  {{ slat }}, {{ slng }}
+                </span>
+                <a 
+                  href="https://www.google.com/maps?q={{ slat }},{{ slng }}" 
+                  target="_blank" 
+                  class="text-[#2874f0] hover:text-blue-700 text-[11px] font-bold flex items-center gap-1 hover:underline"
+                  title="Open in Google Maps"
+                >
+                  <i class="fas fa-map-location-dot"></i>
+                  <span>Maps</span>
                 </a>
-                <form action="{{ url_for('admin_delete_society', society_id=soc._id) }}" method="POST" class="inline" onsubmit="return confirm('Are you sure you want to delete this society?');">
-                  <button type="submit" class="w-8 h-8 rounded-full bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white flex items-center justify-center transition-colors">
-                    <i class="fas fa-trash text-xs"></i>
+              </div>
+              {% else %}
+              <span class="text-[10px] text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                No Coordinates
+              </span>
+              {% endif %}
+            </td>
+
+            <!-- Action Buttons -->
+            <td class="py-3 px-4 text-right whitespace-nowrap">
+              <div class="flex items-center justify-end gap-1.5">
+                <a 
+                  href="{{ url_for('admin_edit_society', society_id=soc._id) }}" 
+                  class="w-7 h-7 rounded border border-[#e0e0e0] hover:border-[#2874f0] text-[#2874f0] hover:bg-blue-50 flex items-center justify-center transition-all"
+                  title="Edit Society"
+                >
+                  <i class="fas fa-pen text-[10px]"></i>
+                </a>
+                <form 
+                  action="{{ url_for('admin_delete_society', society_id=soc._id) }}" 
+                  method="POST" 
+                  class="inline" 
+                  onsubmit="return confirm('Are you sure you want to permanently delete \'{{ soc.name }}\'?');"
+                >
+                  <button 
+                    type="submit" 
+                    class="w-7 h-7 rounded border border-[#e0e0e0] hover:border-red-400 text-red-500 hover:bg-red-50 flex items-center justify-center transition-all"
+                    title="Delete Society"
+                  >
+                    <i class="fas fa-trash-alt text-[10px]"></i>
                   </button>
                 </form>
               </div>
             </td>
           </tr>
           {% else %}
-          <tr>
-            <td colspan="5" class="px-6 py-12 text-center text-slate-400">
-              <i class="fas fa-building text-3xl mb-3 text-slate-200"></i>
-              <p class="text-sm font-bold">No societies added yet.</p>
+          <tr id="emptyTableRow">
+            <td colspan="5" class="py-12 text-center text-xs text-[#878787]">
+              <i class="fas fa-city text-3xl text-gray-300 mb-2"></i>
+              <p class="font-bold text-sm text-[#212121]">No Residential Societies Found</p>
+              <p class="text-[11px] mt-0.5">Click "Add New Society" above to configure your first delivery coverage location.</p>
             </td>
           </tr>
           {% endfor %}
@@ -69,78 +325,462 @@
   </div>
 </div>
 
-<!-- Add Modal -->
-<div id="add-society-modal" class="fixed inset-0 z-[100] hidden">
-  <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onclick="this.parentElement.classList.add('hidden')"></div>
-  <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-[2rem] shadow-2xl p-6 sm:p-8 animate-fade-in-up">
-    <div class="flex items-center justify-between mb-6">
-      <h2 class="text-xl font-black text-slate-900">Add New Society</h2>
-      <button type="button" onclick="document.getElementById('add-society-modal').classList.add('hidden')" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200">
+<!-- ======================================================== -->
+<!-- ADD SOCIETY MODAL (FLIPKART STYLE) -->
+<!-- ======================================================== -->
+<div id="addSocietyModal" class="fixed inset-0 z-[150] hidden flex items-center justify-center p-3">
+  <!-- Backdrop -->
+  <div class="absolute inset-0 bg-black/40 backdrop-blur-xs" onclick="closeAddSocietyModal()"></div>
+
+  <!-- Modal Content Box -->
+  <div class="relative w-full max-w-lg bg-white rounded-sm shadow-xl border border-[#e0e0e0] overflow-hidden animate-fade-in z-10">
+    
+    <!-- Modal Header -->
+    <div class="bg-[#2874f0] px-5 py-3 text-white flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <i class="fas fa-building text-sm"></i>
+        <h2 class="text-xs sm:text-sm font-black uppercase tracking-wide">Register New Residential Society</h2>
+      </div>
+      <button type="button" onclick="closeAddSocietyModal()" class="text-white/80 hover:text-white p-1 text-sm">
         <i class="fas fa-times"></i>
       </button>
     </div>
-    <form action="{{ url_for('admin_societies') }}" method="POST" class="space-y-4">
+
+    <!-- Modal Form -->
+    <form action="{{ url_for('admin_societies') }}" method="POST" id="addSocietyForm" class="p-5 space-y-4" novalidate>
+      
+      <!-- Society Name -->
       <div>
-        <label class="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Society Name</label>
-        <input type="text" name="name" required class="w-full px-4 py-3 rounded-2xl border border-slate-200 text-sm focus:border-pink-500 focus:ring-2 focus:ring-pink-200 transition-all outline-none" placeholder="e.g. Gaur City 2, 14th Avenue">
-      </div>
-      <div>
-        <label class="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">City</label>
-        <input type="text" name="city" required class="w-full px-4 py-3 rounded-2xl border border-slate-200 text-sm focus:border-pink-500 focus:ring-2 focus:ring-pink-200 transition-all outline-none" placeholder="e.g. Noida">
-      </div>
-      <div>
-        <label class="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Pincode</label>
-        <input type="text" name="pincode" required class="w-full px-4 py-3 rounded-2xl border border-slate-200 text-sm focus:border-pink-500 focus:ring-2 focus:ring-pink-200 transition-all outline-none" placeholder="e.g. 201301">
-      </div>
-      <div>
-        <label class="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Image URL (Optional)</label>
-        <input type="text" name="image" class="w-full px-4 py-3 rounded-2xl border border-slate-200 text-sm focus:border-pink-500 focus:ring-2 focus:ring-pink-200 transition-all outline-none" placeholder="e.g. https://images.unsplash.com/...">
-      </div>
-      <div class="grid grid-cols-2 gap-3">
-        <div>
-          <label class="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Latitude</label>
-          <input type="text" name="lat" id="modal-lat" required class="w-full px-4 py-3 rounded-2xl border border-slate-200 text-sm focus:border-pink-500 focus:ring-2 focus:ring-pink-200 transition-all outline-none" placeholder="e.g. 28.6139">
+        <label class="block text-xs font-bold text-[#212121] mb-1">
+          Society / Complex Name *
+        </label>
+        <div class="relative">
+          <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[#878787] text-xs">
+            <i class="fas fa-city"></i>
+          </span>
+          <input 
+            type="text" 
+            name="name" 
+            id="modalSocietyName"
+            value="{{ form_data.name if form_data else '' }}"
+            required 
+            placeholder="e.g. Gaur City 2, 14th Avenue" 
+            class="w-full pl-9 pr-3 py-2 text-xs font-semibold text-[#212121] bg-white border border-[#e0e0e0] rounded-sm input-focus-blue transition-all"
+          >
         </div>
+        <p class="text-[10px] text-[#878787] mt-1">Full registered society or apartment complex name.</p>
+      </div>
+
+      <!-- City & Pincode in 2 columns -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <!-- City -->
         <div>
-          <label class="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Longitude</label>
-          <input type="text" name="lng" id="modal-lng" required class="w-full px-4 py-3 rounded-2xl border border-slate-200 text-sm focus:border-pink-500 focus:ring-2 focus:ring-pink-200 transition-all outline-none" placeholder="e.g. 77.2090">
+          <label class="block text-xs font-bold text-[#212121] mb-1">
+            City / Region *
+          </label>
+          <div class="relative">
+            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[#878787] text-xs">
+              <i class="fas fa-location-dot"></i>
+            </span>
+            <input 
+              type="text" 
+              name="city" 
+              id="modalCity"
+              value="{{ form_data.city if form_data else '' }}"
+              required 
+              placeholder="e.g. Greater Noida West" 
+              class="w-full pl-9 pr-3 py-2 text-xs font-semibold text-[#212121] bg-white border border-[#e0e0e0] rounded-sm input-focus-blue transition-all"
+            >
+          </div>
+        </div>
+
+        <!-- Pincode -->
+        <div>
+          <label class="block text-xs font-bold text-[#212121] mb-1">
+            PIN Code (6 Digits) *
+          </label>
+          <div class="relative">
+            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[#878787] text-xs">
+              <i class="fas fa-map-pin"></i>
+            </span>
+            <input 
+              type="text" 
+              name="pincode" 
+              id="modalPincode"
+              maxlength="6"
+              inputmode="numeric"
+              value="{{ form_data.pincode if form_data else '' }}"
+              required 
+              placeholder="e.g. 201301" 
+              class="w-full pl-9 pr-3 py-2 text-xs font-semibold text-[#212121] bg-white border border-[#e0e0e0] rounded-sm input-focus-blue transition-all"
+            >
+          </div>
         </div>
       </div>
-      <div class="pt-2">
-        <button type="button" onclick="autoFetchAdminLocation()" class="w-full py-2 mb-3 rounded-xl bg-slate-100 text-slate-600 text-[10px] font-black uppercase tracking-widest hover:bg-slate-200 transition-colors">
-          <i class="fas fa-location-crosshairs mr-1"></i> Auto Fetch Location
+
+      <!-- Image URL (Optional) -->
+      <div>
+        <label class="block text-xs font-bold text-[#212121] mb-1">
+          Society Banner or Photo URL (Optional)
+        </label>
+        <div class="relative">
+          <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[#878787] text-xs">
+            <i class="fas fa-image"></i>
+          </span>
+          <input 
+            type="url" 
+            name="image" 
+            id="modalImage"
+            value="{{ form_data.image if form_data else '' }}"
+            placeholder="https://images.unsplash.com/photo-..." 
+            class="w-full pl-9 pr-3 py-2 text-xs font-semibold text-[#212121] bg-white border border-[#e0e0e0] rounded-sm input-focus-blue transition-all"
+          >
+        </div>
+        <p class="text-[10px] text-[#878787] mt-1">External public photo URL for society card display.</p>
+
+        <!-- Real-Time Live Image Preview Container -->
+        <div id="modalImagePreviewBox" class="mt-2.5 p-2.5 bg-[#f8faff] border border-[#d2e3fc] rounded-sm hidden animate-fade-in">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-[10px] font-bold text-[#2874f0] uppercase tracking-wide flex items-center gap-1">
+              <i class="fas fa-eye text-[9px]"></i>
+              <span id="modalImagePreviewStatus">Society Image Live Preview</span>
+            </span>
+            <div class="flex items-center gap-2">
+              <a 
+                id="modalImagePreviewLink" 
+                href="#" 
+                target="_blank" 
+                class="text-[10px] font-bold text-[#2874f0] hover:underline flex items-center gap-0.5"
+              >
+                <i class="fas fa-arrow-up-right-from-square text-[9px]"></i>
+                <span>Full View</span>
+              </a>
+              <button 
+                type="button" 
+                onclick="clearImageUrl('modalImage', 'modalImagePreviewBox', 'modalImageErrorBox')" 
+                class="text-[10px] font-bold text-red-500 hover:text-red-700 flex items-center gap-0.5"
+              >
+                <i class="fas fa-times text-[9px]"></i>
+                <span>Clear</span>
+              </button>
+            </div>
+          </div>
+          <div class="relative w-full max-w-xs h-32 bg-white rounded border border-[#e0e0e0] overflow-hidden flex items-center justify-center">
+            <img 
+              id="modalImagePreviewImg" 
+              src="" 
+              alt="Society preview" 
+              class="w-full h-full object-cover"
+            >
+          </div>
+        </div>
+        <div id="modalImageErrorBox" class="mt-2 p-2 bg-red-50 border border-red-200 text-red-600 text-[11px] font-medium rounded-sm hidden flex items-center gap-1.5">
+          <i class="fas fa-triangle-exclamation text-xs flex-shrink-0"></i>
+          <span>Unable to load image from this URL. Please verify the link is a valid public image.</span>
+        </div>
+      </div>
+
+      <!-- Coordinates & Auto-Fetch Button -->
+      <div class="p-3 bg-[#f8faff] border border-[#d2e3fc] rounded-sm space-y-2">
+        <div class="flex items-center justify-between">
+          <label class="block text-xs font-black text-[#212121] uppercase tracking-wide">
+            GPS Coordinates (Latitude & Longitude) *
+          </label>
+          <button 
+            type="button" 
+            onclick="autoFetchModalLocation()" 
+            class="text-[11px] font-bold text-[#2874f0] hover:text-blue-700 flex items-center gap-1 hover:underline"
+            id="fetchLocBtn"
+          >
+            <i class="fas fa-crosshairs text-[10px]"></i>
+            <span id="fetchLocBtnText">Auto-Fetch GPS</span>
+          </button>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-[10px] font-bold text-[#555] mb-0.5">Latitude</label>
+            <input 
+              type="text" 
+              name="lat" 
+              id="modalLat"
+              value="{{ form_data.lat if form_data else '' }}"
+              required 
+              placeholder="e.g. 28.613939" 
+              class="w-full px-3 py-1.5 text-xs font-mono font-bold text-[#212121] bg-white border border-[#e0e0e0] rounded-sm input-focus-blue transition-all"
+            >
+          </div>
+          <div>
+            <label class="block text-[10px] font-bold text-[#555] mb-0.5">Longitude</label>
+            <input 
+              type="text" 
+              name="lng" 
+              id="modalLng"
+              value="{{ form_data.lng if form_data else '' }}"
+              required 
+              placeholder="e.g. 77.209021" 
+              class="w-full px-3 py-1.5 text-xs font-mono font-bold text-[#212121] bg-white border border-[#e0e0e0] rounded-sm input-focus-blue transition-all"
+            >
+          </div>
+        </div>
+        <p class="text-[10px] text-[#878787]">
+          Accurate coordinates ensure correct Haversine proximity calculation for customer ordering.
+        </p>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="pt-3 border-t border-[#e0e0e0] flex items-center justify-end gap-2">
+        <button 
+          type="button" 
+          onclick="closeAddSocietyModal()" 
+          class="px-4 py-2 text-xs font-bold text-[#212121] bg-white border border-[#e0e0e0] hover:bg-gray-50 rounded-sm transition-all"
+        >
+          Cancel
         </button>
-        <button type="submit" class="w-full py-3.5 rounded-2xl bg-slate-900 text-white text-xs font-black uppercase tracking-widest hover:bg-pink-600 transition-colors shadow-lg hover:shadow-pink-500/30">
-          Save Society
+        <button 
+          type="submit" 
+          id="modalSubmitBtn"
+          class="px-5 py-2 text-xs font-black uppercase tracking-wider text-white bg-[#fb641b] hover:bg-[#e05615] rounded-sm transition-all shadow-xs active:scale-95 flex items-center gap-1.5"
+        >
+          <i class="fas fa-plus-circle"></i>
+          <span id="modalSubmitBtnText">Save Society</span>
         </button>
       </div>
     </form>
   </div>
 </div>
 
-<style>
-  .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
-  .animate-fade-in-up { animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-  @keyframes fadeInUp { from { opacity: 0; transform: translate(-50%, -40%); } to { opacity: 1; transform: translate(-50%, -50%); } }
-</style>
+<!-- ======================================================== -->
+<!-- PURE BLUE SPINNER (SINGLE BLUE CIRCLE, NO TEXT) -->
+<!-- ======================================================== -->
+<div id="pureBlueSpinner" class="hidden fixed inset-0 z-[200] bg-black/25 flex items-center justify-center pointer-events-none">
+  <div class="w-10 h-10 border-4 border-[#2874f0] border-t-transparent rounded-full animate-spin"></div>
+</div>
 
+<!-- Modal Reopen State Config for JS -->
+<div id="societyPageConfig" data-reopen-modal="{% if form_data and error %}true{% else %}false{% endif %}" class="hidden"></div>
+
+<!-- ======================================================== -->
+<!-- CLIENT SCRIPTS -->
+<!-- ======================================================== -->
 <script>
-  function autoFetchAdminLocation() {
+  // 1. Modal Controls
+  function openAddSocietyModal() {
+    const modal = document.getElementById('addSocietyModal');
+    if (modal) {
+      modal.classList.remove('hidden');
+      setTimeout(() => document.getElementById('modalSocietyName').focus(), 50);
+    }
+  }
+
+  function closeAddSocietyModal() {
+    const modal = document.getElementById('addSocietyModal');
+    if (modal) modal.classList.add('hidden');
+  }
+
+  // 2. Auto-fetch GPS Geolocation
+  function autoFetchModalLocation() {
     if (!navigator.geolocation) {
-      alert("Geolocation is not supported by this browser.");
+      alert("Geolocation is not supported by your browser.");
       return;
     }
+    const btnText = document.getElementById('fetchLocBtnText');
+    if (btnText) btnText.textContent = "Fetching...";
+
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        document.getElementById("modal-lat").value = pos.coords.latitude.toFixed(6);
-        document.getElementById("modal-lng").value = pos.coords.longitude.toFixed(6);
+        document.getElementById("modalLat").value = pos.coords.latitude.toFixed(6);
+        document.getElementById("modalLng").value = pos.coords.longitude.toFixed(6);
+        if (btnText) btnText.textContent = "Location Fetched!";
+        setTimeout(() => { if (btnText) btnText.textContent = "Auto-Fetch GPS"; }, 2500);
       },
       (err) => {
-        alert("Unable to fetch location. Please ensure location services are enabled.");
+        alert("Unable to fetch location: " + err.message + ". Please verify location permissions.");
+        if (btnText) btnText.textContent = "Auto-Fetch GPS";
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
     );
+  }
+
+  // 3. Table Filtering (Search + City Filter)
+  let activeCityFilter = '';
+
+  function filterByCity(cityName) {
+    activeCityFilter = cityName.toLowerCase().trim();
+    // Update active button styling
+    const buttons = document.querySelectorAll('.city-filter-btn');
+    buttons.forEach(btn => {
+      const cityAttr = (btn.getAttribute('data-city') || '').toLowerCase().trim();
+      if (cityAttr === activeCityFilter) {
+        btn.classList.add('bg-[#2874f0]', 'text-white');
+        btn.classList.remove('bg-[#f8faff]', 'text-[#212121]');
+      } else {
+        btn.classList.remove('bg-[#2874f0]', 'text-white');
+        btn.classList.add('bg-[#f8faff]', 'text-[#212121]');
+      }
+    });
+    filterSocietiesTable();
+  }
+
+  function filterSocietiesTable() {
+    const query = (document.getElementById('societySearchInput').value || '').toLowerCase().trim();
+    const rows = document.querySelectorAll('.society-row');
+    let visibleCount = 0;
+
+    rows.forEach(row => {
+      const searchStr = row.getAttribute('data-search') || '';
+      const rowCity = row.getAttribute('data-city') || '';
+
+      const matchesQuery = !query || searchStr.includes(query);
+      const matchesCity = !activeCityFilter || rowCity === activeCityFilter;
+
+      if (matchesQuery && matchesCity) {
+        row.style.display = '';
+        visibleCount++;
+      } else {
+        row.style.display = 'none';
+      }
+    });
+
+    const counter = document.getElementById('matchCounter');
+    if (counter) counter.textContent = `Showing ${visibleCount} societies`;
+  }
+
+  // 4. Client-side Form Validation & Pure Blue Spinner
+  const form = document.getElementById('addSocietyForm');
+  if (form) {
+    form.addEventListener('submit', (e) => {
+      const name = (document.getElementById('modalSocietyName').value || '').trim();
+      const city = (document.getElementById('modalCity').value || '').trim();
+      const pincode = (document.getElementById('modalPincode').value || '').trim();
+      const lat = (document.getElementById('modalLat').value || '').trim();
+      const lng = (document.getElementById('modalLng').value || '').trim();
+
+      if (!name || name.length < 3) {
+        e.preventDefault();
+        alert('Please enter a valid Society Name (minimum 3 characters).');
+        document.getElementById('modalSocietyName').focus();
+        return;
+      }
+      if (!city || city.length < 2) {
+        e.preventDefault();
+        alert('Please enter a valid City name.');
+        document.getElementById('modalCity').focus();
+        return;
+      }
+      if (!pincode || !/^[1-9][0-9]{5}$/.test(pincode)) {
+        e.preventDefault();
+        alert('Please enter a valid 6-digit Indian PIN Code (e.g. 201301).');
+        document.getElementById('modalPincode').focus();
+        return;
+      }
+      if (!lat || isNaN(parseFloat(lat)) || parseFloat(lat) < -90 || parseFloat(lat) > 90) {
+        e.preventDefault();
+        alert('Please enter a valid Latitude coordinate between -90 and 90.');
+        document.getElementById('modalLat').focus();
+        return;
+      }
+      if (!lng || isNaN(parseFloat(lng)) || parseFloat(lng) < -180 || parseFloat(lng) > 180) {
+        e.preventDefault();
+        alert('Please enter a valid Longitude coordinate between -180 and 180.');
+        document.getElementById('modalLng').focus();
+        return;
+      }
+
+      // Show pure blue spinner with NO text, disable submit button
+      const spinner = document.getElementById('pureBlueSpinner');
+      if (spinner) spinner.classList.remove('hidden');
+
+      const submitBtn = document.getElementById('modalSubmitBtn');
+      const submitText = document.getElementById('modalSubmitBtnText');
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.classList.add('opacity-75', 'cursor-not-allowed');
+      }
+      if (submitText) {
+        submitText.textContent = 'Saving...';
+      }
+    });
+  }
+
+  // 5. Live Image URL Preview Engine
+  function setupImagePreview(inputId, boxId, imgId, linkId, errorBoxId, statusId) {
+    const input = document.getElementById(inputId);
+    const box = document.getElementById(boxId);
+    const img = document.getElementById(imgId);
+    const link = document.getElementById(linkId);
+    const errorBox = document.getElementById(errorBoxId);
+    const status = document.getElementById(statusId);
+    if (!input || !box || !img) return;
+
+    let debounceTimer;
+
+    function updatePreview() {
+      const url = (input.value || '').trim();
+      if (!url) {
+        box.classList.add('hidden');
+        if (errorBox) errorBox.classList.add('hidden');
+        return;
+      }
+
+      if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        box.classList.add('hidden');
+        if (errorBox) {
+          errorBox.classList.remove('hidden');
+          errorBox.querySelector('span').textContent = 'Image URL must start with http:// or https://';
+        }
+        return;
+      }
+
+      if (status) status.textContent = 'Verifying Image...';
+      const testImg = new Image();
+      testImg.onload = function() {
+        img.src = url;
+        if (link) link.href = url;
+        box.classList.remove('hidden');
+        if (errorBox) errorBox.classList.add('hidden');
+        if (status) status.textContent = `Valid Image (${testImg.naturalWidth}×${testImg.naturalHeight})`;
+      };
+      testImg.onerror = function() {
+        box.classList.add('hidden');
+        if (errorBox) {
+          errorBox.classList.remove('hidden');
+          errorBox.querySelector('span').textContent = 'Unable to load image from this URL. Please verify the URL points to a public image.';
+        }
+      };
+      testImg.src = url;
+    }
+
+    input.addEventListener('input', () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(updatePreview, 300);
+    });
+
+    input.addEventListener('paste', () => {
+      setTimeout(updatePreview, 60);
+    });
+
+    if (input.value && input.value.trim()) {
+      updatePreview();
+    }
+  }
+
+  function clearImageUrl(inputId, boxId, errorBoxId) {
+    const input = document.getElementById(inputId);
+    const box = document.getElementById(boxId);
+    const errorBox = document.getElementById(errorBoxId);
+    if (input) input.value = '';
+    if (box) box.classList.add('hidden');
+    if (errorBox) errorBox.classList.add('hidden');
+  }
+
+  // Initialize Modal Image Preview
+  setupImagePreview('modalImage', 'modalImagePreviewBox', 'modalImagePreviewImg', 'modalImagePreviewLink', 'modalImageErrorBox', 'modalImagePreviewStatus');
+
+  // Reopen modal if server returned form_data on error
+  const pageConfig = document.getElementById('societyPageConfig');
+  if (pageConfig && pageConfig.dataset.reopenModal === 'true') {
+    openAddSocietyModal();
   }
 </script>
 {% endblock %}
