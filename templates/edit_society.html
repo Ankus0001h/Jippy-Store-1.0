@@ -1,47 +1,529 @@
 {% extends "base_admin.html" %}
+
 {% block content %}
-<div class="max-w-2xl mx-auto px-4 py-8 animate-fade-in">
-  <div class="mb-6">
-    <a href="{{ url_for('admin_societies') }}" class="inline-flex items-center gap-2 text-slate-500 hover:text-slate-900 font-bold text-[11px] uppercase tracking-widest transition-colors mb-4">
-      <i class="fas fa-arrow-left"></i> Back to Societies
-    </a>
-    <h1 class="text-2xl font-black text-slate-900 tracking-tight">Edit Society: {{ soc.name }}</h1>
+<style>
+  .input-focus-blue:focus {
+    border-color: #2874f0 !important;
+    box-shadow: 0 0 0 3px rgba(40, 116, 240, 0.12) !important;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .animate-fade-in {
+    animation: fadeIn 0.25s ease-out forwards;
+  }
+</style>
+
+<div class="max-w-4xl mx-auto px-2.5 sm:px-6 py-3 sm:py-6 space-y-5 animate-fade-in pb-16">
+
+  <!-- ======================================================== -->
+  <!-- TOP BREADCRUMB & HEADER -->
+  <!-- ======================================================== -->
+  <div class="bg-white border border-[#e0e0e0] rounded-sm shadow-xs overflow-hidden">
+    <!-- Royal Blue Brand Banner -->
+    <div class="bg-[#2874f0] px-4 sm:px-6 py-2.5 flex items-center justify-between text-white text-xs">
+      <div class="flex items-center gap-2">
+        <span class="font-extrabold tracking-tight flex items-center gap-1.5 text-xs sm:text-sm">
+          <span>Jippy</span>
+          <span class="text-[#ffe500] italic font-black">Store</span>
+        </span>
+        <span class="text-white/40">|</span>
+        <span class="text-blue-100 text-[11px] font-medium hidden sm:inline">Operational Zones • Edit Residential Society</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <a 
+          href="{{ url_for('admin_societies') }}" 
+          class="inline-flex items-center gap-1.5 px-3 py-1 rounded bg-white text-[#2874f0] hover:bg-blue-50 text-[11px] font-bold transition-all shadow-2xs active:scale-95"
+        >
+          <i class="fas fa-arrow-left text-[10px]"></i>
+          <span>Back to Societies</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Title & Society Overview Header -->
+    <div class="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white">
+      <div class="flex items-start sm:items-center gap-3">
+        <!-- Building Avatar / Image -->
+        {% if soc.image %}
+        <img 
+          src="{{ soc.image }}" 
+          alt="{{ soc.name }}" 
+          class="w-12 h-12 rounded object-cover border border-[#e0e0e0] flex-shrink-0"
+          onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+        >
+        <div class="w-12 h-12 rounded bg-[#2874f0]/10 text-[#2874f0] font-black text-base hidden items-center justify-center flex-shrink-0 border border-[#e0e0e0]">
+          <i class="fas fa-building"></i>
+        </div>
+        {% else %}
+        <div class="w-12 h-12 rounded bg-[#2874f0]/10 text-[#2874f0] font-black text-base flex items-center justify-center flex-shrink-0 border border-[#e0e0e0]">
+          <i class="fas fa-building"></i>
+        </div>
+        {% endif %}
+
+        <div>
+          <nav class="flex items-center gap-1.5 text-[11px] text-[#878787] font-medium mb-0.5">
+            <a href="{{ url_for('admin_dashboard') }}" class="hover:text-[#2874f0] transition-colors">Dashboard</a>
+            <span>›</span>
+            <a href="{{ url_for('admin_societies') }}" class="hover:text-[#2874f0] transition-colors">Societies</a>
+            <span>›</span>
+            <span class="text-[#2874f0] font-bold">Edit Details</span>
+          </nav>
+          <div class="flex flex-wrap items-center gap-2">
+            <h1 class="text-base sm:text-lg font-black text-[#212121] tracking-tight">
+              {{ soc.name }}
+            </h1>
+            <span class="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-blue-50 text-[#2874f0] border border-blue-200">
+              {{ soc.city }}
+            </span>
+          </div>
+          <div class="text-xs text-[#878787] flex flex-wrap items-center gap-3 mt-0.5">
+            <span><i class="fas fa-map-pin text-[10px] mr-1 text-[#2874f0]"></i>PIN: {{ soc.pincode }}</span>
+            <span class="font-mono text-[10px] text-gray-400">ID: {{ soc._id }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Google Maps Link -->
+      {% set slat = soc.location.lat if soc.location is mapping else '' %}
+      {% set slng = soc.location.lng if soc.location is mapping else '' %}
+      {% if slat and slng %}
+      <a 
+        href="https://www.google.com/maps?q={{ slat }},{{ slng }}" 
+        target="_blank"
+        class="px-3 py-1.5 text-xs font-bold text-[#2874f0] bg-blue-50 hover:bg-blue-100 rounded border border-blue-200 flex items-center gap-1.5 transition-all self-start sm:self-auto"
+        title="View on Google Maps"
+      >
+        <i class="fas fa-map-location-dot"></i>
+        <span>View on Google Maps</span>
+      </a>
+      {% endif %}
+    </div>
   </div>
 
-  <div class="bg-white rounded-[2rem] shadow-sm border border-slate-100 p-6 sm:p-8">
-    <form action="{{ url_for('admin_edit_society', society_id=soc._id) }}" method="POST" class="space-y-4">
-      <div>
-        <label class="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Society Name</label>
-        <input type="text" name="name" value="{{ soc.name }}" required class="w-full px-4 py-3 rounded-2xl border border-slate-200 text-sm focus:border-pink-500 focus:ring-2 focus:ring-pink-200 transition-all outline-none" placeholder="e.g. Gaur City 2, 14th Avenue">
+  <!-- ======================================================== -->
+  <!-- FLASH MESSAGES / SYSTEM ALERTS -->
+  <!-- ======================================================== -->
+  {% if error %}
+  <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-sm text-xs font-semibold flex items-center justify-between shadow-2xs animate-fade-in" id="errorAlert">
+    <div class="flex items-center gap-2.5">
+      <div class="w-6 h-6 rounded-full bg-red-100 flex items-center justify-center text-red-600 flex-shrink-0">
+        <i class="fas fa-exclamation-circle text-xs"></i>
       </div>
       <div>
-        <label class="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">City</label>
-        <input type="text" name="city" value="{{ soc.city }}" required class="w-full px-4 py-3 rounded-2xl border border-slate-200 text-sm focus:border-pink-500 focus:ring-2 focus:ring-pink-200 transition-all outline-none" placeholder="e.g. Noida">
+        <span class="font-bold">Validation Error:</span> {{ error }}
+      </div>
+    </div>
+    <button type="button" onclick="document.getElementById('errorAlert').remove()" class="text-red-400 hover:text-red-700 p-1">
+      <i class="fas fa-times text-xs"></i>
+    </button>
+  </div>
+  {% endif %}
+
+  {% if success %}
+  <div class="bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-sm text-xs font-semibold flex items-center justify-between shadow-2xs animate-fade-in" id="successAlert">
+    <div class="flex items-center gap-2.5">
+      <div class="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 flex-shrink-0">
+        <i class="fas fa-check-circle text-xs"></i>
       </div>
       <div>
-        <label class="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Pincode</label>
-        <input type="text" name="pincode" value="{{ soc.pincode }}" required class="w-full px-4 py-3 rounded-2xl border border-slate-200 text-sm focus:border-pink-500 focus:ring-2 focus:ring-pink-200 transition-all outline-none" placeholder="e.g. 201301">
+        <span class="font-bold">Success:</span> {{ success }}
       </div>
-      <div>
-        <label class="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Image URL (Optional)</label>
-        <input type="text" name="image" value="{{ soc.image or '' }}" class="w-full px-4 py-3 rounded-2xl border border-slate-200 text-sm focus:border-pink-500 focus:ring-2 focus:ring-pink-200 transition-all outline-none" placeholder="e.g. https://images.unsplash.com/...">
-      </div>
-      <div class="grid grid-cols-2 gap-3">
-        <div>
-          <label class="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Latitude</label>
-          <input type="text" name="lat" id="modal-lat" value="{{ soc.location.lat }}" required class="w-full px-4 py-3 rounded-2xl border border-slate-200 text-sm focus:border-pink-500 focus:ring-2 focus:ring-pink-200 transition-all outline-none" placeholder="e.g. 28.6139">
+    </div>
+    <button type="button" onclick="document.getElementById('successAlert').remove()" class="text-emerald-500 hover:text-emerald-800 p-1">
+      <i class="fas fa-times text-xs"></i>
+    </button>
+  </div>
+  {% endif %}
+
+  <!-- ======================================================== -->
+  <!-- EDIT SOCIETY FORM -->
+  <!-- ======================================================== -->
+  <div class="bg-white border border-[#e0e0e0] rounded-sm shadow-xs overflow-hidden">
+    <div class="bg-[#fafafa] border-b border-[#e0e0e0] px-4 sm:px-6 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <div class="w-8 h-8 rounded-sm bg-[#2874f0] text-white flex items-center justify-center text-xs font-bold shadow-2xs">
+          <i class="fas fa-pen-to-square"></i>
         </div>
         <div>
-          <label class="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Longitude</label>
-          <input type="text" name="lng" id="modal-lng" value="{{ soc.location.lng }}" required class="w-full px-4 py-3 rounded-2xl border border-slate-200 text-sm focus:border-pink-500 focus:ring-2 focus:ring-pink-200 transition-all outline-none" placeholder="e.g. 77.2090">
+          <h2 class="text-sm font-black text-[#212121] uppercase tracking-wide">Edit Society Configuration</h2>
+          <p class="text-[11px] text-[#878787]">Update society boundaries, name, or GPS pins</p>
         </div>
       </div>
-      <div class="pt-4">
-        <button type="submit" class="w-full py-3.5 rounded-2xl bg-slate-900 text-white text-xs font-black uppercase tracking-widest hover:bg-pink-600 transition-colors shadow-lg hover:shadow-pink-500/30">
-          Save Changes
+      <span class="text-[10px] font-bold text-[#2874f0] bg-[#f0f5ff] px-2 py-0.5 rounded border border-[#d2e3fc]">
+        Flipkart Seller Hub
+      </span>
+    </div>
+
+    <form action="{{ url_for('admin_edit_society', society_id=soc._id) }}" method="POST" id="editSocietyForm" class="p-4 sm:p-6 space-y-5" novalidate>
+      
+      <!-- Society Name -->
+      <div>
+        <label class="block text-xs font-bold text-[#212121] mb-1">
+          Society / Complex Name *
+        </label>
+        <div class="relative">
+          <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[#878787] text-xs">
+            <i class="fas fa-city"></i>
+          </span>
+          <input 
+            type="text" 
+            name="name" 
+            id="inputName"
+            value="{{ soc.name }}"
+            required 
+            placeholder="e.g. Gaur City 2, 14th Avenue" 
+            class="w-full pl-9 pr-3 py-2 text-xs font-semibold text-[#212121] bg-white border border-[#e0e0e0] rounded-sm input-focus-blue transition-all"
+          >
+        </div>
+        <p class="text-[10px] text-[#878787] mt-1">Full registered society or apartment complex name.</p>
+      </div>
+
+      <!-- City & Pincode in 2 columns -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <!-- City -->
+        <div>
+          <label class="block text-xs font-bold text-[#212121] mb-1">
+            City / Region *
+          </label>
+          <div class="relative">
+            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[#878787] text-xs">
+              <i class="fas fa-location-dot"></i>
+            </span>
+            <input 
+              type="text" 
+              name="city" 
+              id="inputCity"
+              value="{{ soc.city }}"
+              required 
+              placeholder="e.g. Greater Noida West" 
+              class="w-full pl-9 pr-3 py-2 text-xs font-semibold text-[#212121] bg-white border border-[#e0e0e0] rounded-sm input-focus-blue transition-all"
+            >
+          </div>
+          <p class="text-[10px] text-[#878787] mt-1">Operational district or metro zone.</p>
+        </div>
+
+        <!-- Pincode -->
+        <div>
+          <label class="block text-xs font-bold text-[#212121] mb-1">
+            PIN Code (6 Digits) *
+          </label>
+          <div class="relative">
+            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[#878787] text-xs">
+              <i class="fas fa-map-pin"></i>
+            </span>
+            <input 
+              type="text" 
+              name="pincode" 
+              id="inputPincode"
+              maxlength="6"
+              inputmode="numeric"
+              value="{{ soc.pincode }}"
+              required 
+              placeholder="e.g. 201301" 
+              class="w-full pl-9 pr-3 py-2 text-xs font-semibold text-[#212121] bg-white border border-[#e0e0e0] rounded-sm input-focus-blue transition-all"
+            >
+          </div>
+          <p class="text-[10px] text-[#878787] mt-1">Postal delivery index number.</p>
+        </div>
+      </div>
+
+      <!-- Image URL (Optional) -->
+      <div>
+        <label class="block text-xs font-bold text-[#212121] mb-1">
+          Society Banner or Photo URL (Optional)
+        </label>
+        <div class="relative">
+          <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[#878787] text-xs">
+            <i class="fas fa-image"></i>
+          </span>
+          <input 
+            type="url" 
+            name="image" 
+            id="inputImage"
+            value="{{ soc.image or '' }}"
+            placeholder="https://images.unsplash.com/photo-..." 
+            class="w-full pl-9 pr-3 py-2 text-xs font-semibold text-[#212121] bg-white border border-[#e0e0e0] rounded-sm input-focus-blue transition-all"
+          >
+        </div>
+        <p class="text-[10px] text-[#878787] mt-1">External public photo URL for society card display.</p>
+
+        <!-- Real-Time Live Image Preview Container -->
+        <div id="societyImagePreviewBox" class="mt-2.5 p-2.5 bg-[#f8faff] border border-[#d2e3fc] rounded-sm hidden animate-fade-in">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-[10px] font-bold text-[#2874f0] uppercase tracking-wide flex items-center gap-1">
+              <i class="fas fa-eye text-[9px]"></i>
+              <span id="societyImagePreviewStatus">Society Image Live Preview</span>
+            </span>
+            <div class="flex items-center gap-2">
+              <a 
+                id="societyImagePreviewLink" 
+                href="#" 
+                target="_blank" 
+                class="text-[10px] font-bold text-[#2874f0] hover:underline flex items-center gap-0.5"
+              >
+                <i class="fas fa-arrow-up-right-from-square text-[9px]"></i>
+                <span>Full View</span>
+              </a>
+              <button 
+                type="button" 
+                onclick="clearImageUrl('inputImage', 'societyImagePreviewBox', 'societyImageErrorBox')" 
+                class="text-[10px] font-bold text-red-500 hover:text-red-700 flex items-center gap-0.5"
+              >
+                <i class="fas fa-times text-[9px]"></i>
+                <span>Clear</span>
+              </button>
+            </div>
+          </div>
+          <div class="relative w-full max-w-xs h-32 bg-white rounded border border-[#e0e0e0] overflow-hidden flex items-center justify-center">
+            <img 
+              id="societyImagePreviewImg" 
+              src="" 
+              alt="Society preview" 
+              class="w-full h-full object-cover"
+            >
+          </div>
+        </div>
+        <div id="societyImageErrorBox" class="mt-2 p-2 bg-red-50 border border-red-200 text-red-600 text-[11px] font-medium rounded-sm hidden flex items-center gap-1.5">
+          <i class="fas fa-triangle-exclamation text-xs flex-shrink-0"></i>
+          <span>Unable to load image from this URL. Please verify the link is a valid public image.</span>
+        </div>
+      </div>
+
+      <!-- Coordinates & Auto-Fetch Button -->
+      <div class="p-4 bg-[#f8faff] border border-[#d2e3fc] rounded-sm space-y-2.5">
+        <div class="flex items-center justify-between">
+          <label class="block text-xs font-black text-[#212121] uppercase tracking-wide">
+            GPS Coordinates (Latitude & Longitude) *
+          </label>
+          <button 
+            type="button" 
+            onclick="autoFetchEditLocation()" 
+            class="text-[11px] font-bold text-[#2874f0] hover:text-blue-700 flex items-center gap-1 hover:underline"
+            id="fetchLocBtn"
+          >
+            <i class="fas fa-crosshairs text-[10px]"></i>
+            <span id="fetchLocBtnText">Auto-Fetch Current GPS</span>
+          </button>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-[10px] font-bold text-[#555] mb-0.5">Latitude</label>
+            <input 
+              type="text" 
+              name="lat" 
+              id="inputLat"
+              value="{{ slat }}"
+              required 
+              placeholder="e.g. 28.613939" 
+              class="w-full px-3 py-1.5 text-xs font-mono font-bold text-[#212121] bg-white border border-[#e0e0e0] rounded-sm input-focus-blue transition-all"
+            >
+          </div>
+          <div>
+            <label class="block text-[10px] font-bold text-[#555] mb-0.5">Longitude</label>
+            <input 
+              type="text" 
+              name="lng" 
+              id="inputLng"
+              value="{{ slng }}"
+              required 
+              placeholder="e.g. 77.209021" 
+              class="w-full px-3 py-1.5 text-xs font-mono font-bold text-[#212121] bg-white border border-[#e0e0e0] rounded-sm input-focus-blue transition-all"
+            >
+          </div>
+        </div>
+        <p class="text-[10px] text-[#878787]">
+          Used to calculate precise Haversine distance for customer address auto-detection.
+        </p>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="pt-4 border-t border-[#e0e0e0] flex items-center justify-between gap-3">
+        <a 
+          href="{{ url_for('admin_societies') }}"
+          class="px-4 py-2 text-xs font-bold text-[#212121] bg-white border border-[#e0e0e0] hover:bg-gray-50 rounded-sm transition-all"
+        >
+          Cancel
+        </a>
+        <button 
+          type="submit" 
+          id="submitBtn"
+          class="px-6 py-2 text-xs font-black uppercase tracking-wider text-white bg-[#fb641b] hover:bg-[#e05615] rounded-sm transition-all shadow-xs active:scale-95 flex items-center gap-1.5"
+        >
+          <i class="fas fa-check-circle"></i>
+          <span id="submitBtnText">Save Changes & Update Society</span>
         </button>
       </div>
     </form>
   </div>
 </div>
+
+<!-- ======================================================== -->
+<!-- PURE BLUE SPINNER (SINGLE BLUE CIRCLE, NO TEXT) -->
+<!-- ======================================================== -->
+<div id="pureBlueSpinner" class="hidden fixed inset-0 z-[200] bg-black/25 flex items-center justify-center pointer-events-none">
+  <div class="w-10 h-10 border-4 border-[#2874f0] border-t-transparent rounded-full animate-spin"></div>
+</div>
+
+<!-- ======================================================== -->
+<!-- CLIENT SCRIPTS -->
+<!-- ======================================================== -->
+<script>
+  // 1. Auto-fetch Geolocation
+  function autoFetchEditLocation() {
+    if (!navigator.geolocation) {
+      alert("Geolocation is not supported by your browser.");
+      return;
+    }
+    const btnText = document.getElementById('fetchLocBtnText');
+    if (btnText) btnText.textContent = "Fetching...";
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        document.getElementById("inputLat").value = pos.coords.latitude.toFixed(6);
+        document.getElementById("inputLng").value = pos.coords.longitude.toFixed(6);
+        if (btnText) btnText.textContent = "Location Fetched!";
+        setTimeout(() => { if (btnText) btnText.textContent = "Auto-Fetch Current GPS"; }, 2500);
+      },
+      (err) => {
+        alert("Unable to fetch location: " + err.message + ". Please verify location permissions.");
+        if (btnText) btnText.textContent = "Auto-Fetch Current GPS";
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+    );
+  }
+
+  // 2. Strict Pre-Submit Form Validation
+  const form = document.getElementById('editSocietyForm');
+  if (form) {
+    form.addEventListener('submit', (e) => {
+      const name = (document.getElementById('inputName').value || '').trim();
+      const city = (document.getElementById('inputCity').value || '').trim();
+      const pincode = (document.getElementById('inputPincode').value || '').trim();
+      const lat = (document.getElementById('inputLat').value || '').trim();
+      const lng = (document.getElementById('inputLng').value || '').trim();
+
+      if (!name || name.length < 3) {
+        e.preventDefault();
+        alert('Please enter a valid Society Name (minimum 3 characters).');
+        document.getElementById('inputName').focus();
+        return;
+      }
+      if (!city || city.length < 2) {
+        e.preventDefault();
+        alert('Please enter a valid City name.');
+        document.getElementById('inputCity').focus();
+        return;
+      }
+      if (!pincode || !/^[1-9][0-9]{5}$/.test(pincode)) {
+        e.preventDefault();
+        alert('Please enter a valid 6-digit Indian PIN Code (e.g. 201301).');
+        document.getElementById('inputPincode').focus();
+        return;
+      }
+      if (!lat || isNaN(parseFloat(lat)) || parseFloat(lat) < -90 || parseFloat(lat) > 90) {
+        e.preventDefault();
+        alert('Please enter a valid Latitude coordinate between -90 and 90.');
+        document.getElementById('inputLat').focus();
+        return;
+      }
+      if (!lng || isNaN(parseFloat(lng)) || parseFloat(lng) < -180 || parseFloat(lng) > 180) {
+        e.preventDefault();
+        alert('Please enter a valid Longitude coordinate between -180 and 180.');
+        document.getElementById('inputLng').focus();
+        return;
+      }
+
+      // Show pure blue spinner with NO text, disable submit button
+      const spinner = document.getElementById('pureBlueSpinner');
+      if (spinner) spinner.classList.remove('hidden');
+
+      const submitBtn = document.getElementById('submitBtn');
+      const submitText = document.getElementById('submitBtnText');
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.classList.add('opacity-75', 'cursor-not-allowed');
+      }
+      if (submitText) {
+        submitText.textContent = 'Updating Society...';
+      }
+    });
+  }
+
+  // 3. Live Image URL Preview Engine
+  function setupImagePreview(inputId, boxId, imgId, linkId, errorBoxId, statusId) {
+    const input = document.getElementById(inputId);
+    const box = document.getElementById(boxId);
+    const img = document.getElementById(imgId);
+    const link = document.getElementById(linkId);
+    const errorBox = document.getElementById(errorBoxId);
+    const status = document.getElementById(statusId);
+    if (!input || !box || !img) return;
+
+    let debounceTimer;
+
+    function updatePreview() {
+      const url = (input.value || '').trim();
+      if (!url) {
+        box.classList.add('hidden');
+        if (errorBox) errorBox.classList.add('hidden');
+        return;
+      }
+
+      if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        box.classList.add('hidden');
+        if (errorBox) {
+          errorBox.classList.remove('hidden');
+          errorBox.querySelector('span').textContent = 'Image URL must start with http:// or https://';
+        }
+        return;
+      }
+
+      if (status) status.textContent = 'Verifying Image...';
+      const testImg = new Image();
+      testImg.onload = function() {
+        img.src = url;
+        if (link) link.href = url;
+        box.classList.remove('hidden');
+        if (errorBox) errorBox.classList.add('hidden');
+        if (status) status.textContent = `Valid Image (${testImg.naturalWidth}×${testImg.naturalHeight})`;
+      };
+      testImg.onerror = function() {
+        box.classList.add('hidden');
+        if (errorBox) {
+          errorBox.classList.remove('hidden');
+          errorBox.querySelector('span').textContent = 'Unable to load image from this URL. Please verify the URL points to a public image.';
+        }
+      };
+      testImg.src = url;
+    }
+
+    input.addEventListener('input', () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(updatePreview, 300);
+    });
+
+    input.addEventListener('paste', () => {
+      setTimeout(updatePreview, 60);
+    });
+
+    if (input.value && input.value.trim()) {
+      updatePreview();
+    }
+  }
+
+  function clearImageUrl(inputId, boxId, errorBoxId) {
+    const input = document.getElementById(inputId);
+    const box = document.getElementById(boxId);
+    const errorBox = document.getElementById(errorBoxId);
+    if (input) input.value = '';
+    if (box) box.classList.add('hidden');
+    if (errorBox) errorBox.classList.add('hidden');
+  }
+
+  // Initialize Society Image Preview (loads immediately if existing)
+  setupImagePreview('inputImage', 'societyImagePreviewBox', 'societyImagePreviewImg', 'societyImagePreviewLink', 'societyImageErrorBox', 'societyImagePreviewStatus');
+</script>
 {% endblock %}
