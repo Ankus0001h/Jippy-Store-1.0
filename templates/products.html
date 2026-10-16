@@ -175,7 +175,8 @@
           <!-- Image Box: Soft Tinted Squircle without harsh borders -->
           <div
             class="w-full aspect-square rounded-lg bg-gradient-to-b from-[#f8fafc] to-[#f1f5f9] group-hover:from-blue-50 group-hover:to-blue-100/60 p-2 flex items-center justify-center transition-colors overflow-hidden relative">
-            <img src="{{ url_for('static', filename='images/categories/' + img_name + '.jpg') }}"
+            {% set custom_cat_img = category_images.get(c|lower) if category_images else None %}
+            <img src="{{ custom_cat_img or url_for('static', filename='images/categories/' + img_name + '.jpg') }}"
               class="w-full h-full object-contain mix-blend-multiply group-hover:scale-110 transition-transform duration-300 drop-shadow-xs"
               alt="{{ c }}"
               onerror="this.parentElement.innerHTML='<div class=\'w-full h-full flex items-center justify-center\'><i class=\'fas fa-leaf text-2xl text-[#388e3c]\'></i></div>'">
