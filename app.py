@@ -113,13 +113,33 @@ db = mongo_client["grocery_app"]
 # ---------- Firebase Admin ----------
 import firebase_admin
 from firebase_admin import credentials, auth as firebase_auth, messaging
+import json
 import os
 
-firebase_cred_path = os.path.join(os.path.dirname(__file__), 'jippy-936b9-firebase-adminsdk-fbsvc-926fa22dd5.json')
+firebase_json_env = os.getenv("FIREBASE_SERVICE_ACCOUNT_JSON")
+
 try:
     if not firebase_admin._apps:
-        cred = credentials.Certificate(firebase_cred_path)
-        firebase_admin.initialize_app(cred)
+        if firebase_json_env:
+            # 🚀 Hosting / Production: Read directly from hosting Environment Variables (No file needed on GitHub)
+            cred_dict = json.loads(firebase_json_env)
+            cred = credentials.Certificate(cred_dict)
+            firebase_admin.initialize_app(cred)
+            print("Firebase Admin initialized via FIREBASE_SERVICE_ACCOUNT_JSON environment variable")
+        else:
+            # 💻 Local Development: Read from local JSON file
+            firebase_cred_path = os.getenv("FIREBASE_CRED_PATH")
+            if not firebase_cred_path or not os.path.exists(firebase_cred_path):
+                project_dir = os.path.dirname(__file__)
+                for fname in os.listdir(project_dir):
+                    if "firebase-adminsdk" in fname and fname.endswith(".json"):
+                        firebase_cred_path = os.path.join(project_dir, fname)
+                        break
+
+            if firebase_cred_path and os.path.exists(firebase_cred_path):
+                cred = credentials.Certificate(firebase_cred_path)
+                firebase_admin.initialize_app(cred)
+                print("Firebase Admin initialized via local JSON file")
 except Exception as e:
     print(f"Error initializing Firebase Admin: {e}")
 
