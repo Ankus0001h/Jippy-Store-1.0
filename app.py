@@ -36,11 +36,15 @@ load_dotenv()
 
 from flask_caching import Cache
 
+from werkzeug.middleware.proxy_fix import ProxyFix
+
 app = Flask(__name__)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 app.secret_key = os.getenv("SECRET_KEY", "devkey")
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=90)
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
-# Cache configuration for performance
+# Cache configuration for performance   
 app.config['CACHE_TYPE'] = 'SimpleCache'
 app.config['CACHE_DEFAULT_TIMEOUT'] = 300
 cache = Cache(app)
@@ -82,6 +86,24 @@ def verify_admin_token(token, max_age=365 * 24 * 3600):
     except Exception:
         return False
 
+# ---------- 🛡️ Dedicated Vendor Session Token (Remember Login like Admin) ----------
+VENDOR_COOKIE_NAME = "jippy_vendor_session"
+vendor_serializer = URLSafeTimedSerializer(app.secret_key, salt="jippy-vendor-secret-salt-2026")
+
+def generate_vendor_token(vendor_id, email):
+    return vendor_serializer.dumps({"vendor_id": str(vendor_id), "email": str(email), "role": "vendor"})
+
+def verify_vendor_token(token, max_age=365 * 24 * 3600):
+    if not token:
+        return None
+    try:
+        data = vendor_serializer.loads(token, max_age=max_age)
+        if data.get("role") == "vendor" and data.get("vendor_id"):
+            return data
+        return None
+    except Exception:
+        return None
+
 # ---------- Twilio Verify ----------
 account_sid = os.environ["TWILIO_ACCOUNT_SID"]
 auth_token = os.environ["TWILIO_AUTH_TOKEN"]
@@ -98,15 +120,20 @@ try:
 except Exception:
     pass
 
+import certifi
+
 MONGO_URI = os.getenv("MONGO_URI")
 mongo_client = MongoClient(
     MONGO_URI,
-    maxPoolSize=15,
-    minPoolSize=1,
-    maxIdleTimeMS=30000,
-    connectTimeoutMS=5000,
-    socketTimeoutMS=10000,
-    serverSelectionTimeoutMS=5000,
+    tlsCAFile=certifi.where(),
+    maxPoolSize=50,
+    minPoolSize=0,
+    maxIdleTimeMS=45000,
+    connectTimeoutMS=30000,
+    socketTimeoutMS=45000,
+    serverSelectionTimeoutMS=20000,
+    retryWrites=True,
+    retryReads=True,
 )
 db = mongo_client["grocery_app"]
 
@@ -157,6 +184,11 @@ admin_push_subscriptions = db["admin_push_subscriptions"]
 try:
     products.create_index([("category", 1), ("is_active", 1)], background=True)
     products.create_index([("is_active", 1)], background=True)
+    orders.create_index([("order_id", 1)], background=True)
+    orders.create_index([("vendor_id", 1), ("created_at", -1)], background=True)
+    orders.create_index([("items.vendor_id", 1), ("created_at", -1)], background=True)
+    orders.create_index([("vendor_status", 1)], background=True)
+    orders.create_index([("created_at", -1)], background=True)
     orders.create_index([("user_id", 1), ("created_at", -1)], background=True)
     orders.create_index([("status", 1)], background=True)
     users.create_index([("phone", 1)], background=True)
@@ -230,6 +262,21 @@ def make_session_permanent():
     admin_cookie = request.cookies.get(ADMIN_COOKIE_NAME)
     if admin_cookie and verify_admin_token(admin_cookie):
         session["admin_logged_in"] = True
+
+    # 🛡️ 100% Dedicated Vendor Session Verification (Remember Vendor Login like Admin):
+    vendor_cookie = request.cookies.get(VENDOR_COOKIE_NAME)
+    if vendor_cookie and (session.get("user_role") != "vendor" or not session.get("portal_user_id")):
+        vendor_data = verify_vendor_token(vendor_cookie)
+        if vendor_data and vendor_data.get("vendor_id"):
+            try:
+                v_doc = users.find_one({"_id": ObjectId(vendor_data["vendor_id"]), "role": "vendor"})
+                if v_doc:
+                    session["user_role"] = "vendor"
+                    session["user_email"] = v_doc.get("email")
+                    session["portal_user_id"] = str(v_doc.get("_id"))
+                    session["portal_user_name"] = v_doc.get("name") or v_doc.get("shop_name") or v_doc.get("email")
+            except Exception:
+                pass
 
 @app.after_request
 def add_cache_headers(response):
@@ -313,7 +360,41 @@ def inject_user():
                     cat_imgs[doc["normalized_name"]] = img_url
     except Exception as e:
         pass
-    return dict(current_user=current_user, category_images=cat_imgs)
+
+    # Check store closed state globally for all templates
+    is_shop_closed = False
+    try:
+        shop_id = session.get("current_shop_id") or session.get("portal_user_id")
+        shop_doc = None
+        if shop_id:
+            try:
+                shop_doc = users.find_one({"_id": ObjectId(shop_id), "role": "vendor"})
+            except Exception:
+                shop_doc = None
+        if not shop_doc:
+            current_society_id = session.get("current_society_id")
+            if current_society_id:
+                try:
+                    soc_oid = ObjectId(current_society_id)
+                    shop_doc = users.find_one({
+                        "role": "vendor",
+                        "$or": [
+                            {"serviceable_societies": str(current_society_id)},
+                            {"serviceable_societies": soc_oid}
+                        ]
+                    })
+                except Exception:
+                    shop_doc = users.find_one({"role": "vendor", "serviceable_societies": str(current_society_id)})
+            if not shop_doc:
+                shop_doc = users.find_one({"role": "vendor"}, sort=[("_id", -1)])
+        if shop_doc:
+            val = shop_doc.get("is_online")
+            if val is False or str(val).lower() in ["false", "0", "offline"]:
+                is_shop_closed = True
+    except Exception:
+        pass
+
+    return dict(current_user=current_user, category_images=cat_imgs, is_shop_closed=is_shop_closed)
 
 # ================================
 # PUBLIC: PRODUCTS
@@ -492,7 +573,7 @@ def category_page(name):
         # Categories fetch (Cached)
         categories = get_cached_categories()
         
-        # Fetch Shop
+        # Fetch Shop with society/default fallback
         shop = None
         shop_id = session.get("current_shop_id")
         if shop_id:
@@ -500,6 +581,20 @@ def category_page(name):
                 shop = users.find_one({"_id": ObjectId(shop_id), "role": "vendor"})
             except Exception:
                 shop = None
+
+        if not shop:
+            current_society_id = session.get("current_society_id")
+            if current_society_id:
+                try:
+                    shop = users.find_one({"role": "vendor", "serviceable_societies": str(current_society_id)})
+                except Exception:
+                    shop = None
+            if not shop:
+                shop = users.find_one({"role": "vendor"})
+
+        if shop and not session.get("current_shop_id"):
+            session["current_shop_id"] = str(shop.get("_id"))
+            session["current_shop_name"] = shop.get("shop_name", "Local Shop")
 
         # Check for search query parameter
         search_query = request.args.get("search", "").strip()
@@ -551,6 +646,12 @@ def category_page(name):
 
         print(f"[OK] Category='{original_category}', Found {len(items)} items")
 
+        is_shop_closed = False
+        if shop:
+            val = shop.get("is_online")
+            if val is False or str(val).lower() in ["false", "0", "offline"]:
+                is_shop_closed = True
+
         return render_template("products.html",
                              page_type="products",
                              categories=categories,
@@ -558,10 +659,11 @@ def category_page(name):
                              selected_category=original_category,
                              item_count=len(items),
                              search_query="",
-                             shop=shop)
+                             shop=shop,
+                             is_shop_closed=is_shop_closed)
     except Exception as e:
         print(f"[ERROR] Category error: {str(e)}")
-        return render_template("products.html", items=[], categories=[], item_count=0, search_query="", shop=None)
+        return render_template("products.html", items=[], categories=[], item_count=0, search_query="", shop=None, is_shop_closed=False)
 
 
 @app.route("/")
@@ -735,6 +837,7 @@ def society_shops(society_id):
 
 @app.route("/shop/<shop_id>")
 def shop_home(shop_id):
+    shop = None
     try:
         # Check if shop exists
         shop = users.find_one({"_id": ObjectId(shop_id), "role": "vendor"})
@@ -749,10 +852,21 @@ def shop_home(shop_id):
         else:
             session.pop("current_shop_image", None)
         
+        is_shop_closed = False
+        if shop:
+            val = shop.get("is_online")
+            if val is False or str(val).lower() in ["false", "0", "offline"]:
+                is_shop_closed = True
+        
         categories = get_cached_categories()
-        return render_template("products.html", page_type="categories", categories=categories, shop=shop)
+        return render_template("products.html", page_type="categories", categories=categories, shop=shop, is_shop_closed=is_shop_closed)
     except Exception as e:
-        return render_template("products.html", page_type="categories", categories=[], shop=None)
+        print(f"Error in shop_home: {e}")
+        try:
+            categories = get_cached_categories()
+        except Exception:
+            categories = ["Fruits & Vegetables", "Dairy & Breakfast", "Munchies & Snacks", "Cold Drinks & Juices", "Instant & Frozen Food", "Tea, Coffee & Health Drinks", "Bakery & Biscuits", "Sweet Tooth", "Atta, Rice & Dal", "Dry Fruits & Masala", "Sauces & Spreads", "Chicken, Meat & Fish", "Pan Corner", "Organic & Premium", "Baby Care", "Pharma & Wellness", "Cleaning Essentials", "Home & Office", "Personal Care", "Pet Care"]
+        return render_template("products.html", page_type="categories", categories=categories, shop=shop, is_shop_closed=False)
     
 # ================================
 # MOBILE APP JSON APIs
@@ -826,7 +940,10 @@ def api_shop_category_products(shop_id, category_name):
         items = sort_available_first(list(items))
         
         products_data = []
+        shop_id_str = str(shop_id)
         for p in items:
+            oos_vendors = [str(v) for v in p.get("out_of_stock_vendors", [])]
+            is_oos = bool(p.get("out_of_stock", False) or (shop_id_str in oos_vendors))
             products_data.append({
                 "id": str(p["_id"]),
                 "name": p.get("name", ""),
@@ -835,10 +952,14 @@ def api_shop_category_products(shop_id, category_name):
                 "unit": p.get("unit", ""),
                 "image": p.get("image", ""),
                 "slug": p.get("slug", ""),
-                "out_of_stock": p.get("out_of_stock", False)
+                "out_of_stock": is_oos
             })
             
-        return jsonify({"status": "success", "products": products_data})
+        return jsonify({
+            "status": "success", 
+            "products": products_data,
+            "shop_is_online": shop.get("is_online", True)
+        })
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
@@ -1935,6 +2056,26 @@ def delete_user(user_id):
 @app.route("/vendor/login", methods=["GET", "POST"])
 def vendor_login():
     if request.method == "GET":
+        # Check if already authenticated via dedicated vendor cookie or active session
+        vendor_cookie = request.cookies.get(VENDOR_COOKIE_NAME)
+        if vendor_cookie:
+            vdata = verify_vendor_token(vendor_cookie)
+            if vdata and vdata.get("vendor_id"):
+                try:
+                    v_doc = users.find_one({"_id": ObjectId(vdata["vendor_id"]), "role": "vendor"})
+                    if v_doc:
+                        session.permanent = True
+                        session["user_role"] = "vendor"
+                        session["user_email"] = v_doc.get("email")
+                        session["portal_user_id"] = str(v_doc.get("_id"))
+                        session["portal_user_name"] = v_doc.get("name") or v_doc.get("shop_name") or v_doc.get("email")
+                        return redirect(url_for("vendor_dashboard"))
+                except Exception:
+                    pass
+
+        if session.get("user_role") == "vendor" and session.get("portal_user_id"):
+            return redirect(url_for("vendor_dashboard"))
+
         code = "".join(str(random.randint(0, 9)) for _ in range(4))
         session["portal_captcha_code"] = code
         return render_template("vendor_login.html", captcha_code=code)
@@ -1966,11 +2107,24 @@ def vendor_login():
     stored_hash = doc.get("password") if doc else None
 
     if stored_hash and bcrypt.check_password_hash(stored_hash, password):
+        session.permanent = True
         session["user_role"] = "vendor"
         session["user_email"] = doc.get("email")
         session["portal_user_id"] = str(doc.get("_id"))
-        session["portal_user_name"] = doc.get("name") or doc.get("email")
-        return redirect(url_for("vendor_dashboard"))
+        session["portal_user_name"] = doc.get("name") or doc.get("shop_name") or doc.get("email")
+
+        # Set dedicated persistent 365-day vendor cookie (like Admin)
+        token = generate_vendor_token(doc.get("_id"), doc.get("email"))
+        resp = redirect(url_for("vendor_dashboard"))
+        resp.set_cookie(
+            VENDOR_COOKIE_NAME,
+            value=token,
+            max_age=365 * 24 * 3600,
+            httponly=True,
+            samesite="Lax",
+            path="/"
+        )
+        return resp
 
     code = "".join(str(random.randint(0, 9)) for _ in range(4))
     session["portal_captcha_code"] = code
@@ -1986,7 +2140,9 @@ def vendor_logout():
     session.pop("user_email", None)
     session.pop("portal_user_id", None)
     session.pop("portal_user_name", None)
-    return redirect(url_for("vendor_login"))
+    resp = redirect(url_for("vendor_login"))
+    resp.delete_cookie(VENDOR_COOKIE_NAME, path="/")
+    return resp
 
 @app.route("/vendor/refresh-captcha", methods=["POST"])
 def vendor_refresh_captcha():
@@ -1997,40 +2153,1103 @@ def vendor_refresh_captcha():
 
 from bson import ObjectId
 import datetime
+from collections import defaultdict
+
+def _get_vendor_context(include_products=False):
+    role = session.get("user_role")
+    portal_user_id = session.get("portal_user_id")
+
+    if role != "vendor" or not portal_user_id:
+        return None, redirect(url_for("vendor_login"))
+
+    try:
+        vendor_oid = ObjectId(portal_user_id)
+    except Exception:
+        return None, redirect(url_for("vendor_login"))
+
+    vendor = users.find_one({"_id": vendor_oid, "role": "vendor"})
+    if not vendor:
+        return None, redirect(url_for("vendor_login"))
+
+    shop_name = vendor.get("shop_name") or vendor.get("name") or "Jippy Partner Store"
+    user_name = vendor.get("name") or shop_name
+
+    # Serviceable societies names (Single batch query instead of N sequential roundtrips)
+    soc_ids = vendor.get("serviceable_societies", []) or []
+    valid_oids = []
+    for sid in soc_ids:
+        try:
+            valid_oids.append(ObjectId(sid))
+        except Exception:
+            pass
+
+    resolved_societies = []
+    if valid_oids:
+        try:
+            soc_docs = list(societies.find({"_id": {"$in": valid_oids}}))
+            soc_map = {str(s["_id"]): s for s in soc_docs}
+            for sid in soc_ids:
+                s_doc = soc_map.get(str(sid))
+                if s_doc:
+                    resolved_societies.append({
+                        "id": str(sid),
+                        "name": s_doc.get("name", str(sid)),
+                        "city": s_doc.get("city", "")
+                    })
+                else:
+                    resolved_societies.append({"id": str(sid), "name": str(sid), "city": ""})
+        except Exception:
+            resolved_societies = [{"id": str(sid), "name": str(sid), "city": ""} for sid in soc_ids]
+    else:
+        resolved_societies = [{"id": str(sid), "name": str(sid), "city": ""} for sid in soc_ids]
+
+    # Orders query: items with vendor_id == vendor_oid OR order level vendor_id == vendor_oid
+    all_raw_orders = list(orders.find({
+        "$or": [
+            {"items.vendor_id": vendor_oid},
+            {"vendor_id": vendor_oid}
+        ]
+    }).sort("created_at", -1))
+
+    # Current IST time
+    now_ist = datetime.datetime.now(IST)
+    today_date = now_ist.date()
+
+    orders_all = []
+    orders_pending = []
+    orders_delivered = []
+    orders_cancelled = []
+    orders_active = []
+    orders_incoming = []
+    orders_packing = []
+    orders_ready = []
+    orders_out_for_delivery = []
+    orders_completed_today = []
+    orders_history = []
+
+    today_sales = 0.0
+    today_orders_count = 0
+    today_items_count = 0
+    all_time_sales = 0.0
+
+    daily_ledger_map = defaultdict(lambda: {"total": 0.0, "orders": 0, "items_count": 0})
+
+    for o in all_raw_orders:
+        created_dt = o.get("created_at")
+        created_ist = None
+        if isinstance(created_dt, datetime.datetime):
+            if created_dt.tzinfo is None:
+                created_ist = pytz.utc.localize(created_dt).astimezone(IST)
+            else:
+                created_ist = created_dt.astimezone(IST)
+        elif isinstance(created_dt, str):
+            try:
+                created_ist = datetime.datetime.fromisoformat(created_dt)
+                if created_ist.tzinfo is None:
+                    created_ist = pytz.utc.localize(created_ist).astimezone(IST)
+                else:
+                    created_ist = created_ist.astimezone(IST)
+            except Exception:
+                created_ist = now_ist
+        else:
+            created_ist = now_ist
+
+        order_day = created_ist.date() if created_ist else today_date
+
+        vendor_items = []
+        vendor_order_total = 0.0
+        vendor_order_qty = 0
+
+        for it in o.get("items", []):
+            it_vid = it.get("vendor_id")
+            if (it_vid and str(it_vid) == str(vendor_oid)) or (not it_vid and str(o.get("vendor_id")) == str(vendor_oid)):
+                vendor_items.append(it)
+                qty = int(it.get("qty", 1) or 1)
+                price = float(it.get("price", 0) or 0)
+                vendor_order_total += (price * qty)
+                vendor_order_qty += qty
+
+        o["vendor_items"] = vendor_items
+        o["vendor_items_count"] = vendor_order_qty
+        o["vendor_items_total"] = vendor_order_total
+        o["created_ist"] = created_ist
+
+        raw_cust_notes = str(o.get("notes") or o.get("order_notes") or "").strip()
+        clean_note_lower = raw_cust_notes.lower()
+        is_meaningful_note = bool(raw_cust_notes and clean_note_lower not in ['none', 'nil', 'n/a', 'no', '-', 'null', 'no notes', 'no note'] and not _is_noise_note_text(raw_cust_notes))
+        o["customer_note"] = raw_cust_notes
+        o["has_meaningful_note"] = is_meaningful_note
+
+        raw_phone = str(o.get("user_phone") or "")
+        clean_phone = re.sub(r'[^0-9]', '', raw_phone)
+        if clean_phone.startswith('0') and len(clean_phone) == 11:
+            clean_phone = clean_phone[1:]
+        if clean_phone.startswith('91') and len(clean_phone) == 12:
+            wa_phone = clean_phone
+        elif len(clean_phone) == 10:
+            wa_phone = '91' + clean_phone
+        else:
+            wa_phone = clean_phone
+        o["wa_phone"] = wa_phone
+
+        delivery_fee_val = float(o.get("delivery_fee") or 0.0)
+        handling_fee_val = float(o.get("handling_fee") or 0.0)
+        platform_fee_val = float(o.get("platform_fee") or 0.0)
+        surge_val = float(o.get("surge_charge") or 0.0)
+        disc_val = float(o.get("discount") or 0.0)
+        o["calculated_grand_total"] = float(o.get("total") or o.get("total_amount") or max(0.0, vendor_order_total + delivery_fee_val + handling_fee_val + platform_fee_val + surge_val - disc_val))
+
+        diff_sec = max(0, int((now_ist - created_ist).total_seconds())) if created_ist else 0
+        if diff_sec < 60:
+            o["time_ago"] = "Just now"
+        elif diff_sec < 3600:
+            o["time_ago"] = f"{diff_sec // 60}m ago"
+        elif diff_sec < 86400:
+            o["time_ago"] = f"{diff_sec // 3600}h ago"
+        else:
+            o["time_ago"] = created_ist.strftime("%d %b")
+
+        vstatus = (o.get("vendor_status") or o.get("status") or "pending").lower()
+        o["effective_status"] = vstatus
+        o["notes_pending_pricing"] = bool(is_meaningful_note and not o.get("notes_finalized") and vstatus not in ["delivered", "cancelled", "canceled"])
+
+        # 4 Core Categories: All, Pending, Delivered, Cancelled
+        orders_all.append(o)
+        if vstatus == "delivered":
+            orders_delivered.append(o)
+            if order_day == today_date:
+                orders_completed_today.append(o)
+            orders_history.append(o)
+
+            # Sales and ledger should strictly reflect delivered orders
+            all_time_sales += vendor_order_total
+            daily_ledger_map[order_day]["total"] += vendor_order_total
+            daily_ledger_map[order_day]["orders"] += 1
+            daily_ledger_map[order_day]["items_count"] += vendor_order_qty
+
+            if order_day == today_date:
+                today_sales += vendor_order_total
+                today_orders_count += 1
+                today_items_count += vendor_order_qty
+        elif vstatus in ["cancelled", "canceled"]:
+            orders_cancelled.append(o)
+            orders_history.append(o)
+        else:
+            orders_pending.append(o)
+            orders_active.append(o)
+            orders_incoming.append(o)
+
+    daily_ledger = []
+    for d, stats in sorted(daily_ledger_map.items(), key=lambda x: x[0], reverse=True):
+        daily_ledger.append({
+            "date": d,
+            "date_formatted": d.strftime("%d %B %Y"),
+            "is_today": (d == today_date),
+            "orders": stats["orders"],
+            "items_count": stats["items_count"],
+            "total": stats["total"],
+            "status": "Settled" if d < today_date else "Processing"
+        })
+
+    # Catalog & Inventory (Only query full product list when required by /vendor/inventory)
+    catalog_products = []
+    in_stock_count = 0
+    oos_count = 0
+
+    if include_products:
+        raw_products = list(products.find().sort("name", 1))
+        for p in raw_products:
+            p_id_str = str(p["_id"])
+            oos_vendors = [str(vid) for vid in p.get("out_of_stock_vendors", [])]
+            is_oos = bool(p.get("out_of_stock", False) or (str(vendor_oid) in oos_vendors))
+
+            if is_oos:
+                oos_count += 1
+            else:
+                in_stock_count += 1
+
+            catalog_products.append({
+                "id": p_id_str,
+                "name": p.get("name", "Product"),
+                "category": p.get("category", "General"),
+                "unit": p.get("unit", "1 pc"),
+                "price": float(p.get("price", 0)),
+                "discount_price": float(p.get("discount_price") or p.get("price", 0)),
+                "image": p.get("image", ""),
+                "brand": p.get("brand", ""),
+                "is_oos": is_oos,
+            })
+    else:
+        try:
+            total_prods = products.count_documents({})
+            oos_count = products.count_documents({
+                "$or": [
+                    {"out_of_stock": True},
+                    {"out_of_stock_vendors": vendor_oid},
+                    {"out_of_stock_vendors": str(vendor_oid)}
+                ]
+            })
+            in_stock_count = max(0, total_prods - oos_count)
+        except Exception:
+            in_stock_count = 0
+            oos_count = 0
+
+    try:
+        categories_list = get_cached_categories()
+    except Exception:
+        categories_list = []
+
+    is_online = vendor.get("is_online")
+    if is_online is None:
+        is_online = True
+    store_notice = vendor.get("store_notice", "")
+
+    ctx = {
+        "vendor": vendor,
+        "shop_name": shop_name,
+        "user_name": user_name,
+        "is_online": is_online,
+        "store_notice": store_notice,
+        "societies": resolved_societies,
+        "orders_all": orders_all,
+        "orders_pending": orders_pending,
+        "orders_delivered": orders_delivered,
+        "orders_cancelled": orders_cancelled,
+        "orders_active": orders_pending,
+        "orders_incoming": orders_pending,
+        "orders_packing": orders_packing,
+        "orders_ready": orders_ready,
+        "orders_out_for_delivery": orders_out_for_delivery,
+        "orders_completed_today": orders_completed_today,
+        "orders_history": orders_history,
+        "today_sales": today_sales,
+        "today_orders_count": today_orders_count,
+        "today_items_count": today_items_count,
+        "all_count": len(orders_all),
+        "pending_count": len(orders_pending),
+        "delivered_count": len(orders_delivered),
+        "cancelled_count": len(orders_cancelled),
+        "packing_count": 0,
+        "ready_count": 0,
+        "out_for_delivery_count": 0,
+        "all_time_sales": all_time_sales,
+        "daily_ledger": daily_ledger,
+        "catalog_products": catalog_products,
+        "total_products_count": len(catalog_products),
+        "in_stock_count": in_stock_count,
+        "oos_count": oos_count,
+        "categories": categories_list,
+        "now_ist": now_ist,
+    }
+    return ctx, None
+
 
 @app.route("/vendor/dashboard")
 def vendor_dashboard():
+    ctx, err_redirect = _get_vendor_context()
+    if err_redirect:
+        return err_redirect
+    return render_template("vendor_dashboard.html", **ctx)
+
+
+@app.route("/vendor/orders")
+def vendor_orders():
+    ctx, err_redirect = _get_vendor_context()
+    if err_redirect:
+        return err_redirect
+    resp = make_response(render_template("vendor_orders.html", **ctx))
+    resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
+    resp.headers["Pragma"] = "no-cache"
+    resp.headers["Expires"] = "0"
+    return resp
+
+
+def _is_noise_note_text(text):
+    if not text:
+        return True
+    clean = str(text).strip().strip('"\'').strip(':').strip('-').strip()
+    return bool(re.match(
+        r'^(?:special\s+request\s+items?|special\s+requests?|special\s+notes?|special\s+items?|notes?|instructions?|requests?|custom\s+items?|custom\s+request|order\s+notes?)$',
+        clean,
+        flags=re.IGNORECASE
+    ))
+
+
+def _parse_note_items(raw_note):
+    if not raw_note:
+        return []
+    text = str(raw_note).strip()
+    if not text:
+        return []
+
+    # Strip prefixes like "Special Request Items:", "Special Note:", "Special Request:", "Note:"
+    text = re.sub(
+        r'^(?:special\s+request\s+items?|special\s+requests?|special\s+notes?|special\s+instructions?|notes?|instructions?|requests?|custom\s+items?)\s*[:\-]\s*',
+        '',
+        text,
+        flags=re.IGNORECASE
+    ).strip()
+
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    if len(lines) > 1:
+        raw_candidates = lines
+    else:
+        # Check for numbering patterns like "1. item 2. item" or "1) item 2) item"
+        numbered = re.split(r'(?:^|\s+)(?:\d+[\.\)]|\-|\*)\s+', text)
+        numbered = [c.strip() for c in numbered if c.strip()]
+        if len(numbered) > 1:
+            raw_candidates = numbered
+        elif ',' in text:
+            raw_candidates = [c.strip() for c in text.split(',') if c.strip()]
+        elif ';' in text:
+            raw_candidates = [c.strip() for c in text.split(';') if c.strip()]
+        elif ' + ' in text:
+            raw_candidates = [c.strip() for c in text.split(' + ') if c.strip()]
+        elif ' and ' in text.lower():
+            raw_candidates = [c.strip() for c in re.split(r'\s+and\s+', text, flags=re.IGNORECASE) if c.strip()]
+        elif ' aur ' in text.lower():
+            raw_candidates = [c.strip() for c in re.split(r'\s+aur\s+', text, flags=re.IGNORECASE) if c.strip()]
+        else:
+            raw_candidates = [text]
+
+    items = []
+    for cand in raw_candidates:
+        clean = re.sub(r'^(?:\d+[\.\)]|\-|\*)\s*', '', cand).strip().strip('"\'')
+        if clean and not _is_noise_note_text(clean):
+            items.append(clean)
+    return items
+
+
+@app.route("/vendor/order/<order_id>")
+def vendor_order_detail(order_id):
     role = session.get("user_role")
     portal_user_id = session.get("portal_user_id")
-    user_name = session.get("portal_user_name", "Vendor")
+    if role != "vendor" or not portal_user_id:
+        return redirect(url_for("vendor_login"))
 
+    try:
+        vendor_oid = ObjectId(portal_user_id)
+    except Exception:
+        return redirect(url_for("vendor_login"))
+
+    vendor = users.find_one({"_id": vendor_oid, "role": "vendor"})
+    if not vendor:
+        return redirect(url_for("vendor_login"))
+
+    shop_name = vendor.get("shop_name") or vendor.get("name") or "Jippy Partner Store"
+    user_name = vendor.get("name") or shop_name
+    is_online = bool(vendor.get("is_online", True))
+
+    order = orders.find_one({"order_id": order_id})
+    if not order:
+        flash("Order not found", "error")
+        return redirect(url_for("vendor_orders"))
+
+    # Lightweight count query for pending orders badge
+    try:
+        pending_count = orders.count_documents({
+            "$or": [{"items.vendor_id": vendor_oid}, {"vendor_id": vendor_oid}],
+            "vendor_status": {"$nin": ["delivered", "cancelled", "canceled"]},
+            "status": {"$nin": ["delivered", "cancelled", "canceled"]}
+        })
+    except Exception:
+        pending_count = 0
+
+    vendor_items = []
+    vendor_total = 0.0
+    items_mrp_total = 0.0
+    total_qty = 0
+    for it in order.get("items", []):
+        it_name = str(it.get("name") or "").strip()
+        if _is_noise_note_text(it_name):
+            continue
+        it_vid = it.get("vendor_id")
+        if (it_vid and str(it_vid) == str(vendor_oid)) or (not it_vid and str(order.get("vendor_id")) == str(vendor_oid)):
+            vendor_items.append(it)
+            qty = int(it.get("qty", 1) or 1)
+            price = float(it.get("price", 0) or 0)
+            mrp = float(it.get("mrp") or price)
+            vendor_total += (price * qty)
+            items_mrp_total += (mrp * qty)
+            total_qty += qty
+
+    product_savings = max(0.0, items_mrp_total - vendor_total)
+    delivery_fee = float(order.get("delivery_fee") or 0.0)
+    handling_fee = float(order.get("handling_fee") or 0.0)
+    platform_fee = float(order.get("platform_fee") or 0.0)
+    surge_charge = float(order.get("surge_charge") or 0.0)
+    coupon_discount = float(order.get("discount") or 0.0)
+
+    order_grand_total = float(order.get("total") or order.get("total_amount") or (vendor_total + delivery_fee + handling_fee + platform_fee + surge_charge - coupon_discount))
+
+    created_dt = order.get("created_at")
+    if isinstance(created_dt, datetime.datetime):
+        created_ist = pytz.utc.localize(created_dt).astimezone(IST) if created_dt.tzinfo is None else created_dt.astimezone(IST)
+    elif isinstance(created_dt, str):
+        try:
+            created_ist = datetime.datetime.fromisoformat(created_dt).astimezone(IST)
+        except Exception:
+            created_ist = datetime.datetime.now(IST)
+    else:
+        created_ist = datetime.datetime.now(IST)
+
+    delivered_dt = order.get("delivered_at")
+    delivered_ist = None
+    if isinstance(delivered_dt, datetime.datetime):
+        delivered_ist = pytz.utc.localize(delivered_dt).astimezone(IST) if delivered_dt.tzinfo is None else delivered_dt.astimezone(IST)
+
+    vstatus = (order.get("vendor_status") or order.get("status") or "pending").lower()
+
+    raw_phone = str(order.get("user_phone") or "")
+    clean_phone = re.sub(r'[^0-9]', '', raw_phone)
+    if clean_phone.startswith('0') and len(clean_phone) == 11:
+        clean_phone = clean_phone[1:]
+    if clean_phone.startswith('91') and len(clean_phone) == 12:
+        wa_phone = clean_phone
+    elif len(clean_phone) == 10:
+        wa_phone = "91" + clean_phone
+    else:
+        wa_phone = clean_phone
+
+    # Parse individual items from customer notes
+    cust_notes = str(order.get("notes") or order.get("order_notes") or "").strip()
+    existing_notes_items = order.get("notes_items")
+    parsed_note_items = []
+    extracted_names = _parse_note_items(cust_notes)
+
+    if existing_notes_items is not None and isinstance(existing_notes_items, list):
+        for it in existing_notes_items:
+            name = str(it.get("name") or "").strip()
+            if name and not _is_noise_note_text(name):
+                p = float(it.get("price") or 0.0)
+                parsed_note_items.append({
+                    "name": name,
+                    "price": p,
+                    "available": bool(it.get("available", p > 0))
+                })
+        if not parsed_note_items:
+            parsed_note_items = [{"name": "", "price": 0.0, "available": False}]
+    else:
+        # First load: extract all items from note
+        if extracted_names:
+            for name in extracted_names:
+                parsed_note_items.append({
+                    "name": name,
+                    "price": 0.0,
+                    "available": False
+                })
+        else:
+            parsed_note_items = [{"name": "", "price": 0.0, "available": False}]
+
+    return render_template(
+        "vendor_order_detail.html",
+        vendor=vendor,
+        shop_name=shop_name,
+        user_name=user_name,
+        is_online=is_online,
+        order=order,
+        order_id=order_id,
+        items=vendor_items,
+        parsed_note_items=parsed_note_items,
+        vendor_total=round(vendor_total, 2),
+        items_mrp_total=round(items_mrp_total, 2),
+        product_savings=round(product_savings, 2),
+        delivery_fee=round(delivery_fee, 2),
+        handling_fee=round(handling_fee, 2),
+        platform_fee=round(platform_fee, 2),
+        surge_charge=round(surge_charge, 2),
+        coupon_discount=round(coupon_discount, 2),
+        order_grand_total=round(order_grand_total, 2),
+        total_qty=total_qty,
+        created_ist=created_ist,
+        delivered_ist=delivered_ist,
+        vstatus=vstatus,
+        wa_phone=wa_phone,
+        pending_count=pending_count
+    )
+
+
+@app.route("/vendor/inventory")
+def vendor_inventory():
+    ctx, err_redirect = _get_vendor_context(include_products=True)
+    if err_redirect:
+        return err_redirect
+    return render_template("vendor_inventory.html", **ctx)
+
+
+@app.route("/vendor/store")
+def vendor_store():
+    ctx, err_redirect = _get_vendor_context()
+    if err_redirect:
+        return err_redirect
+    return render_template("vendor_store.html", **ctx)
+
+
+@app.route("/vendor/ledger")
+def vendor_ledger():
+    ctx, err_redirect = _get_vendor_context()
+    if err_redirect:
+        return err_redirect
+    return render_template("vendor_ledger.html", **ctx)
+
+
+@app.route("/vendor/ledger/day/<date_str>")
+def vendor_ledger_day_orders(date_str):
+    ctx, err_redirect = _get_vendor_context()
+    if err_redirect:
+        return err_redirect
+
+    day_orders = []
+    day_total = 0.0
+    day_items_count = 0
+    formatted_date = date_str
+
+    for o in ctx.get("orders_delivered", []):
+        created_ist = o.get("created_ist")
+        if created_ist and created_ist.strftime("%Y-%m-%d") == date_str:
+            day_orders.append(o)
+            day_total += float(o.get("vendor_items_total", 0.0) or 0.0)
+            day_items_count += int(o.get("vendor_items_count", 0) or 0)
+            formatted_date = created_ist.strftime("%d %B %Y")
+
+    if not day_orders:
+        try:
+            parsed_d = datetime.date.fromisoformat(date_str)
+            formatted_date = parsed_d.strftime("%d %B %Y")
+        except Exception:
+            formatted_date = date_str
+
+    day_orders_count = len(day_orders)
+    day_aov = round(day_total / (day_orders_count if day_orders_count > 0 else 1), 1)
+
+    ctx["selected_date_str"] = date_str
+    ctx["formatted_date"] = formatted_date
+    ctx["day_orders"] = day_orders
+    ctx["day_total"] = day_total
+    ctx["day_items_count"] = day_items_count
+    ctx["day_orders_count"] = day_orders_count
+    ctx["day_aov"] = day_aov
+
+    return render_template("vendor_ledger_day.html", **ctx)
+
+
+
+@app.route("/vendor/api/toggle-status", methods=["POST"])
+def vendor_api_toggle_status():
+    role = session.get("user_role")
+    portal_user_id = session.get("portal_user_id")
+    if role != "vendor" or not portal_user_id:
+        return jsonify({"success": False, "message": "Unauthorized"}), 401
+
+    try:
+        vendor_oid = ObjectId(portal_user_id)
+        current = users.find_one({"_id": vendor_oid})
+        if not current:
+            return jsonify({"success": False, "message": "Vendor not found"}), 404
+
+        req_json = request.get_json(silent=True) or {}
+        if "is_online" in req_json and isinstance(req_json["is_online"], bool):
+            new_status = req_json["is_online"]
+        else:
+            current_status = current.get("is_online", True)
+            if current_status is None:
+                current_status = True
+            new_status = not current_status
+
+        users.update_one({"_id": vendor_oid}, {"$set": {"is_online": new_status}})
+        session["current_shop_id"] = str(vendor_oid)
+
+        return jsonify({
+            "success": True,
+            "is_online": new_status,
+            "status_text": "Online" if new_status else "Offline",
+            "message": "Dukaan is now ONLINE and taking orders!" if new_status else "Dukaan is now OFFLINE (Closed)."
+        })
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@app.route("/vendor/api/update-notice", methods=["POST"])
+def vendor_api_update_notice():
+    role = session.get("user_role")
+    portal_user_id = session.get("portal_user_id")
+    if role != "vendor" or not portal_user_id:
+        return jsonify({"success": False, "message": "Unauthorized"}), 401
+
+    notice = request.form.get("notice", "").strip()
+    try:
+        vendor_oid = ObjectId(portal_user_id)
+        users.update_one({"_id": vendor_oid}, {"$set": {"store_notice": notice}})
+        return jsonify({"success": True, "notice": notice, "message": "Store notice updated successfully."})
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@app.route("/vendor/api/toggle-stock/<product_id>", methods=["POST"])
+def vendor_api_toggle_stock(product_id):
+    role = session.get("user_role")
+    portal_user_id = session.get("portal_user_id")
+    if role != "vendor" or not portal_user_id:
+        return jsonify({"success": False, "message": "Unauthorized"}), 401
+
+    try:
+        p_oid = ObjectId(product_id)
+        p = products.find_one({"_id": p_oid})
+        if not p:
+            return jsonify({"success": False, "message": "Product not found"}), 404
+
+        oos_vendors = [str(vid) for vid in p.get("out_of_stock_vendors", [])]
+        is_currently_oos = bool(p.get("out_of_stock", False) or (str(portal_user_id) in oos_vendors))
+        new_oos = not is_currently_oos
+
+        if new_oos:
+            if str(portal_user_id) not in oos_vendors:
+                oos_vendors.append(str(portal_user_id))
+        else:
+            if str(portal_user_id) in oos_vendors:
+                oos_vendors.remove(str(portal_user_id))
+            products.update_one({"_id": p_oid}, {"$set": {"out_of_stock": False}})
+
+        products.update_one({"_id": p_oid}, {"$set": {"out_of_stock_vendors": oos_vendors}})
+
+        try:
+            cache.clear()
+        except Exception:
+            pass
+
+        return jsonify({
+            "success": True,
+            "product_id": product_id,
+            "is_oos": new_oos,
+            "status_text": "Out of Stock" if new_oos else "In Stock",
+            "message": f"'{p.get('name')}' marked {'Out of Stock' if new_oos else 'In Stock'}."
+        })
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@app.route("/vendor/api/update-order-status/<order_id>", methods=["POST"])
+def vendor_api_update_order_status(order_id):
+    role = session.get("user_role")
+    portal_user_id = session.get("portal_user_id")
+    if role != "vendor" or not portal_user_id:
+        return jsonify({"success": False, "message": "Unauthorized"}), 401
+
+    try:
+        vendor_oid = ObjectId(portal_user_id)
+    except Exception:
+        return jsonify({"success": False, "message": "Invalid vendor session"}), 401
+
+    order_cur = orders.find_one({"order_id": order_id})
+    if not order_cur:
+        return jsonify({"success": False, "message": "Order not found"}), 404
+
+    # Ownership validation: vendor must own order or have items in order
+    order_vendor_id = order_cur.get("vendor_id")
+    has_vendor_item = any(
+        it.get("vendor_id") and str(it.get("vendor_id")) == str(vendor_oid)
+        for it in order_cur.get("items", [])
+    )
+    if str(order_vendor_id) != str(vendor_oid) and not has_vendor_item:
+        return jsonify({"success": False, "message": "Unauthorized for this order"}), 403
+
+    new_status = request.form.get("status") or (request.json.get("status") if request.is_json else None)
+    if not new_status:
+        return jsonify({"success": False, "message": "Status required"}), 400
+
+    new_status = new_status.strip().lower()
+    allowed = {"received", "processing", "packed", "ready", "out_for_delivery", "delivered", "cancelled", "canceled"}
+    if new_status not in allowed:
+        return jsonify({"success": False, "message": "Invalid status"}), 400
+
+    try:
+        now_utc = datetime.datetime.now(datetime.timezone.utc)
+        update_fields = {
+            "vendor_status": new_status,
+            "status": new_status,
+            f"{new_status}_at": now_utc
+        }
+        if new_status == "delivered":
+            update_fields["delivered_at"] = now_utc
+            # Finalize notes without wiping out any existing calculated price
+            if not order_cur.get("notes_finalized"):
+                curr_note_price = float(order_cur.get("notes_price") or 0.0)
+                update_fields["notes_finalized"] = True
+                update_fields["notes_available"] = bool(curr_note_price > 0)
+                update_fields["notes_finalized_at"] = now_utc
+
+        orders.update_one({"order_id": order_id}, {"$set": update_fields})
+
+        return jsonify({
+            "success": True,
+            "order_id": order_id,
+            "new_status": new_status,
+            "message": f"Order #{order_id[-6:].upper()} marked {new_status.replace('_', ' ').title()}"
+        })
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@app.route("/vendor/api/finalize-notes-item/<order_id>", methods=["POST"])
+def vendor_api_finalize_notes_item(order_id):
+    role = session.get("user_role")
+    portal_user_id = session.get("portal_user_id")
+    if role != "vendor" or not portal_user_id:
+        return jsonify({"success": False, "message": "Unauthorized"}), 401
+
+    order = orders.find_one({"order_id": order_id})
+    if not order:
+        return jsonify({"success": False, "message": "Order not found"}), 404
+
+    try:
+        vendor_oid = ObjectId(portal_user_id)
+        order_vendor_id = order.get("vendor_id")
+        has_vendor_item = any(
+            it.get("vendor_id") and str(it.get("vendor_id")) == str(vendor_oid)
+            for it in order.get("items", [])
+        )
+        if str(order_vendor_id) != str(vendor_oid) and not has_vendor_item:
+            return jsonify({"success": False, "message": "Unauthorized for this order"}), 403
+
+        # Prevent updating notes price once order is delivered or cancelled
+        current_status = str(order.get("vendor_status") or order.get("status") or "").strip().lower()
+        if current_status in ["delivered", "cancelled", "canceled"]:
+            return jsonify({
+                "success": False,
+                "message": f"Order is already {current_status.title()}! Bill items cannot be modified after delivery."
+            }), 400
+
+        data = request.get_json(silent=True) or {}
+        input_items = data.get("items")
+        if not input_items or not isinstance(input_items, list):
+            try:
+                single_p = float(data.get("price") or 0.0)
+            except (ValueError, TypeError):
+                single_p = 0.0
+            cust_notes = str(order.get("notes") or order.get("order_notes") or "").strip()
+            single_name = str(data.get("item_name") or cust_notes or "Special Request Item").strip()
+            input_items = [{"name": single_name, "price": single_p}] if single_p > 0 else []
+
+        valid_bill_items = []
+        all_notes_items = []
+        total_notes_price = 0.0
+        for it in input_items:
+            try:
+                p = float(it.get("price") or 0.0)
+            except (ValueError, TypeError):
+                p = 0.0
+            p = max(0.0, p)
+            n = str(it.get("name") or "").strip()
+            # Ignore legacy / dummy "Special Request Item" or "Special Note" rows
+            if _is_noise_note_text(n):
+                continue
+            if n:
+                if len(n) > 80:
+                    n = n[:77] + "..."
+                if p > 0:
+                    valid_bill_items.append({"name": n, "price": round(p, 2), "available": True})
+                    all_notes_items.append({"name": n, "price": round(p, 2), "available": True})
+                    total_notes_price += round(p, 2)
+                else:
+                    all_notes_items.append({"name": n, "price": 0.0, "available": False})
+
+        # Strip any previous custom note items OR noise rows from order items
+        current_items = [it for it in order.get("items", []) if not it.get("is_note_item") and not _is_noise_note_text(it.get("name"))]
+
+        # Add all valid note items into order items
+        for it in valid_bill_items:
+            current_items.append({
+                "name": it["name"],
+                "price": it["price"],
+                "mrp": it["price"],
+                "qty": 1,
+                "unit": "Custom Item",
+                "is_note_item": True,
+                "vendor_id": vendor_oid,
+                "image": ""
+            })
+
+        # Recalculate subtotal
+        subtotal = sum(float(it.get("price", 0) or 0) * int(it.get("qty", 1) or 1) for it in current_items)
+        delivery_fee = float(order.get("delivery_fee") or 0.0)
+        handling_fee = float(order.get("handling_fee") or 0.0)
+        platform_fee = float(order.get("platform_fee") or 0.0)
+        surge_charge = float(order.get("surge_charge") or 0.0)
+        discount = float(order.get("discount") or 0.0)
+
+        grand_total = max(0.0, subtotal + delivery_fee + handling_fee + platform_fee + surge_charge - discount)
+        is_available = len(valid_bill_items) > 0
+        item_names_str = ", ".join(it["name"] for it in valid_bill_items) if valid_bill_items else ""
+
+        update_fields = {
+            "items": current_items,
+            "subtotal": round(subtotal, 2),
+            "total": round(grand_total, 2),
+            "total_amount": round(grand_total, 2),
+            "notes_available": is_available,
+            "notes_price": round(total_notes_price, 2),
+            "notes_items": all_notes_items,
+            "notes_item_name": item_names_str,
+            "notes_finalized": True,
+            "notes_finalized_at": datetime.datetime.now(datetime.timezone.utc)
+        }
+
+        orders.update_one({"order_id": order_id}, {"$set": update_fields})
+
+        # Calculate vendor's specific share
+        vendor_total = 0.0
+        for it in current_items:
+            it_vid = it.get("vendor_id")
+            if (it_vid and str(it_vid) == str(vendor_oid)) or (not it_vid and str(order.get("vendor_id")) == str(vendor_oid)):
+                vendor_total += (float(it.get("price", 0) or 0) * int(it.get("qty", 1) or 1))
+
+        if valid_bill_items:
+            msg = f"{len(valid_bill_items)} item(s) added to bill (Total: ₹{total_notes_price:.2f})"
+        else:
+            msg = "Extra item charges set to ₹0"
+
+        return jsonify({
+            "success": True,
+            "is_available": is_available,
+            "notes_price": round(total_notes_price, 2),
+            "notes_items": all_notes_items,
+            "valid_bill_items": valid_bill_items,
+            "subtotal": round(subtotal, 2),
+            "grand_total": round(grand_total, 2),
+            "vendor_total": round(vendor_total, 2),
+            "items_count": len(current_items),
+            "message": msg
+        })
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@app.route("/vendor/api/live-poll", methods=["GET"])
+def vendor_api_live_poll():
+    role = session.get("user_role")
+    portal_user_id = session.get("portal_user_id")
+    if role != "vendor" or not portal_user_id:
+        return jsonify({"success": False, "message": "Unauthorized"}), 401
+
+    try:
+        vendor_oid = ObjectId(portal_user_id)
+        vendor = users.find_one({"_id": vendor_oid, "role": "vendor"}) or users.find_one({"_id": vendor_oid})
+        is_online = bool(vendor.get("is_online", True)) if vendor else True
+        now_ist = datetime.datetime.now(IST)
+        today_date = now_ist.date()
+
+        # Fetch recent 60 orders so frontend can track status changes (deliveries/cancellations)
+        recent_orders_raw = list(orders.find({
+            "$or": [{"items.vendor_id": vendor_oid}, {"vendor_id": vendor_oid}]
+        }).sort("created_at", -1).limit(60))
+
+        # Calculate all vendor orders stats
+        all_vendor_orders = list(orders.find({
+            "$or": [{"items.vendor_id": vendor_oid}, {"vendor_id": vendor_oid}]
+        }))
+
+        today_sales = 0.0
+        today_orders_count = 0
+        pending_count = 0
+        delivered_count = 0
+        cancelled_count = 0
+
+        for o in all_vendor_orders:
+            vstatus_check = (o.get("vendor_status") or o.get("status") or "pending").lower()
+            if vstatus_check == "delivered":
+                delivered_count += 1
+            elif vstatus_check in ["cancelled", "canceled"]:
+                cancelled_count += 1
+            else:
+                pending_count += 1
+
+            created_dt = o.get("created_at")
+            if isinstance(created_dt, datetime.datetime):
+                c_ist = pytz.utc.localize(created_dt).astimezone(IST) if created_dt.tzinfo is None else created_dt.astimezone(IST)
+            elif isinstance(created_dt, str):
+                try:
+                    c_ist = datetime.datetime.fromisoformat(created_dt)
+                    c_ist = pytz.utc.localize(c_ist).astimezone(IST) if c_ist.tzinfo is None else c_ist.astimezone(IST)
+                except Exception:
+                    c_ist = now_ist
+            else:
+                c_ist = now_ist
+
+            if c_ist.date() == today_date and vstatus_check == "delivered":
+                today_orders_count += 1
+                v_total = sum(float(it.get("price", 0) or 0) * int(it.get("qty", 1) or 1) for it in o.get("items", [])
+                              if (it.get("vendor_id") and str(it.get("vendor_id")) == str(vendor_oid)) or (not it.get("vendor_id") and str(o.get("vendor_id")) == str(vendor_oid)))
+                today_sales += v_total
+
+        serialized_orders = []
+        for o in recent_orders_raw:
+            created_dt = o.get("created_at")
+            if isinstance(created_dt, datetime.datetime):
+                c_ist = pytz.utc.localize(created_dt).astimezone(IST) if created_dt.tzinfo is None else created_dt.astimezone(IST)
+            elif isinstance(created_dt, str):
+                try:
+                    c_ist = datetime.datetime.fromisoformat(created_dt)
+                    c_ist = pytz.utc.localize(c_ist).astimezone(IST) if c_ist.tzinfo is None else c_ist.astimezone(IST)
+                except Exception:
+                    c_ist = now_ist
+            else:
+                c_ist = now_ist
+
+            diff_sec = max(0, int((now_ist - c_ist).total_seconds()))
+            if diff_sec < 60:
+                time_ago = "Just now"
+            elif diff_sec < 3600:
+                time_ago = f"{diff_sec // 60}m ago"
+            elif diff_sec < 86400:
+                time_ago = f"{diff_sec // 3600}h ago"
+            else:
+                time_ago = c_ist.strftime("%d %b")
+
+            vendor_items = []
+            vendor_order_total = 0.0
+            vendor_order_qty = 0
+            for it in o.get("items", []):
+                it_vid = it.get("vendor_id")
+                if (it_vid and str(it_vid) == str(vendor_oid)) or (not it_vid and str(o.get("vendor_id")) == str(vendor_oid)):
+                    q = int(it.get("qty", 1) or 1)
+                    p = float(it.get("price", 0) or 0)
+                    vendor_items.append({
+                        "name": it.get("name", "Product"),
+                        "unit": it.get("unit", "1 unit"),
+                        "price": p,
+                        "qty": q,
+                        "image": it.get("image", ""),
+                        "total": round(p * q, 2)
+                    })
+                    vendor_order_total += (p * q)
+                    vendor_order_qty += q
+
+            vstatus = (o.get("vendor_status") or o.get("status") or "pending").lower()
+            addr = o.get("address", {})
+            if isinstance(addr, str):
+                addr_dict = {"line1": addr, "line2": "", "city": "", "pincode": ""}
+            else:
+                addr_dict = {
+                    "line1": addr.get("line1", ""),
+                    "line2": addr.get("line2", ""),
+                    "city": addr.get("city", ""),
+                    "pincode": addr.get("pincode", "")
+                }
+
+            user_phone = str(o.get("user_phone", "")).strip()
+            clean_phone = re.sub(r'[^0-9]', '', user_phone)
+            if clean_phone.startswith('0') and len(clean_phone) == 11:
+                clean_phone = clean_phone[1:]
+            if clean_phone.startswith('91') and len(clean_phone) == 12:
+                wa_phone = clean_phone
+            elif len(clean_phone) == 10:
+                wa_phone = '91' + clean_phone
+            else:
+                wa_phone = clean_phone
+
+            raw_cust_notes = str(o.get("notes") or o.get("order_notes") or "").strip()
+            clean_note_lower = raw_cust_notes.lower()
+            is_meaningful_note = bool(raw_cust_notes and clean_note_lower not in ['none', 'nil', 'n/a', 'no', '-', 'null', 'no notes', 'no note'] and not _is_noise_note_text(raw_cust_notes))
+
+            delivery_fee_val = float(o.get("delivery_fee") or 0.0)
+            handling_fee_val = float(o.get("handling_fee") or 0.0)
+            platform_fee_val = float(o.get("platform_fee") or 0.0)
+            surge_val = float(o.get("surge_charge") or 0.0)
+            disc_val = float(o.get("discount") or 0.0)
+            calc_grand = float(o.get("total") or o.get("total_amount") or max(0.0, vendor_order_total + delivery_fee_val + handling_fee_val + platform_fee_val + surge_val - disc_val))
+
+            order_id = str(o.get("order_id", ""))
+            serialized_orders.append({
+                "order_id": order_id,
+                "short_id": order_id[-8:].upper() if len(order_id) >= 8 else order_id.upper(),
+                "status": vstatus,
+                "effective_status": vstatus,
+                "payment_method": o.get("payment_method") or "Cash on Delivery",
+                "user_name": o.get("user_name") or "Customer",
+                "user_phone": user_phone,
+                "wa_phone": wa_phone,
+                "address": addr_dict,
+                "notes": raw_cust_notes,
+                "has_meaningful_note": is_meaningful_note,
+                "notes_pending_pricing": bool(is_meaningful_note and not o.get("notes_finalized") and vstatus not in ["delivered", "cancelled", "canceled"]),
+                "time_ago": time_ago,
+                "created_time_str": c_ist.strftime("%I:%M %p"),
+                "vendor_items": vendor_items,
+                "vendor_items_count": vendor_order_qty,
+                "vendor_items_total": round(vendor_order_total, 2),
+                "calculated_grand_total": round(calc_grand, 2),
+                "is_incoming": vstatus in ["pending", "assigned", "received"],
+                "is_packing": vstatus in ["processing", "packed"],
+                "is_ready": vstatus == "ready",
+                "is_out_for_delivery": vstatus == "out_for_delivery",
+            })
+
+        latest_order = serialized_orders[0] if serialized_orders else None
+        latest_id = latest_order.get("order_id") if latest_order else ""
+        incoming_count = sum(1 for o in serialized_orders if o["is_incoming"])
+        packing_count = sum(1 for o in serialized_orders if o["is_packing"])
+        ready_count = sum(1 for o in serialized_orders if o["is_ready"])
+        out_count = sum(1 for o in serialized_orders if o["is_out_for_delivery"])
+
+        return jsonify({
+            "success": True,
+            "is_online": is_online,
+            "active_count": len(serialized_orders),
+            "incoming_count": incoming_count,
+            "packing_count": packing_count,
+            "ready_count": ready_count,
+            "out_count": out_count,
+            "today_sales": round(today_sales, 2),
+            "today_orders_count": today_orders_count,
+            "pending_count": pending_count,
+            "delivered_count": delivered_count,
+            "cancelled_count": cancelled_count,
+            "all_count": len(all_vendor_orders),
+            "latest_order_id": latest_id,
+            "orders": serialized_orders
+        })
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@app.route("/vendor/order/<order_id>/packing-slip", methods=["GET"])
+def vendor_order_packing_slip(order_id):
+    role = session.get("user_role")
+    portal_user_id = session.get("portal_user_id")
     if role != "vendor" or not portal_user_id:
         return redirect(url_for("vendor_login"))
 
     vendor_oid = ObjectId(portal_user_id)
-    all_vendor_orders = list(
-        orders.find({"items.vendor_id": vendor_oid}).sort("created_at", -1)
-    )
+    vendor = users.find_one({"_id": vendor_oid, "role": "vendor"})
+    order = orders.find_one({"order_id": order_id})
 
-    vendor_orders_active = []
-    vendor_orders_history = []
+    if not order:
+        return "Order not found", 404
 
-    for o in all_vendor_orders:
-        vstatus = o.get("vendor_status") or "pending"
-        if vstatus == "ready":
-            vendor_orders_history.append(o)
+    vendor_items = []
+    vendor_total = 0.0
+    for it in order.get("items", []):
+        it_vid = it.get("vendor_id")
+        if (it_vid and str(it_vid) == str(vendor_oid)) or (not it_vid and str(order.get("vendor_id")) == str(vendor_oid)):
+            vendor_items.append(it)
+            vendor_total += float(it.get("price", 0)) * int(it.get("qty", 1))
+
+    created_dt = order.get("created_at")
+    if isinstance(created_dt, datetime.datetime):
+        if created_dt.tzinfo is None:
+            created_ist = pytz.utc.localize(created_dt).astimezone(IST)
         else:
-            vendor_orders_active.append(o)
-
-    current_date = datetime.datetime.now(datetime.timezone.utc)
+            created_ist = created_dt.astimezone(IST)
+    else:
+        created_ist = datetime.datetime.now(IST)
 
     return render_template(
-        "vendor_dashboard.html",
-        role="vendor",
-        user_name=user_name,
-        current_date=current_date,
-        vendor_orders=vendor_orders_active,
-        vendor_orders_history=vendor_orders_history,
+        "vendor_packing_slip.html",
+        vendor=vendor,
+        order=order,
+        items=vendor_items,
+        vendor_total=vendor_total,
+        created_ist=created_ist
     )
 
 
@@ -2569,6 +3788,45 @@ def checkout():
     if not cart:
         return jsonify({"error": "Cart is empty"}), 400
 
+    # ---- Store Online Validation: Prevent ordering from closed vendor ----
+    shop_id = session.get("current_shop_id") or session.get("portal_user_id")
+    vendor_doc = None
+    if shop_id:
+        try:
+            vendor_doc = users.find_one({"_id": ObjectId(shop_id), "role": "vendor"})
+        except Exception:
+            vendor_doc = None
+    if not vendor_doc:
+        current_society_id = session.get("current_society_id")
+        if current_society_id:
+            try:
+                soc_oid = ObjectId(current_society_id)
+                vendor_doc = users.find_one({
+                    "role": "vendor",
+                    "$or": [
+                        {"serviceable_societies": str(current_society_id)},
+                        {"serviceable_societies": soc_oid}
+                    ]
+                })
+            except Exception:
+                vendor_doc = users.find_one({"role": "vendor", "serviceable_societies": str(current_society_id)})
+    if not vendor_doc:
+        vendor_doc = users.find_one({"role": "vendor"}, sort=[("_id", -1)])
+
+    is_closed = False
+    if vendor_doc:
+        val = vendor_doc.get("is_online")
+        if val is False or str(val).lower() in ["false", "0", "offline"]:
+            is_closed = True
+    else:
+        is_closed = True
+
+    if is_closed:
+        shop_title = vendor_doc.get("shop_name", "This store") if vendor_doc else "This store"
+        return jsonify({
+            "error": f"{shop_title} is currently closed and not accepting new orders. Please try again when the store reopens."
+        }), 400
+
     address = data.get("address")
     if not address:
         return jsonify({"error": "Address is required"}), 400
@@ -2738,9 +3996,94 @@ def checkout():
         "total": grand_total,
     })
 
+@app.route("/api/store-status", methods=["GET"])
+def api_store_status():
+    """
+    Real-time status sync endpoint for Cart and Shop pages.
+    Returns whether the currently active shop is online or offline.
+    """
+    shop_id = request.args.get("shop_id") or session.get("current_shop_id") or session.get("portal_user_id")
+    shop = None
+    if shop_id:
+        try:
+            shop = users.find_one({"_id": ObjectId(shop_id), "role": "vendor"})
+        except Exception:
+            shop = None
+
+    if not shop:
+        current_society_id = session.get("current_society_id")
+        if current_society_id:
+            try:
+                soc_oid = ObjectId(current_society_id)
+                shop = users.find_one({
+                    "role": "vendor",
+                    "$or": [
+                        {"serviceable_societies": str(current_society_id)},
+                        {"serviceable_societies": soc_oid}
+                    ]
+                })
+            except Exception:
+                shop = users.find_one({"role": "vendor", "serviceable_societies": str(current_society_id)})
+        if not shop:
+            shop = users.find_one({"role": "vendor"}, sort=[("_id", -1)])
+
+    is_online = True
+    if shop:
+        val = shop.get("is_online")
+        if val is False or str(val).lower() in ["false", "0", "offline"]:
+            is_online = False
+        else:
+            is_online = True
+    else:
+        is_online = False
+
+    resp = jsonify({
+        "success": True,
+        "shop_id": str(shop.get("_id")) if shop else None,
+        "shop_name": shop.get("shop_name") or shop.get("name") if shop else "Quick Store",
+        "is_online": is_online,
+        "is_closed": not is_online
+    })
+    resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
+    resp.headers["Pragma"] = "no-cache"
+    resp.headers["Expires"] = "0"
+    return resp
+
 @app.route("/cart")
 def cart_page():
     is_logged_in = bool(session.get("user_id"))
+
+    # Check store online status with society/default fallback
+    shop_id = session.get("current_shop_id") or session.get("portal_user_id")
+    shop = None
+    if shop_id:
+        try:
+            shop = users.find_one({"_id": ObjectId(shop_id), "role": "vendor"})
+        except Exception:
+            shop = None
+
+    if not shop:
+        current_society_id = session.get("current_society_id")
+        if current_society_id:
+            try:
+                soc_oid = ObjectId(current_society_id)
+                shop = users.find_one({
+                    "role": "vendor",
+                    "$or": [
+                        {"serviceable_societies": str(current_society_id)},
+                        {"serviceable_societies": soc_oid}
+                    ]
+                })
+            except Exception:
+                shop = users.find_one({"role": "vendor", "serviceable_societies": str(current_society_id)})
+        if not shop:
+            shop = users.find_one({"role": "vendor"}, sort=[("_id", -1)])
+
+    is_shop_closed = False
+    if shop:
+        val = shop.get("is_online")
+        if val is False or str(val).lower() in ["false", "0", "offline"]:
+            is_shop_closed = True
 
     # 1. Platform Fee
     pf_doc = settings.find_one({"key": "platform_fee"})
@@ -2767,7 +4110,9 @@ def cart_page():
         free_delivery_threshold=FREE_DELIVERY_THRESHOLD,
         delivery_fee=DELIVERY_FEE,
         handling_fee=handling_fee, # Passed to HTML
-        surge_charge=surge_charge   # Passed to HTML
+        surge_charge=surge_charge,  # Passed to HTML
+        shop=shop,
+        is_shop_closed=is_shop_closed
     )
     
 @app.route("/address", methods=["GET"])
@@ -2775,6 +4120,17 @@ def address_page():
     user_id = session.get("user_id")
     if not user_id:
         return redirect(url_for("login"))
+
+    # Check store online status
+    shop_id = session.get("current_shop_id")
+    if shop_id:
+        try:
+            shop = users.find_one({"_id": ObjectId(shop_id), "role": "vendor"})
+            if shop and shop.get("is_online") is False:
+                flash(f"{shop.get('shop_name', 'Store')} is currently closed and not taking orders.", "warning")
+                return redirect(url_for("cart_page"))
+        except Exception:
+            pass
 
     user_doc = users.find_one({"_id": ObjectId(user_id), "role": "customer"})
     saved_addresses = user_doc.get("addresses", []) if user_doc else []
@@ -2852,6 +4208,44 @@ def order_detail(order_id):
         is_delivered=is_delivered,
         step_index=step_index,
     )
+
+
+@app.route("/api/order-poll/<order_id>")
+def customer_api_order_poll(order_id):
+    order = orders.find_one({"order_id": order_id})
+    if not order:
+        return jsonify({"success": False, "message": "Order not found"}), 404
+
+    subtotal = float(order.get("subtotal") or 0.0)
+    total = float(order.get("total") or order.get("total_amount") or 0.0)
+    raw_status = (order.get("status") or "pending").lower()
+
+    return jsonify({
+        "success": True,
+        "order_id": order_id,
+        "status": raw_status,
+        "subtotal": round(subtotal, 2),
+        "total": round(total, 2),
+        "notes_available": order.get("notes_available"),
+        "notes_price": round(float(order.get("notes_price") or 0.0), 2),
+        "notes_items": [
+            it for it in order.get("notes_items", [])
+            if not _is_noise_note_text(it.get("name"))
+        ],
+        "notes_finalized": bool(order.get("notes_finalized")),
+        "items": [
+            {
+                "name": it.get("name"),
+                "qty": it.get("qty", 1),
+                "price": float(it.get("price", 0)),
+                "unit": it.get("unit", ""),
+                "is_note_item": bool(it.get("is_note_item")),
+                "image": it.get("image", "")
+            }
+            for it in order.get("items", [])
+            if not _is_noise_note_text(it.get("name"))
+        ]
+    })
 
 
 @app.route("/logout")
@@ -3084,6 +4478,45 @@ def admin_test_push_notification():
     send_admin_push_notifications_async(sample_order)
     return jsonify({"success": True, "message": "Test cloud push alert dispatched to all registered admin devices!"})
 
+@app.route("/admin/order/<order_id>")
+def admin_order_detail(order_id):
+    if not session.get("admin_logged_in"):
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return jsonify({"success": False, "message": "Unauthorized"}), 401
+        return redirect(url_for("admin_login"))
+
+    # Support string, integer, or ObjectId order_id lookup
+    order = orders.find_one({"order_id": order_id})
+    if not order and str(order_id).isdigit():
+        order = orders.find_one({"order_id": int(order_id)})
+    if not order:
+        try:
+            order = orders.find_one({"_id": ObjectId(order_id)})
+        except Exception:
+            pass
+
+    if not order:
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return jsonify({"success": False, "message": "Order not found"}), 404
+        flash("Order not found", "error")
+        return redirect(url_for("admin_orders"))
+
+    all_vendors = list(users.find({"role": "vendor"}, {"_id": 1, "name": 1, "shop_name": 1, "phone": 1}))
+    all_delivery = list(users.find({"role": "delivery"}, {"_id": 1, "name": 1, "phone": 1}))
+
+    # If requested via AJAX from No-Reload SPA, return the clean snippet template
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.args.get("partial") == "1":
+        return render_template(
+            "admin_order_detail_snippet.html",
+            order=order,
+            o=order,
+            vendors=all_vendors,
+            delivery_boys=all_delivery
+        )
+
+    # If direct browser load or tab reload on /admin/order/<order_id>, redirect to seamless SPA orders view with order open
+    return redirect(url_for("admin_orders", order=order_id))
+
 @app.route("/admin/order/<order_id>/assign-vendor", methods=["POST"])
 def admin_assign_vendor(order_id):
     if not session.get("admin_logged_in"):
@@ -3296,6 +4729,9 @@ def portal_update_vendor_status(order_id):
             {"order_id": order_id},
             {"$set": update_fields}
         )
+
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.is_json:
+        return jsonify({"success": True, "order_id": order_id, "vendor_status": new_status})
 
     return redirect(url_for("vendor_dashboard"))
 
@@ -3799,21 +5235,36 @@ def service_config():
         'radius_km': doc.get('radius_km', 0)
     })
 
+@app.route("/.well-known/appspecific/com.chrome.devtools.json")
+def chrome_devtools_json():
+    return jsonify({}), 200
+
+@app.route("/favicon.ico")
+def favicon():
+    return ("", 204)
+
 @app.errorhandler(Exception) # Yeh line har tarah ke error ko catch karegi
 def handle_exception(e):
-    import traceback
-    traceback.print_exc()
-    try:
-        with open("crash.log", "w") as f:
-            traceback.print_exc(file=f)
-    except Exception:
-        pass
-    # 1. Agar error standard HTTP error hai (jaise 404, 403, 500)
-    if hasattr(e, 'code'):
+    from werkzeug.exceptions import HTTPException
+
+    # 1. Check HTTP status code
+    if isinstance(e, HTTPException):
+        code = e.code
+    elif hasattr(e, 'code'):
         code = e.code
     else:
         # 2. Agar koi python code crash hua hai (jaise Database failure ya Bug)
         code = 500
+
+    # Only log traceback and write to crash.log for actual server errors (500+)
+    if code >= 500:
+        import traceback
+        traceback.print_exc()
+        try:
+            with open("crash.log", "w") as f:
+                traceback.print_exc(file=f)
+        except Exception:
+            pass
     
     # Custom Messages mapping
     messages = {
@@ -4198,4 +5649,4 @@ def search_societies():
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 3001))
-    app.run(host="0.0.0.0", port=port, debug=False)
+    app.run(host="0.0.0.0", port=port, debug=True)
