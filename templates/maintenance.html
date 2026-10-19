@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="min-h-[75vh] flex items-center justify-center px-4 overflow-hidden">
+  <div class="max-w-md w-full text-center space-y-10 animate-fade-in relative">
+    
+    <div class="relative flex justify-center">
+      <div class="absolute inset-0 bg-amber-100/20 blur-[80px] rounded-full animate-pulse"></div>
+      
+      <div class="relative w-28 h-28 bg-slate-900 rounded-[3rem] shadow-2xl flex items-center justify-center border-4 border-slate-800 group transition-transform hover:scale-105 duration-500 overflow-hidden">
+        <i class="fas fa-star absolute top-4 left-6 text-[8px] text-amber-200 animate-pulse"></i>
+        <i class="fas fa-star absolute bottom-6 right-8 text-[6px] text-amber-100 animate-pulse" style="animation-delay: 1s;"></i>
+        
+        <div class="text-amber-400 text-5xl drop-shadow-[0_0_15px_rgba(251,191,36,0.4)]">
+          <i class="fas fa-moon animate-float"></i>
+        </div>
+        
+        <div class="absolute top-4 right-4 flex flex-col items-start leading-none opacity-80">
+           <span class="text-amber-200 text-xs font-black animate-zzz">Z</span>
+           <span class="text-amber-200 text-[10px] font-black animate-zzz ml-2" style="animation-delay: 1s;">z</span>
+           <span class="text-amber-200 text-[8px] font-black animate-zzz ml-4" style="animation-delay: 2s;">z</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="space-y-4">
+      <div class="inline-flex items-center gap-2 px-4 py-1.5 bg-slate-100 rounded-full border border-slate-200">
+        <span class="w-2 h-2 rounded-full bg-slate-400"></span>
+        <p class="text-[10px] font-black tracking-[0.2em] text-slate-500 uppercase">Store currently closed</p>
+      </div>
+      
+      <h1 class="text-4xl font-black text-slate-900 tracking-tight leading-tight">
+        Taking a short <span class="text-amber-500">Sleep Break</span>
+      </h1>
+      
+      <div class="max-w-[300px] mx-auto">
+        <p class="text-sm text-slate-500 font-bold leading-relaxed">
+          We’re resting so we can deliver fresh groceries to you early tomorrow morning!
+        </p>
+      </div>
+    </div>
+
+    <div class="bg-white border-2 border-slate-100 rounded-[2.5rem] p-6 shadow-xl shadow-slate-200/50 space-y-4">
+        <div class="flex items-center justify-center gap-3 text-slate-800">
+            <div class="w-10 h-10 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600">
+                <i class="fas fa-sun text-lg"></i>
+            </div>
+            <div class="text-left leading-none">
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">We open at</p>
+                <p class="text-xl font-black tracking-tight">7:00 AM Tomorrow</p>
+            </div>
+        </div>
+        
+        <button onclick="window.location.href='/'" class="w-full py-4 bg-slate-900 text-white rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] hover:bg-emerald-600 transition-all active:scale-95 shadow-xl">
+            See You In The Morning
+        </button>
+    </div>
+
+    <p class="text-[10px] font-black text-slate-300 uppercase tracking-[0.3em]">
+        FreshKart Express • 24/7 Support for Active Orders
+    </p>
+
+  </div>
+</div>
+
+<style>
+  /* Premium Fade In */
+  .animate-fade-in {
+    animation: fadeIn 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Floating Moon */
+  .animate-float {
+    animation: float 4s ease-in-out infinite;
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0) rotate(-5deg); }
+    50% { transform: translateY(-10px) rotate(5deg); }
+  }
+
+  /* Zzz Animation */
+  .animate-zzz {
+    animation: zzz 3s infinite linear;
+    opacity: 0;
+  }
+  @keyframes zzz {
+    0% { transform: translate(0, 0) scale(0.5); opacity: 0; }
+    30% { opacity: 1; }
+    100% { transform: translate(15px, -25px) scale(1.5); opacity: 0; }
+  }
+
+  body { background-color: #fcfdfe !important; }
+</style>
+{% endblock %}

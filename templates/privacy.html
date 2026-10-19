@@ -1,0 +1,420 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-6xl mx-auto px-2 sm:px-4 py-3 sm:py-6 font-['Plus_Jakarta_Sans'] pb-24">
+
+  <!-- 🧭 Top Breadcrumb & Mobile Back Nav -->
+  <div class="flex items-center justify-between pb-3 border-b border-[#e0e0e0] mb-4">
+    <div class="flex items-center gap-2.5">
+      <a href="{{ url_for('index') }}"
+        class="w-8 h-8 flex items-center justify-center text-[#212121] hover:bg-slate-200 active:scale-95 rounded-sm transition-all border border-[#e0e0e0] bg-white shadow-2xs"
+        title="Back to Home">
+        <i class="fas fa-arrow-left text-sm text-[#2874f0]"></i>
+      </a>
+      <div>
+        <nav class="flex items-center gap-1.5 text-[11px] text-[#878787] font-medium">
+          <a href="{{ url_for('index') }}" class="hover:text-[#2874f0] transition-colors">Home</a>
+          <i class="fas fa-chevron-right text-[8px] text-[#878787]"></i>
+          <span class="text-[#212121] font-semibold">Legal & Policies</span>
+          <i class="fas fa-chevron-right text-[8px] text-[#878787]"></i>
+          <span class="text-[#2874f0] font-bold">Privacy Policy</span>
+        </nav>
+        <h1 class="text-[18px] sm:text-[22px] font-bold text-[#212121] leading-tight">Privacy & Data Protection Policy</h1>
+      </div>
+    </div>
+
+    <!-- Badge -->
+    <div class="hidden sm:flex items-center gap-2 px-3 py-1 bg-blue-50 text-[#2874f0] border border-blue-200 rounded-sm text-[11px] font-bold shadow-2xs">
+      <i class="fas fa-shield-halved"></i>
+      <span>Effective Date: 22 Jan 2026</span>
+    </div>
+  </div>
+
+  <!-- 📱 Mobile Horizontal Section Pills -->
+  <div class="lg:hidden -mx-2 px-2 pb-3 sticky top-[56px] z-30 bg-[#f1f3f6]/95 backdrop-blur-md pt-1 mb-2">
+    <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar scroll-smooth py-1">
+      <a href="#overview" class="px-3 py-1 rounded-sm bg-white border border-[#e0e0e0] text-[11px] font-bold text-[#212121] shrink-0 active:scale-95 shadow-2xs">Overview</a>
+      <a href="#data-collected" class="px-3 py-1 rounded-sm bg-white border border-[#e0e0e0] text-[11px] font-bold text-[#212121] shrink-0 active:scale-95 shadow-2xs">Data Collected</a>
+      <a href="#how-we-use" class="px-3 py-1 rounded-sm bg-white border border-[#e0e0e0] text-[11px] font-bold text-[#212121] shrink-0 active:scale-95 shadow-2xs">How We Use</a>
+      <a href="#sharing-security" class="px-3 py-1 rounded-sm bg-white border border-[#e0e0e0] text-[11px] font-bold text-[#212121] shrink-0 active:scale-95 shadow-2xs">Sharing & Security</a>
+      <a href="#user-rights" class="px-3 py-1 rounded-sm bg-white border border-[#e0e0e0] text-[11px] font-bold text-[#212121] shrink-0 active:scale-95 shadow-2xs">Your Rights</a>
+      <a href="#grievance" class="px-3 py-1 rounded-sm bg-white border border-[#e0e0e0] text-[11px] font-bold text-[#212121] shrink-0 active:scale-95 shadow-2xs">Contact</a>
+    </div>
+  </div>
+
+  <!-- 2-Column Layout (Flipkart Style Layout) -->
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6 items-start">
+
+    <!-- 📌 Left Column: Sticky Sidebar Menu (Desktop) -->
+    <aside class="hidden lg:block lg:col-span-4 sticky top-20 space-y-3">
+      <!-- Nav Card -->
+      <div class="bg-white border border-[#e0e0e0] rounded-sm shadow-2xs overflow-hidden">
+        <div class="px-4 py-3 bg-[#f8f9fa] border-b border-[#e0e0e0] flex items-center justify-between">
+          <span class="text-[11px] font-bold text-[#878787] uppercase tracking-wider">Quick Navigation</span>
+          <i class="fas fa-list-ul text-xs text-[#2874f0]"></i>
+        </div>
+        <nav class="divide-y divide-[#f0f0f0] text-[12.5px] font-semibold text-[#212121]">
+          <a href="#overview" class="flex items-center justify-between px-4 py-2.5 hover:bg-blue-50/60 hover:text-[#2874f0] transition-colors group">
+            <span class="flex items-center gap-2.5">
+              <i class="fas fa-shield-halved text-[11px] text-[#2874f0]"></i>
+              <span>1. Overview & Scope</span>
+            </span>
+            <i class="fas fa-chevron-right text-[8px] text-[#878787] group-hover:translate-x-0.5 transition-transform"></i>
+          </a>
+          <a href="#data-collected" class="flex items-center justify-between px-4 py-2.5 hover:bg-blue-50/60 hover:text-[#2874f0] transition-colors group">
+            <span class="flex items-center gap-2.5">
+              <i class="fas fa-database text-[11px] text-[#2874f0]"></i>
+              <span>2. Information We Collect</span>
+            </span>
+            <i class="fas fa-chevron-right text-[8px] text-[#878787] group-hover:translate-x-0.5 transition-transform"></i>
+          </a>
+          <a href="#how-we-use" class="flex items-center justify-between px-4 py-2.5 hover:bg-blue-50/60 hover:text-[#2874f0] transition-colors group">
+            <span class="flex items-center gap-2.5">
+              <i class="fas fa-cogs text-[11px] text-[#2874f0]"></i>
+              <span>3. How We Use Data</span>
+            </span>
+            <i class="fas fa-chevron-right text-[8px] text-[#878787] group-hover:translate-x-0.5 transition-transform"></i>
+          </a>
+          <a href="#sharing-security" class="flex items-center justify-between px-4 py-2.5 hover:bg-blue-50/60 hover:text-[#2874f0] transition-colors group">
+            <span class="flex items-center gap-2.5">
+              <i class="fas fa-lock text-[11px] text-[#0c831f]"></i>
+              <span>4. Data Sharing & Security</span>
+            </span>
+            <i class="fas fa-chevron-right text-[8px] text-[#878787] group-hover:translate-x-0.5 transition-transform"></i>
+          </a>
+          <a href="#user-rights" class="flex items-center justify-between px-4 py-2.5 hover:bg-blue-50/60 hover:text-[#2874f0] transition-colors group">
+            <span class="flex items-center gap-2.5">
+              <i class="fas fa-user-gear text-[11px] text-[#fb641b]"></i>
+              <span>5. Your Privacy Rights</span>
+            </span>
+            <i class="fas fa-chevron-right text-[8px] text-[#878787] group-hover:translate-x-0.5 transition-transform"></i>
+          </a>
+          <a href="#grievance" class="flex items-center justify-between px-4 py-2.5 hover:bg-blue-50/60 hover:text-[#2874f0] transition-colors group">
+            <span class="flex items-center gap-2.5">
+              <i class="fas fa-headset text-[11px] text-[#878787]"></i>
+              <span>6. Grievance & Help</span>
+            </span>
+            <i class="fas fa-chevron-right text-[8px] text-[#878787] group-hover:translate-x-0.5 transition-transform"></i>
+          </a>
+        </nav>
+      </div>
+
+      <!-- Quick Trust Summary Box -->
+      <div class="bg-gradient-to-br from-blue-50 via-white to-emerald-50/40 border border-blue-200/80 rounded-sm p-4 shadow-2xs space-y-2.5">
+        <h3 class="text-[12px] font-bold text-[#212121] uppercase tracking-wider flex items-center gap-1.5">
+          <i class="fas fa-check-double text-[#0c831f]"></i>
+          <span>Our Privacy Promise</span>
+        </h3>
+        <ul class="text-[11.5px] text-[#555] space-y-1.5">
+          <li class="flex items-start gap-1.5">
+            <i class="fas fa-check text-[9px] text-[#0c831f] mt-1 shrink-0"></i>
+            <span>No selling of personal customer data.</span>
+          </li>
+          <li class="flex items-start gap-1.5">
+            <i class="fas fa-check text-[9px] text-[#0c831f] mt-1 shrink-0"></i>
+            <span>Location used only for society delivery.</span>
+          </li>
+          <li class="flex items-start gap-1.5">
+            <i class="fas fa-check text-[9px] text-[#0c831f] mt-1 shrink-0"></i>
+            <span>RBI-standard encrypted UPI & payments.</span>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Need Help Card -->
+      <div class="bg-white border border-[#e0e0e0] rounded-sm p-3.5 shadow-2xs flex items-center justify-between">
+        <div>
+          <p class="text-[12px] font-bold text-[#212121]">Have a question?</p>
+          <p class="text-[10.5px] text-[#878787]">Reach out to customer care</p>
+        </div>
+        <a href="/support" class="px-3 py-1.5 bg-[#2874f0] hover:bg-blue-600 text-white text-[11px] font-bold rounded-sm shadow-2xs transition-colors">
+          Support
+        </a>
+      </div>
+    </aside>
+
+    <!-- 📄 Right Column: Policy Content -->
+    <main class="lg:col-span-8 space-y-4">
+
+      <!-- 🌟 Hero Trust Banner -->
+      <div id="overview" class="bg-white border border-[#e0e0e0] rounded-sm p-4 sm:p-6 shadow-2xs relative overflow-hidden">
+        <div class="flex items-start gap-3.5 relative z-10">
+          <div class="w-12 h-12 rounded-sm bg-[#2874f0] text-white flex items-center justify-center text-xl shrink-0 shadow-xs">
+            <i class="fas fa-user-shield"></i>
+          </div>
+          <div>
+            <span class="text-[10px] font-bold text-[#2874f0] bg-blue-50 px-2 py-0.5 rounded-xs border border-blue-100 uppercase tracking-wider">
+              Transparency & Security
+            </span>
+            <h2 class="text-[17px] sm:text-[19px] font-bold text-[#212121] mt-1 leading-snug">
+              Your Privacy is Protected at Jippy Store
+            </h2>
+            <p class="text-[12.5px] sm:text-[13px] text-[#555] leading-relaxed mt-1.5">
+              Welcome to <strong class="text-[#212121]">Jippy Store</strong> (“we”, “our”, or “us”). We provide instant grocery ordering and delivery straight to your doorstep. This Privacy Policy outlines our commitment to managing your data responsibly and keeping your shopping experience safe and secure.
+            </p>
+          </div>
+        </div>
+
+        <!-- 3 Feature Chips -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mt-4 pt-3.5 border-t border-[#f0f0f0]">
+          <div class="flex items-center gap-2 p-2 bg-[#f8f9fa] rounded-sm border border-[#e8eaed]">
+            <i class="fas fa-lock text-[#0c831f] text-sm"></i>
+            <span class="text-[11px] font-bold text-[#212121]">End-to-End Encrypted</span>
+          </div>
+          <div class="flex items-center gap-2 p-2 bg-[#f8f9fa] rounded-sm border border-[#e8eaed]">
+            <i class="fas fa-ban text-[#2874f0] text-sm"></i>
+            <span class="text-[11px] font-bold text-[#212121]">Zero Data Selling</span>
+          </div>
+          <div class="flex items-center gap-2 p-2 bg-[#f8f9fa] rounded-sm border border-[#e8eaed]">
+            <i class="fas fa-bolt text-[#fb641b] text-sm"></i>
+            <span class="text-[11px] font-bold text-[#212121]">10-15 Min Delivery Safe</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 📋 Section 2: Information We Collect -->
+      <section id="data-collected" class="bg-white border border-[#e0e0e0] rounded-sm shadow-2xs overflow-hidden scroll-mt-24">
+        <div class="px-4 py-3 bg-[#f8f9fa] border-b border-[#e0e0e0] flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-[#2874f0]"></span>
+            <h2 class="text-[12.5px] font-bold text-[#212121] uppercase tracking-wider">1. Information We Collect</h2>
+          </div>
+          <span class="text-[10px] font-bold text-[#878787] uppercase">Scope of Data</span>
+        </div>
+
+        <div class="p-4 sm:p-5 space-y-3.5">
+          <p class="text-[12.5px] text-[#555] leading-relaxed">
+            We only collect information strictly required to facilitate orders, communicate updates, and deliver groceries to your society:
+          </p>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <!-- Account & Profile -->
+            <div class="p-3.5 rounded-sm bg-[#fafafa] border border-[#e0e0e0] hover:border-[#2874f0] transition-colors">
+              <div class="flex items-center gap-2 text-[#2874f0] font-bold text-[13px] mb-1.5">
+                <i class="fas fa-id-card"></i>
+                <span>Customer Profile</span>
+              </div>
+              <p class="text-[12px] text-[#555] leading-relaxed">
+                Your registered mobile number, customer name, optional email address, and saved apartment/flat delivery details.
+              </p>
+            </div>
+
+            <!-- Society / Location -->
+            <div class="p-3.5 rounded-sm bg-[#fafafa] border border-[#e0e0e0] hover:border-[#0c831f] transition-colors">
+              <div class="flex items-center gap-2 text-[#0c831f] font-bold text-[13px] mb-1.5">
+                <i class="fas fa-map-location-dot"></i>
+                <span>Precise Delivery Location</span>
+              </div>
+              <p class="text-[12px] text-[#555] leading-relaxed">
+                Collected solely with your explicit permission to match your apartment with local dark stores and calculate instant delivery timelines.
+              </p>
+            </div>
+
+            <!-- Device Diagnostics -->
+            <div class="p-3.5 rounded-sm bg-[#fafafa] border border-[#e0e0e0] hover:border-[#7c3aed] transition-colors">
+              <div class="flex items-center gap-2 text-[#7c3aed] font-bold text-[13px] mb-1.5">
+                <i class="fas fa-mobile-screen-button"></i>
+                <span>App & Technical Data</span>
+              </div>
+              <p class="text-[12px] text-[#555] leading-relaxed">
+                Device manufacturer, OS version, screen resolution, and error diagnostics to maintain smooth app performance and resolve glitches.
+              </p>
+            </div>
+
+            <!-- Payment Security -->
+            <div class="p-3.5 rounded-sm bg-[#fafafa] border border-[#e0e0e0] hover:border-[#fb641b] transition-colors">
+              <div class="flex items-center gap-2 text-[#fb641b] font-bold text-[13px] mb-1.5">
+                <i class="fas fa-shield-check"></i>
+                <span>Payment Credentials</span>
+              </div>
+              <p class="text-[12px] text-[#555] leading-relaxed">
+                Payments are handled exclusively via RBI-authorized, PCI-DSS compliant providers (UPI / Cards). We <strong class="text-[#212121]">never store</strong> your CVV, PIN, or bank passwords.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ⚙️ Section 3: How We Use Data -->
+      <section id="how-we-use" class="bg-white border border-[#e0e0e0] rounded-sm shadow-2xs overflow-hidden scroll-mt-24">
+        <div class="px-4 py-3 bg-[#f8f9fa] border-b border-[#e0e0e0] flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-[#2874f0]"></span>
+            <h2 class="text-[12.5px] font-bold text-[#212121] uppercase tracking-wider">2. How We Use Your Data</h2>
+          </div>
+          <span class="text-[10px] font-bold text-[#878787] uppercase">Operational Use</span>
+        </div>
+
+        <div class="p-4 sm:p-5 space-y-3">
+          <ul class="space-y-2.5 text-[12.5px] text-[#444]">
+            <li class="flex items-start gap-2.5 p-2 rounded-sm hover:bg-[#f8f9fa] transition-colors">
+              <div class="w-6 h-6 rounded-xs bg-blue-50 text-[#2874f0] flex items-center justify-center shrink-0 mt-0.5 text-xs font-bold">1</div>
+              <div>
+                <strong class="text-[#212121]">Order Processing & Delivery Dispatch:</strong>
+                <p class="text-[#666] mt-0.5 leading-relaxed">To pack your items accurately, assign a local society rider, and deliver your groceries within 10-15 minutes.</p>
+              </div>
+            </li>
+
+            <li class="flex items-start gap-2.5 p-2 rounded-sm hover:bg-[#f8f9fa] transition-colors">
+              <div class="w-6 h-6 rounded-xs bg-blue-50 text-[#2874f0] flex items-center justify-center shrink-0 mt-0.5 text-xs font-bold">2</div>
+              <div>
+                <strong class="text-[#212121]">Transactional Notifications:</strong>
+                <p class="text-[#666] mt-0.5 leading-relaxed">Sending instant order confirmations, WhatsApp live status tracking, out-of-stock replacements, and digital invoices.</p>
+              </div>
+            </li>
+
+            <li class="flex items-start gap-2.5 p-2 rounded-sm hover:bg-[#f8f9fa] transition-colors">
+              <div class="w-6 h-6 rounded-xs bg-blue-50 text-[#2874f0] flex items-center justify-center shrink-0 mt-0.5 text-xs font-bold">3</div>
+              <div>
+                <strong class="text-[#212121]">Anti-Fraud & Platform Safety:</strong>
+                <p class="text-[#666] mt-0.5 leading-relaxed">Protecting against unauthorized account takeovers, verifying authentic mobile numbers, and preventing fraudulent transactions.</p>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- 🔒 Section 4: Data Sharing & Security -->
+      <section id="sharing-security" class="bg-white border border-[#e0e0e0] rounded-sm shadow-2xs overflow-hidden scroll-mt-24">
+        <div class="px-4 py-3 bg-[#f8f9fa] border-b border-[#e0e0e0] flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-[#0c831f]"></span>
+            <h2 class="text-[12.5px] font-bold text-[#212121] uppercase tracking-wider">3. Data Sharing & Security</h2>
+          </div>
+          <span class="text-[10px] font-bold text-[#0c831f] uppercase">Strict Privacy</span>
+        </div>
+
+        <div class="p-4 sm:p-5 space-y-3.5 text-[12.5px] leading-relaxed">
+          <div class="bg-emerald-50/70 border border-emerald-200/80 rounded-sm p-3.5 flex items-start gap-3">
+            <i class="fas fa-shield-cat text-[#0c831f] text-lg mt-0.5 shrink-0"></i>
+            <div>
+              <h3 class="font-bold text-[#08542c] text-[13px]">Strict No-Sale Policy</h3>
+              <p class="text-[#0c831f] text-[12px] mt-0.5">
+                We will never sell, lease, or rent your personal data to marketing brokers, advertisers, or third-party telemarketers under any circumstances.
+              </p>
+            </div>
+          </div>
+
+          <p class="text-[#555]">
+            Information is only shared under limited, necessary operational conditions:
+          </p>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-[12px]">
+            <div class="p-3 bg-[#fafafa] border border-[#e8eaed] rounded-sm">
+              <strong class="text-[#212121] flex items-center gap-1.5 mb-1">
+                <i class="fas fa-person-biking text-[#2874f0]"></i> Delivery Fleet
+              </strong>
+              <p class="text-[#666]">Only the order address and contact phone number needed to ring your doorbell and deliver your package.</p>
+            </div>
+            <div class="p-3 bg-[#fafafa] border border-[#e8eaed] rounded-sm">
+              <strong class="text-[#212121] flex items-center gap-1.5 mb-1">
+                <i class="fas fa-server text-[#7c3aed]"></i> Cloud Infrastructure
+              </strong>
+              <p class="text-[#666]">Secured, firewalled database servers and authorized SMS/WhatsApp delivery gateways.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 👤 Section 5: Your Privacy Rights -->
+      <section id="user-rights" class="bg-white border border-[#e0e0e0] rounded-sm shadow-2xs overflow-hidden scroll-mt-24">
+        <div class="px-4 py-3 bg-[#f8f9fa] border-b border-[#e0e0e0] flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-[#fb641b]"></span>
+            <h2 class="text-[12.5px] font-bold text-[#212121] uppercase tracking-wider">4. Your Rights & Choices</h2>
+          </div>
+          <span class="text-[10px] font-bold text-[#fb641b] uppercase">User Controls</span>
+        </div>
+
+        <div class="p-4 sm:p-5 space-y-3.5 text-[12.5px]">
+          <p class="text-[#555] leading-relaxed">
+            You retain absolute ownership of your personal information and can take direct actions through your account at any time:
+          </p>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+            <div class="p-3 bg-[#f8f9fa] border border-[#e8eaed] rounded-sm flex flex-col justify-between">
+              <div>
+                <h3 class="font-bold text-[#212121] text-[12.5px] mb-1">Address Management</h3>
+                <p class="text-[11.5px] text-[#666] leading-relaxed">Add, modify, or delete any saved delivery address from your profile.</p>
+              </div>
+              <a href="{{ url_for('my_profile') }}" class="mt-2.5 text-[11px] font-bold text-[#2874f0] hover:underline flex items-center gap-1">
+                Go to Profile <i class="fas fa-arrow-right text-[8px]"></i>
+              </a>
+            </div>
+
+            <div class="p-3 bg-[#f8f9fa] border border-[#e8eaed] rounded-sm flex flex-col justify-between">
+              <div>
+                <h3 class="font-bold text-[#212121] text-[12.5px] mb-1">Society Switcher</h3>
+                <p class="text-[11.5px] text-[#666] leading-relaxed">Change your delivery society or block anytime you relocate.</p>
+              </div>
+              <a href="{{ url_for('societies_page') }}" class="mt-2.5 text-[11px] font-bold text-[#2874f0] hover:underline flex items-center gap-1">
+                Change Society <i class="fas fa-arrow-right text-[8px]"></i>
+              </a>
+            </div>
+
+            <div class="p-3 bg-[#f8f9fa] border border-[#e8eaed] rounded-sm flex flex-col justify-between">
+              <div>
+                <h3 class="font-bold text-[#212121] text-[12.5px] mb-1">Data Deletion</h3>
+                <p class="text-[11.5px] text-[#666] leading-relaxed">Request complete removal and purge of your customer profile and history.</p>
+              </div>
+              <a href="#" class="mt-2.5 text-[11px] font-bold text-rose-600 hover:underline flex items-center gap-1">
+                Request Deletion <i class="fas fa-arrow-right text-[8px]"></i>
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ⚖️ Section 6: Grievance Officer & Contact -->
+      <section id="grievance" class="bg-white border border-[#e0e0e0] rounded-sm p-4 sm:p-6 shadow-2xs scroll-mt-24">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-[#f0f0f0] pb-4 mb-4">
+          <div>
+            <span class="text-[10px] font-bold text-[#878787] uppercase tracking-wider">Statutory Grievance Redressal</span>
+            <h2 class="text-[16px] sm:text-[18px] font-bold text-[#212121] mt-0.5">5. Grievance Officer & Contact</h2>
+            <p class="text-[12px] text-[#666] mt-0.5">
+              In accordance with the Information Technology Act and rules, you may contact our dedicated officer:
+            </p>
+          </div>
+
+          <div class="flex items-center gap-2 shrink-0">
+            <a href="mailto:jivoranaturals@gmail.com?subject=Privacy%20Grievance%20-%20Jippy%20Store"
+              class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#2874f0] hover:bg-blue-600 active:scale-95 text-white text-[12px] font-bold rounded-sm shadow-2xs transition-all">
+              <i class="far fa-envelope"></i>
+              <span>Email Legal Team</span>
+            </a>
+            <a href="/support"
+              class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#f8f9fa] hover:bg-slate-200 active:scale-95 text-[#212121] text-[12px] font-bold rounded-sm border border-[#e0e0e0] transition-all">
+              <i class="fas fa-headset text-[#878787]"></i>
+              <span>Customer Help</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Contact Details Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-[12px]">
+          <div class="p-2.5 bg-[#f8f9fa] rounded-sm border border-[#e8eaed]">
+            <p class="text-[10.5px] font-bold text-[#878787] uppercase">Designated Officer</p>
+            <p class="font-bold text-[#212121] mt-0.5">Privacy Compliance Desk</p>
+          </div>
+          <div class="p-2.5 bg-[#f8f9fa] rounded-sm border border-[#e8eaed]">
+            <p class="text-[10.5px] font-bold text-[#878787] uppercase">Official Email</p>
+            <p class="font-bold text-[#2874f0] mt-0.5 truncate">jivoranaturals@gmail.com</p>
+          </div>
+          <div class="p-2.5 bg-[#f8f9fa] rounded-sm border border-[#e8eaed]">
+            <p class="text-[10.5px] font-bold text-[#878787] uppercase">Response Window</p>
+            <p class="font-bold text-[#0c831f] mt-0.5">Within 24 to 48 Hours</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Bottom Disclaimer -->
+      <div class="text-center pt-2 pb-4">
+        <p class="text-[10.5px] font-bold text-[#878787] uppercase tracking-wider">
+          © 2026 Jippy Store Quick Commerce Systems • All Rights Reserved
+        </p>
+      </div>
+
+    </main>
+  </div>
+
+</div>
+{% endblock %}
