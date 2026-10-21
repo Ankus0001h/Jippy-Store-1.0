@@ -964,128 +964,123 @@
       }
     };
 
-    // 🛍️ Flipkart Style Buttons in JS
-    window.updateCartButtons = function() {
+    // 🛍️ Instant-Feedback Flipkart Style Cart Button Renderer
+    function renderButtonForWrapper(wrapper, cart) {
+      if (!wrapper) return;
+      const { id, slug, oos } = wrapper.dataset;
+      if (oos === "true") {
+        wrapper.innerHTML = `<button disabled class="w-full py-1.5 rounded-sm text-[10px] font-bold bg-[#f1f3f6] text-[#878787] border border-[#e0e0e0] cursor-not-allowed uppercase tracking-wide select-none">Out of Stock</button>`;
+        return;
+      }
       if (window.IS_SHOP_CLOSED) {
-        document.querySelectorAll(".cart-btn-wrapper").forEach(wrapper => {
-          const { oos } = wrapper.dataset;
-          if (oos === "true") {
-            wrapper.innerHTML = `<button disabled class="w-full py-1.5 rounded-sm text-[10px] font-bold bg-[#f1f3f6] text-[#878787] border border-[#e0e0e0] cursor-not-allowed uppercase tracking-wide">Out of Stock</button>`;
-          } else {
-            wrapper.innerHTML = `
-              <button type="button" onclick="window.showStoreClosedToast('Store Currently Closed', 'Not taking new orders right now')" class="w-full py-1.5 rounded-sm text-[11px] font-bold bg-[#f1f3f6] hover:bg-slate-200 text-slate-600 border border-[#e0e0e0] active:scale-95 transition-all uppercase tracking-wide flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer">
-                <i class="fas fa-clock text-[10px] text-amber-500"></i> Closed
-              </button>
-            `;
-          }
-        });
+        wrapper.innerHTML = `
+          <button type="button" onclick="window.showStoreClosedToast('Store Currently Closed', 'Not taking new orders right now')" class="w-full py-1.5 rounded-sm text-[11px] font-bold bg-[#f1f3f6] hover:bg-slate-200 text-slate-600 border border-[#e0e0e0] active:scale-95 transition-all uppercase tracking-wide flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer select-none">
+            <i class="fas fa-clock text-[10px] text-amber-500"></i> Closed
+          </button>
+        `;
         return;
       }
 
+      const itemKey = id || slug;
+      const item = cart.find(i => (id && i.id === id) || (slug && i.slug === slug));
+      if (!item || item.qty <= 0) {
+        wrapper.innerHTML = `<button type="button" class="w-full py-1.5 rounded-sm text-[12px] font-bold border border-[#2874f0] bg-white text-[#2874f0] hover:bg-blue-50 active:scale-95 transition-all uppercase tracking-wide flex items-center justify-center gap-1 shadow-2xs cursor-pointer select-none" onclick="window.handleCartClick(this.parentElement, event)"><i class="fas fa-plus text-[9px]"></i> Add</button>`;
+      } else {
+        wrapper.innerHTML = `
+          <div class="flex items-center justify-between bg-[#2874f0] text-white p-0.5 rounded-sm shadow-2xs w-full select-none animate-in fade-in duration-100">
+            <button type="button" onclick="window.changeQty('${itemKey}', -1, event)" class="w-7 h-7 flex items-center justify-center rounded-sm hover:bg-white/20 active:bg-white/30 text-white transition-colors active:scale-90 cursor-pointer"><i class="fas fa-minus text-[9px]"></i></button>
+            <span class="text-white font-bold text-xs tabular-nums select-none">${item.qty}</span>
+            <button type="button" onclick="window.changeQty('${itemKey}', 1, event)" class="w-7 h-7 flex items-center justify-center rounded-sm hover:bg-white/20 active:bg-white/30 text-white transition-colors active:scale-90 cursor-pointer"><i class="fas fa-plus text-[9px]"></i></button>
+          </div>`;
+      }
+    }
+
+    // 🛍️ Fast Batch Re-renderer
+    window.updateCartButtons = function() {
       const cart = JSON.parse(localStorage.getItem("cart") || "[]");
       document.querySelectorAll(".cart-btn-wrapper").forEach(wrapper => {
-        const { id, slug, oos } = wrapper.dataset;
-        if (oos === "true") {
-          wrapper.innerHTML = `<button disabled class="w-full py-1.5 rounded-sm text-[10px] font-bold bg-[#f1f3f6] text-[#878787] border border-[#e0e0e0] cursor-not-allowed uppercase tracking-wide">Out of Stock</button>`;
-          return;
-        }
-        const item = cart.find(i => (id && i.id === id) || (i.slug && i.slug === slug));
-        if (!item) {
-          wrapper.innerHTML = `<button class="w-full py-1.5 rounded-sm text-[12px] font-bold border border-[#2874f0] bg-white text-[#2874f0] hover:bg-blue-50 active:scale-95 transition-all uppercase tracking-wide flex items-center justify-center gap-1 shadow-2xs" onclick="window.handleCartClick(this.parentElement)"><i class="fas fa-plus text-[9px]"></i> Add</button>`;
-        } else {
-          const itemKey = id || slug;
-          wrapper.innerHTML = `
-            <div class="flex items-center justify-between bg-[#2874f0] text-white p-0.5 rounded-sm shadow-2xs w-full">
-              <button onclick="window.changeQty('${itemKey}', -1, event)" class="w-7 h-7 flex items-center justify-center rounded-sm hover:bg-white/20 text-white transition-colors active:scale-90"><i class="fas fa-minus text-[9px]"></i></button>
-              <span class="text-white font-bold text-xs tabular-nums">${item.qty}</span>
-              <button onclick="window.changeQty('${itemKey}', 1, event)" class="w-7 h-7 flex items-center justify-center rounded-sm hover:bg-white/20 text-white transition-colors active:scale-90"><i class="fas fa-plus text-[9px]"></i></button>
-            </div>`;
-        }
+        renderButtonForWrapper(wrapper, cart);
       });
     };
 
-    window.handleCartClick = function(wrapper) {
+    // ⚡ Instant (0ms) Optimistic Click Handler
+    window.handleCartClick = function(wrapper, event) {
+      if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
       if (window.IS_SHOP_CLOSED) {
         window.showStoreClosedToast("Store Currently Closed", "Items cannot be added while store is closed");
         window.updateCartButtons();
         return;
       }
-      const { id, slug, name, price, image, unit } = wrapper.dataset;
+      const { id, slug, name, price, image, unit, oos } = wrapper.dataset;
+      if (oos === "true") return;
+
       const itemKey = id || slug;
-      const shopId = "{{ (shop._id|string) if shop else (session.get('current_shop_id') or session.get('portal_user_id') or '') }}";
 
-      fetch('/api/store-status?_t=' + Date.now() + (shopId ? ('&shop_id=' + encodeURIComponent(shopId)) : ''), {
-        cache: 'no-store',
-        headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' }
-      })
-      .then(r => r.json())
-      .then(data => {
-        if (!data || !data.success || data.is_closed || data.is_online === false) {
-          window.IS_SHOP_CLOSED = true;
-          window.updateCartButtons();
-          window.showStoreClosedToast("Store Currently Closed", "Items cannot be added while store is closed");
-          return;
-        }
-        let cart = JSON.parse(localStorage.getItem("cart") || "[]");
-        const index = cart.findIndex(item => (item.id && item.id === itemKey) || item.slug === itemKey);
-        if (index === -1) cart.push({ id: itemKey, slug, name, price: parseFloat(price), image, unit, qty: 1 });
-        else cart[index].qty++;
-        localStorage.setItem("cart", JSON.stringify(cart));
-        window.updateCartButtons();
-        window.dispatchEvent(new Event('cartUpdated'));
-      })
-      .catch(() => {
-        window.showStoreClosedToast("Store Currently Closed", "Items cannot be added while store is closed");
-      });
+      // 1. Instant Cart State Mutation in Memory & Storage (0ms)
+      let cart = JSON.parse(localStorage.getItem("cart") || "[]");
+      const index = cart.findIndex(item => (item.id && item.id === itemKey) || (item.slug && item.slug === itemKey));
+      if (index === -1) {
+        cart.push({ id: itemKey, slug, name, price: parseFloat(price) || 0, image, unit, qty: 1 });
+      } else {
+        cart[index].qty++;
+      }
+      localStorage.setItem("cart", JSON.stringify(cart));
+
+      // 2. Instant Local DOM Update (0ms - zero lag)
+      renderButtonForWrapper(wrapper, cart);
+
+      // 3. Notify global badges & bottom checkout dock instantly
+      window.dispatchEvent(new Event('cartUpdated'));
+
+      // 4. Subtle haptic touch feedback for mobile app / web
+      if (window.navigator && window.navigator.vibrate) {
+        try { window.navigator.vibrate(15); } catch (e) {}
+      }
     };
 
+    // ⚡ Instant (0ms) Quantity Modifier Handler (+ / -)
     window.changeQty = function(key, delta, event) {
-      if (event) event.stopPropagation();
-
-      // Decreasing or removing is always permitted
-      if (delta <= 0) {
-        let cart = JSON.parse(localStorage.getItem("cart") || "[]");
-        const index = cart.findIndex(item => (item.id && item.id === key) || item.slug === key);
-        if (index === -1) return;
-        cart[index].qty += delta;
-        if (cart[index].qty <= 0) cart.splice(index, 1);
-        localStorage.setItem("cart", JSON.stringify(cart));
-        window.updateCartButtons();
-        window.dispatchEvent(new Event('cartUpdated'));
-        return;
+      if (event) {
+        event.preventDefault();
+        event.stopPropagation();
       }
 
-      // Increasing quantity (delta > 0): Check store status first
-      if (window.IS_SHOP_CLOSED) {
+      // Decreasing or removing is always allowed instantly
+      if (delta > 0 && window.IS_SHOP_CLOSED) {
         window.showStoreClosedToast("Store Currently Closed", "Items cannot be added while store is closed");
         window.updateCartButtons();
         return;
       }
 
-      const shopId = "{{ (shop._id|string) if shop else (session.get('current_shop_id') or session.get('portal_user_id') or '') }}";
-      fetch('/api/store-status?_t=' + Date.now() + (shopId ? ('&shop_id=' + encodeURIComponent(shopId)) : ''), {
-        cache: 'no-store',
-        headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' }
-      })
-      .then(r => r.json())
-      .then(data => {
-        if (!data || !data.success || data.is_closed || data.is_online === false) {
-          window.IS_SHOP_CLOSED = true;
-          window.updateCartButtons();
-          window.showStoreClosedToast("Store Currently Closed", "Items cannot be added while store is closed");
-          return;
-        }
-        let cart = JSON.parse(localStorage.getItem("cart") || "[]");
-        const index = cart.findIndex(item => (item.id && item.id === key) || item.slug === key);
-        if (index === -1) return;
-        cart[index].qty += delta;
-        localStorage.setItem("cart", JSON.stringify(cart));
+      // 1. Instant Cart State Mutation (0ms)
+      let cart = JSON.parse(localStorage.getItem("cart") || "[]");
+      const index = cart.findIndex(item => (item.id && item.id === key) || (item.slug && item.slug === key));
+      if (index === -1) {
         window.updateCartButtons();
-        window.dispatchEvent(new Event('cartUpdated'));
-      })
-      .catch(() => {
-        window.showStoreClosedToast("Store Currently Closed", "Items cannot be added while store is closed");
+        return;
+      }
+
+      cart[index].qty += delta;
+      if (cart[index].qty <= 0) {
+        cart.splice(index, 1);
+      }
+      localStorage.setItem("cart", JSON.stringify(cart));
+
+      // 2. Instant Local DOM Update for matching wrappers (0ms)
+      document.querySelectorAll(`.cart-btn-wrapper[data-id="${key}"], .cart-btn-wrapper[data-slug="${key}"]`).forEach(w => {
+        renderButtonForWrapper(w, cart);
       });
+
+      // 3. Notify global badges & bottom dock instantly
+      window.dispatchEvent(new Event('cartUpdated'));
+
+      // 4. Subtle haptic touch feedback
+      if (window.navigator && window.navigator.vibrate) {
+        try { window.navigator.vibrate(10); } catch (e) {}
+      }
     };
 
     window.handleVariantChange = function(selectEl) {
