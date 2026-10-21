@@ -1,0 +1,931 @@
+{% extends "base_admin.html" %}
+
+{% block content %}
+<style>
+  .input-focus-blue:focus {
+    border-color: #2874f0 !important;
+    box-shadow: 0 0 0 3px rgba(40, 116, 240, 0.12) !important;
+  }
+  .role-card-active {
+    border-color: #2874f0 !important;
+    background-color: #f0f5ff !important;
+    box-shadow: 0 4px 12px rgba(40, 116, 240, 0.12) !important;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .animate-fade-in {
+    animation: fadeIn 0.25s ease-out forwards;
+  }
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 5px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #c7cbd1;
+    border-radius: 4px;
+  }
+</style>
+
+<div class="max-w-5xl mx-auto px-2.5 sm:px-6 py-3 sm:py-6 space-y-5 animate-fade-in pb-16">
+
+  <!-- ======================================================== -->
+  <!-- TOP BREADCRUMB & HEADER -->
+  <!-- ======================================================== -->
+  <div class="bg-white border border-[#e0e0e0] rounded-sm shadow-xs overflow-hidden">
+    <!-- Royal Blue Brand Banner -->
+    <div class="bg-[#2874f0] px-4 sm:px-6 py-2.5 flex items-center justify-between text-white text-xs">
+      <div class="flex items-center gap-2">
+        <span class="font-extrabold tracking-tight flex items-center gap-1.5 text-xs sm:text-sm">
+          <span>Jippy</span>
+          <span class="text-[#ffe500] italic font-black">Store</span>
+        </span>
+        <span class="text-white/40">|</span>
+        <span class="text-blue-100 text-[11px] font-medium hidden sm:inline">Personnel Management • Edit Partner</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <a 
+          href="{{ url_for('add_user') }}" 
+          class="inline-flex items-center gap-1.5 px-3 py-1 rounded bg-white text-[#2874f0] hover:bg-blue-50 text-[11px] font-bold transition-all shadow-2xs active:scale-95"
+        >
+          <i class="fas fa-arrow-left text-[10px]"></i>
+          <span>Back to Personnel</span>
+        </a>
+        <a 
+          href="{{ url_for('admin_all_users') }}" 
+          class="inline-flex items-center gap-1.5 px-3 py-1 rounded bg-white/15 hover:bg-white/25 text-white text-[11px] font-bold transition-all border border-white/20 active:scale-95"
+        >
+          <i class="fas fa-users text-[10px]"></i>
+          <span>Directory</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Title & Profile Summary Card -->
+    <div class="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white">
+      <div class="flex items-start sm:items-center gap-3">
+        <!-- Initial Avatar Circle -->
+        <div class="w-12 h-12 rounded-full {% if user.role == 'vendor' %}bg-[#2874f0]/10 text-[#2874f0]{% else %}bg-[#388e3c]/10 text-[#388e3c]{% endif %} flex items-center justify-center text-lg font-black flex-shrink-0 border border-[#e0e0e0]">
+          {{ (user.name or user.email)[:1]|upper }}
+        </div>
+        <div>
+          <nav class="flex items-center gap-1.5 text-[11px] text-[#878787] font-medium mb-0.5">
+            <a href="{{ url_for('admin_dashboard') }}" class="hover:text-[#2874f0] transition-colors">Dashboard</a>
+            <span>›</span>
+            <a href="{{ url_for('add_user') }}" class="hover:text-[#2874f0] transition-colors">Personnel</a>
+            <span>›</span>
+            <span class="text-[#2874f0] font-bold">Edit Partner</span>
+          </nav>
+          <div class="flex flex-wrap items-center gap-2">
+            <h1 class="text-base sm:text-lg font-black text-[#212121] tracking-tight">
+              {{ user.name or "Unnamed Partner" }}
+            </h1>
+            <span class="text-[10px] font-black uppercase px-2 py-0.5 rounded {% if user.role == 'vendor' %}bg-blue-50 text-[#2874f0] border border-blue-200{% else %}bg-emerald-50 text-[#388e3c] border border-emerald-200{% endif %}">
+              {{ user.role|capitalize }} Partner
+            </span>
+          </div>
+          <div class="text-xs text-[#878787] flex flex-wrap items-center gap-3 mt-0.5">
+            <span><i class="fas fa-envelope text-[10px] mr-1"></i>{{ user.email }}</span>
+            {% if user.phone %}
+            <span class="font-mono font-bold text-[#212121]"><i class="fas fa-phone text-[10px] mr-1 text-[#2874f0]"></i>{{ user.phone }}</span>
+            {% endif %}
+            <span class="text-[10px] font-mono text-gray-400">ID: {{ user._id }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Contact Shortcuts -->
+      {% if user.phone %}
+      <div class="flex items-center gap-1.5 self-start sm:self-auto">
+        {% set clean_p = user.phone|replace('+', '')|replace(' ', '')|replace('-', '') %}
+        <a 
+          href="https://wa.me/{{ clean_p }}" 
+          target="_blank"
+          class="px-2.5 py-1 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded border border-emerald-200 flex items-center gap-1 transition-all"
+          title="Open WhatsApp"
+        >
+          <i class="fab fa-whatsapp"></i>
+          <span>WhatsApp</span>
+        </a>
+        <a 
+          href="tel:{{ user.phone }}"
+          class="px-2.5 py-1 text-xs font-bold text-[#2874f0] bg-blue-50 hover:bg-blue-100 rounded border border-blue-200 flex items-center gap-1 transition-all"
+          title="Direct Phone Call"
+        >
+          <i class="fas fa-phone"></i>
+          <span>Call</span>
+        </a>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- FLASH MESSAGES / SYSTEM ALERTS -->
+  <!-- ======================================================== -->
+  {% if error %}
+  <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-sm text-xs font-semibold flex items-center justify-between shadow-2xs animate-fade-in" id="errorAlert">
+    <div class="flex items-center gap-2.5">
+      <div class="w-6 h-6 rounded-full bg-red-100 flex items-center justify-center text-red-600 flex-shrink-0">
+        <i class="fas fa-exclamation-circle text-xs"></i>
+      </div>
+      <div>
+        <span class="font-bold">Validation Error:</span> {{ error }}
+      </div>
+    </div>
+    <button type="button" onclick="document.getElementById('errorAlert').remove()" class="text-red-400 hover:text-red-700 p-1">
+      <i class="fas fa-times text-xs"></i>
+    </button>
+  </div>
+  {% endif %}
+
+  <!-- ======================================================== -->
+  <!-- EDIT FORM CONTAINER -->
+  <!-- ======================================================== -->
+  <div class="bg-white border border-[#e0e0e0] rounded-sm shadow-xs overflow-hidden">
+    <div class="bg-[#fafafa] border-b border-[#e0e0e0] px-4 sm:px-6 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <div class="w-8 h-8 rounded-sm bg-[#2874f0] text-white flex items-center justify-center text-xs font-bold shadow-2xs">
+          <i class="fas fa-user-pen"></i>
+        </div>
+        <div>
+          <h2 class="text-sm font-black text-[#212121] uppercase tracking-wide">Update Personnel Profile</h2>
+          <p class="text-[11px] text-[#878787]">Modify credentials, role details, or contact number</p>
+        </div>
+      </div>
+      <span class="text-[10px] font-bold text-[#2874f0] bg-[#f0f5ff] px-2 py-0.5 rounded border border-[#d2e3fc]">
+        Flipkart Partner Settings
+      </span>
+    </div>
+
+    <form method="post" id="editUserForm" class="p-4 sm:p-6 space-y-6" novalidate>
+
+      <!-- ================= STEP 1: ROLE SELECTION CARDS ================= -->
+      <div>
+        <label class="block text-xs font-black uppercase tracking-wider text-[#212121] mb-2">
+          <span>1. Partner Account Role *</span>
+        </label>
+        
+        <!-- Hidden input for role -->
+        <input type="hidden" name="role" id="selectedRoleInput" value="{{ user.role }}">
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+          <!-- Vendor Card -->
+          <div 
+            id="roleCardVendor"
+            onclick="selectRole('vendor')"
+            class="p-4 rounded-sm border-2 transition-all cursor-pointer flex items-start gap-3.5 {% if user.role == 'vendor' %}role-card-active border-[#2874f0] bg-[#f0f5ff]{% else %}border-[#e0e0e0] bg-white hover:border-[#b0c4de]{% endif %}"
+          >
+            <div class="w-10 h-10 rounded-sm bg-[#2874f0]/10 text-[#2874f0] flex items-center justify-center text-base flex-shrink-0">
+              <i class="fas fa-store"></i>
+            </div>
+            <div class="flex-1">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-black text-[#212121] uppercase tracking-wide">Store Vendor Partner</span>
+                <span id="vendorCheckmark" class="text-[#2874f0] text-xs {% if user.role != 'vendor' %}hidden{% endif %}">
+                  <i class="fas fa-check-circle"></i>
+                </span>
+              </div>
+              <p class="text-[11px] text-[#878787] mt-1 leading-snug">
+                Manages catalog, inventory stocks, and packages customer orders for society residents.
+              </p>
+            </div>
+          </div>
+
+          <!-- Delivery Card -->
+          <div 
+            id="roleCardDelivery"
+            onclick="selectRole('delivery')"
+            class="p-4 rounded-sm border-2 transition-all cursor-pointer flex items-start gap-3.5 {% if user.role == 'delivery' %}role-card-active border-[#2874f0] bg-[#f0f5ff]{% else %}border-[#e0e0e0] bg-white hover:border-[#b0c4de]{% endif %}"
+          >
+            <div class="w-10 h-10 rounded-sm bg-[#388e3c]/10 text-[#388e3c] flex items-center justify-center text-base flex-shrink-0">
+              <i class="fas fa-motorcycle"></i>
+            </div>
+            <div class="flex-1">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-black text-[#212121] uppercase tracking-wide">Logistics Delivery Partner</span>
+                <span id="deliveryCheckmark" class="text-[#388e3c] text-xs {% if user.role != 'delivery' %}hidden{% endif %}">
+                  <i class="fas fa-check-circle"></i>
+                </span>
+              </div>
+              <p class="text-[11px] text-[#878787] mt-1 leading-snug">
+                Field delivery rider assigned to dispatch packages and deliver straight to doorstep.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= STEP 2: CORE IDENTITY & CONTACT ================= -->
+      <div class="pt-4 border-t border-[#e0e0e0]">
+        <label class="block text-xs font-black uppercase tracking-wider text-[#212121] mb-3">
+          <span>2. Core Credentials & Verified Mobile Number</span>
+        </label>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Full Legal Name -->
+          <div>
+            <label class="block text-xs font-bold text-[#212121] mb-1">
+              Full Legal Name *
+            </label>
+            <div class="relative">
+              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[#878787] text-xs">
+                <i class="fas fa-user"></i>
+              </span>
+              <input 
+                type="text" 
+                name="name" 
+                id="inputName"
+                value="{{ user.name }}"
+                placeholder="Full Legal Name" 
+                class="w-full pl-9 pr-3 py-2 text-xs font-semibold text-[#212121] bg-white border border-[#e0e0e0] rounded-sm input-focus-blue transition-all"
+                required
+              >
+            </div>
+            <p class="text-[10px] text-[#878787] mt-1">Official name as registered on system records.</p>
+          </div>
+
+          <!-- Official Email Address -->
+          <div>
+            <label class="block text-xs font-bold text-[#212121] mb-1">
+              Official Email Address *
+            </label>
+            <div class="relative">
+              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[#878787] text-xs">
+                <i class="fas fa-envelope"></i>
+              </span>
+              <input 
+                type="email" 
+                name="email" 
+                id="inputEmail"
+                value="{{ user.email }}"
+                placeholder="partner@domain.com" 
+                class="w-full pl-9 pr-3 py-2 text-xs font-semibold text-[#212121] bg-white border border-[#e0e0e0] rounded-sm input-focus-blue transition-all"
+                required
+              >
+            </div>
+            <p class="text-[10px] text-[#878787] mt-1">Primary login identity & alert notifications.</p>
+          </div>
+
+          <!-- 10-Digit Mobile Number (Mandatory for BOTH) -->
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <label class="block text-xs font-bold text-[#212121]">
+                Mobile Phone Number *
+              </label>
+              <span class="text-[10px] font-bold text-[#2874f0] bg-[#f0f5ff] px-1.5 py-0.5 rounded border border-[#d2e3fc]">
+                +91 • 10 Digits
+              </span>
+            </div>
+            <div class="flex rounded-sm border border-[#e0e0e0] overflow-hidden focus-within:border-[#2874f0] focus-within:ring-2 focus-within:ring-[#2874f0]/15 transition-all">
+              <span class="bg-[#f8faff] text-[#2874f0] font-black text-xs px-3 py-2 border-r border-[#e0e0e0] flex items-center justify-center select-none">
+                +91
+              </span>
+              <input 
+                type="tel" 
+                name="phone" 
+                id="inputPhone"
+                maxlength="10"
+                inputmode="numeric"
+                value="{% if user.phone %}{{ user.phone[-10:] }}{% endif %}"
+                placeholder="9876543210" 
+                class="flex-1 px-3 py-2 text-xs font-bold text-[#212121] bg-white outline-none"
+                required
+              >
+              <div id="phoneCheckIcon" class="{% if not user.phone %}hidden{% endif %} pr-3 flex items-center text-emerald-600">
+                <i class="fas fa-check-circle text-xs"></i>
+              </div>
+            </div>
+            <p class="text-[10px] text-[#878787] mt-1">
+              Used for WhatsApp order updates, SMS OTPs, and customer calling.
+            </p>
+          </div>
+
+          <!-- Password Change Notice (Optional) -->
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <label class="block text-xs font-bold text-[#212121]">
+                Change Password (Optional)
+              </label>
+              <button 
+                type="button" 
+                onclick="generateStrongPassword()" 
+                class="text-[10px] font-bold text-[#2874f0] hover:underline flex items-center gap-1"
+                title="Generate Random Password"
+              >
+                <i class="fas fa-wand-magic-sparkles text-[9px]"></i>
+                <span>Generate Password</span>
+              </button>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <div class="relative">
+                <input 
+                  type="password" 
+                  name="new_password" 
+                  id="inputNewPassword"
+                  placeholder="New password" 
+                  class="w-full pl-3 pr-8 py-2 text-xs font-semibold text-[#212121] bg-white border border-[#e0e0e0] rounded-sm input-focus-blue transition-all"
+                >
+                <button 
+                  type="button" 
+                  onclick="togglePasswordVisibility('inputNewPassword', 'eyeNewIcon')" 
+                  class="absolute right-2 top-1/2 -translate-y-1/2 text-[#878787] hover:text-[#212121] p-1 text-xs"
+                >
+                  <i class="fas fa-eye" id="eyeNewIcon"></i>
+                </button>
+              </div>
+              <div class="relative">
+                <input 
+                  type="password" 
+                  name="confirm_password" 
+                  id="inputConfirmPassword"
+                  placeholder="Confirm password" 
+                  class="w-full pl-3 pr-8 py-2 text-xs font-semibold text-[#212121] bg-white border border-[#e0e0e0] rounded-sm input-focus-blue transition-all"
+                >
+                <button 
+                  type="button" 
+                  onclick="togglePasswordVisibility('inputConfirmPassword', 'eyeConfirmIcon')" 
+                  class="absolute right-2 top-1/2 -translate-y-1/2 text-[#878787] hover:text-[#212121] p-1 text-xs"
+                >
+                  <i class="fas fa-eye" id="eyeConfirmIcon"></i>
+                </button>
+              </div>
+            </div>
+            <p class="text-[10px] text-[#878787] mt-1">Leave both blank if you do not want to alter the current password.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= STEP 3A: VENDOR SPECIFIC SETTINGS ================= -->
+      <div id="vendorSpecificSection" class="pt-4 border-t border-[#e0e0e0] space-y-4 {% if user.role != 'vendor' %}hidden{% endif %}">
+        <div class="flex items-center justify-between">
+          <label class="block text-xs font-black uppercase tracking-wider text-[#212121]">
+            <span>3. Store Profile & Society Fulfillment Zones</span>
+          </label>
+          <span class="text-[10px] font-bold text-[#2874f0] bg-[#f0f5ff] px-2 py-0.5 rounded">
+            Vendor Configurations
+          </span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Shop Name -->
+          <div>
+            <label class="block text-xs font-bold text-[#212121] mb-1">
+              Store / Shop Name *
+            </label>
+            <div class="relative">
+              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[#878787] text-xs">
+                <i class="fas fa-shop"></i>
+              </span>
+              <input 
+                type="text" 
+                name="shop_name" 
+                id="inputShopName"
+                value="{{ user.shop_name or '' }}"
+                placeholder="e.g. Daily Fresh Supermarket" 
+                class="w-full pl-9 pr-3 py-2 text-xs font-semibold text-[#212121] bg-white border border-[#e0e0e0] rounded-sm input-focus-blue transition-all"
+              >
+            </div>
+            <p class="text-[10px] text-[#878787] mt-1">Displayed on customer receipts, orders, and portal dashboard.</p>
+          </div>
+
+          <!-- Store Category Classification -->
+          <div>
+            <label class="block text-xs font-bold text-[#212121] mb-1">
+              Store Classification Category *
+            </label>
+            {% set vt = user.vendor_type or '' %}
+            <div class="relative">
+              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[#878787] text-xs pointer-events-none">
+                <i class="fas fa-tags"></i>
+              </span>
+              <select 
+                name="vendor_type" 
+                id="vendorTypeSelect" 
+                class="w-full pl-9 pr-8 py-2 text-xs font-semibold text-[#212121] bg-white border border-[#e0e0e0] rounded-sm input-focus-blue transition-all appearance-none cursor-pointer"
+              >
+                <option value="">-- Select Store Category --</option>
+                <option value="grocery" {% if vt == 'grocery' %}selected{% endif %}>Grocery & Staples</option>
+                <option value="dairy" {% if vt == 'dairy' %}selected{% endif %}>Dairy, Milk & Eggs</option>
+                <option value="vegetables" {% if vt == 'vegetables' %}selected{% endif %}>Fresh Vegetables & Greens</option>
+                <option value="fruits" {% if vt == 'fruits' %}selected{% endif %}>Fresh Fruits & Dry Fruits</option>
+                <option value="bakery" {% if vt == 'bakery' %}selected{% endif %}>Bakery & Snacks</option>
+                <option value="other" {% if vt == 'other' or (vt and vt not in ['grocery','dairy','vegetables','fruits','bakery']) %}selected{% endif %}>Other (Custom Category)</option>
+              </select>
+              <span class="absolute right-3 top-1/2 -translate-y-1/2 text-[#878787] text-xs pointer-events-none">
+                <i class="fas fa-chevron-down text-[10px]"></i>
+              </span>
+            </div>
+
+            <!-- Custom Category Input (reveals if 'other' selected) -->
+            <input 
+              type="text" 
+              name="vendor_type_other" 
+              id="vendorTypeOther" 
+              value="{% if vt and vt not in ['grocery','dairy','vegetables','fruits','bakery'] %}{{ vt }}{% endif %}"
+              placeholder="Specify custom store type (e.g. Organic Farmhouse, Pet Food)" 
+              class="w-full mt-2 px-3 py-2 text-xs font-semibold text-[#212121] bg-white border border-[#e0e0e0] rounded-sm input-focus-blue transition-all {% if vt != 'other' and (not vt or vt in ['grocery','dairy','vegetables','fruits','bakery']) %}hidden{% endif %}"
+            >
+          </div>
+        </div>
+
+        <!-- Shop Banner URL -->
+        <div>
+          <label class="block text-xs font-bold text-[#212121] mb-1">
+            Shop Banner or Logo Image URL (Optional)
+          </label>
+          <div class="relative">
+            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[#878787] text-xs">
+              <i class="fas fa-image"></i>
+            </span>
+            <input 
+              type="url" 
+              name="shop_image" 
+              id="inputShopImage"
+              value="{{ user.shop_image or '' }}"
+              placeholder="https://images.unsplash.com/photo-..." 
+              class="w-full pl-9 pr-3 py-2 text-xs font-semibold text-[#212121] bg-white border border-[#e0e0e0] rounded-sm input-focus-blue transition-all"
+            >
+          </div>
+          <p class="text-[10px] text-[#878787] mt-1">High-quality image URL for storefront display in customer catalog.</p>
+
+          <!-- Real-Time Live Image Preview Container -->
+          <div id="shopImagePreviewBox" class="mt-2.5 p-2.5 bg-[#f8faff] border border-[#d2e3fc] rounded-sm hidden animate-fade-in">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-[10px] font-bold text-[#2874f0] uppercase tracking-wide flex items-center gap-1">
+                <i class="fas fa-eye text-[9px]"></i>
+                <span id="shopImagePreviewStatus">Storefront Live Preview</span>
+              </span>
+              <div class="flex items-center gap-2">
+                <a 
+                  id="shopImagePreviewLink" 
+                  href="#" 
+                  target="_blank" 
+                  class="text-[10px] font-bold text-[#2874f0] hover:underline flex items-center gap-0.5"
+                >
+                  <i class="fas fa-arrow-up-right-from-square text-[9px]"></i>
+                  <span>Full View</span>
+                </a>
+                <button 
+                  type="button" 
+                  onclick="clearImageUrl('inputShopImage', 'shopImagePreviewBox', 'shopImageErrorBox')" 
+                  class="text-[10px] font-bold text-red-500 hover:text-red-700 flex items-center gap-0.5"
+                >
+                  <i class="fas fa-times text-[9px]"></i>
+                  <span>Clear</span>
+                </button>
+              </div>
+            </div>
+            <div class="relative w-full max-w-xs h-32 bg-white rounded border border-[#e0e0e0] overflow-hidden flex items-center justify-center">
+              <img 
+                id="shopImagePreviewImg" 
+                src="" 
+                alt="Store preview" 
+                class="w-full h-full object-cover"
+              >
+            </div>
+          </div>
+          <div id="shopImageErrorBox" class="mt-2 p-2 bg-red-50 border border-red-200 text-red-600 text-[11px] font-medium rounded-sm hidden flex items-center gap-1.5">
+            <i class="fas fa-triangle-exclamation text-xs flex-shrink-0"></i>
+            <span id="shopImageErrorText">Unable to load image from this URL. Please verify the URL points to a public image.</span>
+          </div>
+        </div>
+
+        <!-- Serviceable Societies Selector -->
+        <div>
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+            <div>
+              <label class="block text-xs font-bold text-[#212121]">
+                Serviceable Residential Societies (Coverage Zones)
+              </label>
+              <p class="text-[10px] text-[#878787]">
+                Orders from selected residential societies will route to this store.
+              </p>
+            </div>
+            <div class="flex items-center gap-2">
+              <button 
+                type="button" 
+                onclick="toggleAllSocieties(true)"
+                class="px-2 py-1 text-[10px] font-bold text-[#2874f0] bg-[#f0f5ff] hover:bg-blue-100 rounded border border-[#d2e3fc] transition-colors"
+              >
+                Select All
+              </button>
+              <button 
+                type="button" 
+                onclick="toggleAllSocieties(false)"
+                class="px-2 py-1 text-[10px] font-bold text-[#878787] bg-white hover:bg-gray-100 rounded border border-[#e0e0e0] transition-colors"
+              >
+                Clear All
+              </button>
+            </div>
+          </div>
+
+          <!-- Instant Search Box for Societies -->
+          <div class="relative mb-2">
+            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[#878787] text-xs">
+              <i class="fas fa-search text-[10px]"></i>
+            </span>
+            <input 
+              type="text" 
+              id="societySearchInput" 
+              oninput="filterSocietiesList()"
+              placeholder="Type to filter societies by name, city, or pincode..." 
+              class="w-full pl-8 pr-3 py-1.5 text-xs bg-[#f8faff] border border-[#e0e0e0] rounded-sm input-focus-blue"
+            >
+          </div>
+
+          <!-- Societies Checkbox List -->
+          <div id="societiesContainer" class="max-h-56 overflow-y-auto bg-[#fafafa] border border-[#e0e0e0] rounded-sm p-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 custom-scrollbar">
+            {% set active_socs = user.serviceable_societies or [] %}
+            {% for soc in all_societies %}
+            <label 
+              class="society-item flex items-start gap-2.5 p-2 bg-white rounded border border-[#e0e0e0] hover:border-[#2874f0] hover:bg-[#f0f5ff]/40 cursor-pointer transition-colors"
+              data-text="{{ soc.name|lower }} {{ soc.city|lower }} {{ soc.pincode }}"
+            >
+              <input 
+                type="checkbox" 
+                name="serviceable_societies" 
+                value="{{ soc._id }}"
+                {% if soc._id|string in active_socs or soc._id in active_socs %}checked{% endif %}
+                class="mt-0.5 w-4 h-4 text-[#2874f0] rounded border-[#c2c2c2] focus:ring-[#2874f0] cursor-pointer"
+              >
+              <div class="leading-tight overflow-hidden">
+                <div class="text-xs font-bold text-[#212121] truncate">{{ soc.name }}</div>
+                <div class="text-[10px] text-[#878787] mt-0.5">{{ soc.city }} • {{ soc.pincode }}</div>
+              </div>
+            </label>
+            {% else %}
+            <div class="col-span-full text-center py-6 text-xs text-[#878787]">
+              <i class="fas fa-building text-sm mb-1 text-gray-400"></i>
+              <p>No societies configured yet. Add them in <a href="{{ url_for('admin_societies') }}" class="text-[#2874f0] font-bold underline">Societies Manager</a>.</p>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= STEP 3B: DELIVERY SPECIFIC SETTINGS ================= -->
+      <div id="deliverySpecificSection" class="pt-4 border-t border-[#e0e0e0] {% if user.role != 'delivery' %}hidden{% endif %}">
+        <div class="p-4 bg-[#f8faff] border border-[#d2e3fc] rounded-sm flex items-start gap-3">
+          <div class="w-8 h-8 rounded-full bg-[#2874f0]/10 text-[#2874f0] flex items-center justify-center flex-shrink-0 text-sm">
+            <i class="fas fa-shield-halved"></i>
+          </div>
+          <div>
+            <h4 class="text-xs font-black text-[#212121] uppercase tracking-wide">
+              Logistics Delivery Operations Profile
+            </h4>
+            <p class="text-[11px] text-[#555] mt-0.5 leading-relaxed">
+              This partner is authorized as an active delivery rider. Order dispatches, pickup manifests, and customer delivery addresses are synchronized directly to their mobile application.
+            </p>
+            <div class="mt-2 text-[10px] font-bold text-[#388e3c] flex items-center gap-1.5">
+              <i class="fas fa-check"></i>
+              <span>Active mobile communication line verified (+91)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= STEP 4: ACTION BUTTONS ================= -->
+      <div class="pt-5 border-t border-[#e0e0e0] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div class="text-[11px] text-[#878787] flex items-center gap-1.5">
+          <i class="fas fa-lock text-[#2874f0]"></i>
+          <span>Database record will be safely synchronized via MongoDB update</span>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <a 
+            href="{{ url_for('add_user') }}"
+            class="px-4 py-2 text-xs font-bold text-[#212121] bg-white border border-[#e0e0e0] hover:bg-gray-50 rounded-sm transition-all text-center"
+          >
+            Cancel
+          </a>
+          <button 
+            type="submit" 
+            id="submitBtn"
+            class="px-6 py-2 text-xs font-black uppercase tracking-wider text-white bg-[#fb641b] hover:bg-[#e05615] rounded-sm transition-all shadow-xs active:scale-95 flex items-center gap-2"
+          >
+            <i class="fas fa-check-circle"></i>
+            <span id="submitBtnText">Save Changes & Update Partner</span>
+          </button>
+        </div>
+      </div>
+
+    </form>
+  </div>
+</div>
+
+<!-- ======================================================== -->
+<!-- PURE BLUE SPINNER (SINGLE BLUE CIRCLE, NO TEXT) -->
+<!-- ======================================================== -->
+<div id="pureBlueSpinner" class="hidden fixed inset-0 z-[200] bg-black/25 flex items-center justify-center pointer-events-none">
+  <div class="w-10 h-10 border-4 border-[#2874f0] border-t-transparent rounded-full animate-spin"></div>
+</div>
+
+<!-- ======================================================== -->
+<!-- TOAST NOTIFICATION CONTAINER -->
+<!-- ======================================================== -->
+<div id="toastNotification" class="fixed bottom-5 right-5 z-[300] hidden bg-[#212121] text-white px-3.5 py-2 rounded shadow-lg text-xs font-semibold flex items-center gap-2 animate-fade-in">
+  <i class="fas fa-check text-emerald-400 text-xs"></i>
+  <span id="toastMsg">Changes saved</span>
+</div>
+
+<!-- ======================================================== -->
+<!-- CLIENT SCRIPTS -->
+<!-- ======================================================== -->
+<script>
+  // 1. Role Selection Logic
+  function selectRole(role) {
+    const roleInput = document.getElementById('selectedRoleInput');
+    const cardVendor = document.getElementById('roleCardVendor');
+    const cardDelivery = document.getElementById('roleCardDelivery');
+    const checkVendor = document.getElementById('vendorCheckmark');
+    const checkDelivery = document.getElementById('deliveryCheckmark');
+    const vendorSection = document.getElementById('vendorSpecificSection');
+    const deliverySection = document.getElementById('deliverySpecificSection');
+
+    if (roleInput) roleInput.value = role;
+
+    if (role === 'vendor') {
+      cardVendor.classList.add('role-card-active', 'border-[#2874f0]', 'bg-[#f0f5ff]');
+      cardVendor.classList.remove('border-[#e0e0e0]', 'bg-white');
+      checkVendor.classList.remove('hidden');
+
+      cardDelivery.classList.remove('role-card-active', 'border-[#2874f0]', 'bg-[#f0f5ff]');
+      cardDelivery.classList.add('border-[#e0e0e0]', 'bg-white');
+      checkDelivery.classList.add('hidden');
+
+      vendorSection.classList.remove('hidden');
+      deliverySection.classList.add('hidden');
+    } else {
+      cardDelivery.classList.add('role-card-active', 'border-[#2874f0]', 'bg-[#f0f5ff]');
+      cardDelivery.classList.remove('border-[#e0e0e0]', 'bg-white');
+      checkDelivery.classList.remove('hidden');
+
+      cardVendor.classList.remove('role-card-active', 'border-[#2874f0]', 'bg-[#f0f5ff]');
+      cardVendor.classList.add('border-[#e0e0e0]', 'bg-white');
+      checkVendor.classList.add('hidden');
+
+      vendorSection.classList.add('hidden');
+      deliverySection.classList.remove('hidden');
+    }
+  }
+
+  // 2. Vendor Type Select & Custom Field
+  const vendorTypeSelect = document.getElementById('vendorTypeSelect');
+  const vendorTypeOther = document.getElementById('vendorTypeOther');
+  if (vendorTypeSelect && vendorTypeOther) {
+    vendorTypeSelect.addEventListener('change', () => {
+      if (vendorTypeSelect.value === 'other') {
+        vendorTypeOther.classList.remove('hidden');
+        vendorTypeOther.focus();
+      } else {
+        vendorTypeOther.classList.add('hidden');
+        vendorTypeOther.value = '';
+      }
+    });
+  }
+
+  // 3. Live Phone Input Validation (+91, 10 digits)
+  const phoneInput = document.getElementById('inputPhone');
+  const phoneCheckIcon = document.getElementById('phoneCheckIcon');
+  if (phoneInput) {
+    phoneInput.addEventListener('input', (e) => {
+      e.target.value = e.target.value.replace(/\D/g, '').slice(0, 10);
+      const val = e.target.value;
+      if (val.length === 10 && /^[6-9]\d{9}$/.test(val)) {
+        if (phoneCheckIcon) phoneCheckIcon.classList.remove('hidden');
+      } else {
+        if (phoneCheckIcon) phoneCheckIcon.classList.add('hidden');
+      }
+    });
+  }
+
+  // 4. Password Visibility Toggle
+  function togglePasswordVisibility(inputId, iconId) {
+    const input = document.getElementById(inputId);
+    const icon = document.getElementById(iconId);
+    if (!input || !icon) return;
+    if (input.type === 'password') {
+      input.type = 'text';
+      icon.classList.remove('fa-eye');
+      icon.classList.add('fa-eye-slash');
+    } else {
+      input.type = 'password';
+      icon.classList.remove('fa-eye-slash');
+      icon.classList.add('fa-eye');
+    }
+  }
+
+  // 5. Generate Strong Password Helper
+  function generateStrongPassword() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%';
+    let pwd = '';
+    for (let i = 0; i < 10; i++) {
+      pwd += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    const newPwd = document.getElementById('inputNewPassword');
+    const confPwd = document.getElementById('inputConfirmPassword');
+    if (newPwd && confPwd) {
+      newPwd.value = pwd;
+      confPwd.value = pwd;
+      newPwd.type = 'text';
+      confPwd.type = 'text';
+      showToast('Generated 10-char password for both fields');
+    }
+  }
+
+  // 6. Society Selection: Select All / Clear All
+  function toggleAllSocieties(check) {
+    const checkboxes = document.querySelectorAll('input[name="serviceable_societies"]');
+    checkboxes.forEach(cb => {
+      const parent = cb.closest('.society-item');
+      if (!parent || parent.style.display !== 'none') {
+        cb.checked = check;
+      }
+    });
+    showToast(check ? 'All visible societies selected' : 'Societies cleared');
+  }
+
+  // 7. Society Search Filter
+  function filterSocietiesList() {
+    const query = (document.getElementById('societySearchInput').value || '').toLowerCase().trim();
+    const items = document.querySelectorAll('.society-item');
+    items.forEach(item => {
+      const text = item.getAttribute('data-text') || '';
+      if (!query || text.includes(query)) {
+        item.style.display = 'flex';
+      } else {
+        item.style.display = 'none';
+      }
+    });
+  }
+
+  // 8. Toast Helper
+  function showToast(msg) {
+    const toast = document.getElementById('toastNotification');
+    const msgEl = document.getElementById('toastMsg');
+    if (!toast || !msgEl) return;
+    msgEl.textContent = msg;
+    toast.classList.remove('hidden');
+    setTimeout(() => {
+      toast.classList.add('hidden');
+    }, 2500);
+  }
+
+  // 9. Live Image URL Preview Engine
+  function setupImagePreview(inputId, boxId, imgId, linkId, errorBoxId, statusId) {
+    const input = document.getElementById(inputId);
+    const box = document.getElementById(boxId);
+    const img = document.getElementById(imgId);
+    const link = document.getElementById(linkId);
+    const errorBox = document.getElementById(errorBoxId);
+    const status = document.getElementById(statusId);
+    if (!input || !box || !img) return;
+
+    let debounceTimer;
+
+    function updatePreview() {
+      const url = (input.value || '').trim();
+      if (!url) {
+        box.classList.add('hidden');
+        if (errorBox) errorBox.classList.add('hidden');
+        return;
+      }
+
+      if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        box.classList.add('hidden');
+        if (errorBox) {
+          errorBox.classList.remove('hidden');
+          errorBox.querySelector('span').textContent = 'Image URL must start with http:// or https://';
+        }
+        return;
+      }
+
+      if (status) status.textContent = 'Verifying Image...';
+      const testImg = new Image();
+      testImg.onload = function() {
+        img.src = url;
+        if (link) link.href = url;
+        box.classList.remove('hidden');
+        if (errorBox) errorBox.classList.add('hidden');
+        if (status) status.textContent = `Valid Image (${testImg.naturalWidth}×${testImg.naturalHeight})`;
+      };
+      testImg.onerror = function() {
+        box.classList.add('hidden');
+        if (errorBox) {
+          errorBox.classList.remove('hidden');
+          errorBox.querySelector('span').textContent = 'Unable to load image from this URL. Please verify the URL points to a public image.';
+        }
+      };
+      testImg.src = url;
+    }
+
+    input.addEventListener('input', () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(updatePreview, 300);
+    });
+
+    input.addEventListener('paste', () => {
+      setTimeout(updatePreview, 60);
+    });
+
+    if (input.value && input.value.trim()) {
+      updatePreview();
+    }
+  }
+
+  function clearImageUrl(inputId, boxId, errorBoxId) {
+    const input = document.getElementById(inputId);
+    const box = document.getElementById(boxId);
+    const errorBox = document.getElementById(errorBoxId);
+    if (input) input.value = '';
+    if (box) box.classList.add('hidden');
+    if (errorBox) errorBox.classList.add('hidden');
+  }
+
+  // Initialize Shop Image Preview
+  setupImagePreview('inputShopImage', 'shopImagePreviewBox', 'shopImagePreviewImg', 'shopImagePreviewLink', 'shopImageErrorBox', 'shopImagePreviewStatus');
+
+  // 9. Pre-Submit Validation & Pure Blue Spinner
+  const form = document.getElementById('editUserForm');
+  if (form) {
+    form.addEventListener('submit', (e) => {
+      const role = document.getElementById('selectedRoleInput').value;
+      const name = (document.getElementById('inputName').value || '').trim();
+      const email = (document.getElementById('inputEmail').value || '').trim();
+      const phone = (document.getElementById('inputPhone').value || '').trim();
+      const newPwd = (document.getElementById('inputNewPassword').value || '');
+      const confPwd = (document.getElementById('inputConfirmPassword').value || '');
+
+      if (!role) {
+        e.preventDefault();
+        alert('Please choose an account role (Vendor or Delivery Partner).');
+        return;
+      }
+      if (!name || name.length < 2) {
+        e.preventDefault();
+        alert('Please enter a valid legal name (minimum 2 characters).');
+        document.getElementById('inputName').focus();
+        return;
+      }
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        e.preventDefault();
+        alert('Please enter a valid official email address.');
+        document.getElementById('inputEmail').focus();
+        return;
+      }
+      if (!phone || phone.length !== 10 || !/^[6-9]\d{9}$/.test(phone)) {
+        e.preventDefault();
+        alert('Please enter a valid 10-digit Indian mobile number starting with 6, 7, 8, or 9.');
+        document.getElementById('inputPhone').focus();
+        return;
+      }
+      if (newPwd && newPwd !== confPwd) {
+        e.preventDefault();
+        alert('New password and confirm password do not match.');
+        document.getElementById('inputConfirmPassword').focus();
+        return;
+      }
+      if (newPwd && newPwd.length < 6) {
+        e.preventDefault();
+        alert('New password must be at least 6 characters long.');
+        document.getElementById('inputNewPassword').focus();
+        return;
+      }
+
+      if (role === 'vendor') {
+        const shopName = (document.getElementById('inputShopName').value || '').trim();
+        const vendorType = document.getElementById('vendorTypeSelect').value;
+        const vendorTypeOtherVal = (document.getElementById('vendorTypeOther').value || '').trim();
+
+        if (!shopName) {
+          e.preventDefault();
+          alert('Shop Name is required for Store Vendor accounts.');
+          document.getElementById('inputShopName').focus();
+          return;
+        }
+        if (vendorType === 'other' && !vendorTypeOtherVal) {
+          e.preventDefault();
+          alert('Please specify the custom store category.');
+          document.getElementById('vendorTypeOther').focus();
+          return;
+        }
+      }
+
+      // Show pure blue spinner with NO text, disable submit button
+      const spinner = document.getElementById('pureBlueSpinner');
+      if (spinner) spinner.classList.remove('hidden');
+
+      const submitBtn = document.getElementById('submitBtn');
+      const submitText = document.getElementById('submitBtnText');
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.classList.add('opacity-75', 'cursor-not-allowed');
+      }
+      if (submitText) {
+        submitText.textContent = 'Saving Changes...';
+      }
+    });
+  }
+</script>
+{% endblock %}

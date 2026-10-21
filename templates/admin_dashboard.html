@@ -1,0 +1,399 @@
+{% extends "base_admin.html" %}
+
+{% block content %}
+<div class="space-y-4">
+  
+  <!-- ================= FLIPKART SELLER HUB HEADER BANNER ================= -->
+  <div class="fk-card p-5 border-t-4 border-t-[#2874f0] bg-white">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      
+      <div>
+        <div class="flex items-center gap-2 mb-1">
+          <span class="text-[11px] font-bold text-[#2874f0] uppercase tracking-wider bg-[#f0f5ff] px-2 py-0.5 rounded-sm flex items-center gap-1">
+            <svg class="w-2.5 h-2.5 fill-[#ffe500]" viewBox="0 0 24 24">
+              <path d="M12 .587l3.668 7.431 8.2 1.192-5.934 5.784 1.399 8.166-7.333-3.856-7.333 3.856 1.399-8.166-5.934-5.784 8.2-1.192zm0 5.702l-2.223 4.505-4.972.723 3.598 3.507-.849 4.951 4.446-2.338 4.446 2.338-.849-4.951 3.598-3.507-4.972-.723z"/>
+            </svg>
+            Jippy Store Admin Console
+          </span>
+          <span class="text-xs text-[#878787]">•</span>
+          <span class="text-xs font-semibold text-[#878787]">Jippy Store Logistics</span>
+        </div>
+
+        <h1 class="text-2xl sm:text-3xl font-extrabold text-[#212121] tracking-tight">
+          Admin Dashboard
+        </h1>
+        <p class="mt-1 text-xs sm:text-sm text-[#878787]">
+          Centralized management for orders, products, fleet delivery, and store operations.
+        </p>
+      </div>
+
+      <!-- Live Date and Service Health Badges -->
+      <div class="flex flex-wrap items-center gap-2.5">
+        
+        <!-- Service Status Indicator -->
+        <div class="flex items-center gap-2 px-3 py-2 bg-[#f8faff] border border-[#e0e0e0] rounded-sm">
+          <span class="relative flex h-2.5 w-2.5">
+            {% if maintenance_on %}
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
+            {% else %}
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#388e3c]"></span>
+            {% endif %}
+          </span>
+          <div class="text-left">
+            <p class="text-[9px] font-bold text-[#878787] uppercase tracking-wider">Service Mode</p>
+            <p class="text-xs font-bold {% if maintenance_on %}text-red-600{% else %}text-[#388e3c]{% endif %}">
+              {% if maintenance_on %}OFFLINE (Paused){% else %}LIVE (Active){% endif %}
+            </p>
+          </div>
+        </div>
+
+        <!-- Date Pill -->
+        <div class="flex items-center gap-2 px-3 py-2 bg-[#f8faff] border border-[#e0e0e0] rounded-sm text-xs font-semibold text-[#212121]">
+          <i class="far fa-calendar-alt text-[#2874f0]"></i>
+          <span id="current-date">Jan 15, 2026</span>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ================= FLIPKART SELLER HUB METRICS SUMMARY STRIP ================= -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+    
+    <div class="fk-card p-3.5 flex items-center gap-3">
+      <div class="w-10 h-10 rounded bg-[#f0f5ff] text-[#2874f0] flex items-center justify-center text-lg shrink-0">
+        <i class="fas fa-boxes-packing"></i>
+      </div>
+      <div>
+        <p class="text-[11px] font-medium text-[#878787] leading-tight">Orders Pipeline</p>
+        <p class="text-sm font-bold text-[#212121] mt-0.5">Live Dispatch</p>
+      </div>
+    </div>
+
+    <div class="fk-card p-3.5 flex items-center gap-3">
+      <div class="w-10 h-10 rounded bg-[#fff8e1] text-[#ff9f00] flex items-center justify-center text-lg shrink-0">
+        <i class="fas fa-cube"></i>
+      </div>
+      <div>
+        <p class="text-[11px] font-medium text-[#878787] leading-tight">Catalog & Stock</p>
+        <p class="text-sm font-bold text-[#212121] mt-0.5">Realtime Sync</p>
+      </div>
+    </div>
+
+    <div class="fk-card p-3.5 flex items-center gap-3">
+      <div class="w-10 h-10 rounded bg-[#e8f5e9] text-[#388e3c] flex items-center justify-center text-lg shrink-0">
+        <i class="fas fa-motorcycle"></i>
+      </div>
+      <div>
+        <p class="text-[11px] font-medium text-[#878787] leading-tight">Riders & Staff</p>
+        <p class="text-sm font-bold text-[#212121] mt-0.5">Active Fleet</p>
+      </div>
+    </div>
+
+    <div class="fk-card p-3.5 flex items-center gap-3">
+      <div class="w-10 h-10 rounded bg-[#ede7f6] text-[#7c3aed] flex items-center justify-center text-lg shrink-0">
+        <i class="fas fa-shield-halved"></i>
+      </div>
+      <div>
+        <p class="text-[11px] font-medium text-[#878787] leading-tight">Admin Security</p>
+        <p class="text-sm font-bold text-[#212121] mt-0.5">Verified</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ================= ACTION MODULES GRID (FLIPKART CARDS) ================= -->
+  <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+    
+    <!-- 1. Add Product -->
+    <a href="{{ url_for('add_product') }}" 
+       class="fk-card p-5 group flex flex-col justify-between hover:border-[#2874f0] transition-all">
+      <div>
+        <div class="flex items-start justify-between mb-3">
+          <div class="w-12 h-12 rounded-sm bg-[#f0f5ff] text-[#2874f0] flex items-center justify-center text-xl group-hover:bg-[#2874f0] group-hover:text-white transition-colors">
+            <i class="fas fa-plus-square"></i>
+          </div>
+          <span class="text-[10px] font-bold text-[#2874f0] bg-[#f0f5ff] px-2 py-0.5 rounded-sm uppercase tracking-wider">
+            Inventory
+          </span>
+        </div>
+        <h2 class="text-base font-bold text-[#212121] group-hover:text-[#2874f0] transition-colors">
+          Add Product
+        </h2>
+        <p class="mt-1.5 text-xs text-[#878787] leading-relaxed">
+          Expand your inventory. Configure prices, units, and categories with Cloudinary image sync.
+        </p>
+      </div>
+      <div class="mt-4 pt-3 border-t border-[#f0f0f0] flex items-center justify-between text-xs font-bold text-[#2874f0]">
+        <span>Inventory Manager</span>
+        <i class="fas fa-arrow-right text-[11px] group-hover:translate-x-1 transition-transform"></i>
+      </div>
+    </a>
+
+    <!-- 2. Order Pipeline -->
+    <a href="{{ url_for('admin_orders') }}" 
+       class="fk-card p-5 group flex flex-col justify-between hover:border-[#fb641b] transition-all">
+      <div>
+        <div class="flex items-start justify-between mb-3">
+          <div class="w-12 h-12 rounded-sm bg-[#fff2e8] text-[#fb641b] flex items-center justify-center text-xl group-hover:bg-[#fb641b] group-hover:text-white transition-colors">
+            <i class="fas fa-truck-fast"></i>
+          </div>
+          <span class="text-[10px] font-bold text-[#fb641b] bg-[#fff2e8] px-2 py-0.5 rounded-sm uppercase tracking-wider">
+            Logistics
+          </span>
+        </div>
+        <h2 class="text-base font-bold text-[#212121] group-hover:text-[#fb641b] transition-colors">
+          Order Pipeline
+        </h2>
+        <p class="mt-1.5 text-xs text-[#878787] leading-relaxed">
+          Live tracking of customer orders. Assign vendors, dispatch riders, and monitor delivery status.
+        </p>
+      </div>
+      <div class="mt-4 pt-3 border-t border-[#f0f0f0] flex items-center justify-between text-xs font-bold text-[#fb641b]">
+        <span>Logistics Hub</span>
+        <i class="fas fa-arrow-right text-[11px] group-hover:translate-x-1 transition-transform"></i>
+      </div>
+    </a>
+
+    <!-- 3. Personnel Management -->
+    <a href="{{ url_for('add_user') }}" 
+       class="fk-card p-5 group flex flex-col justify-between hover:border-[#4f46e5] transition-all">
+      <div>
+        <div class="flex items-start justify-between mb-3">
+          <div class="w-12 h-12 rounded-sm bg-[#eef2ff] text-[#4f46e5] flex items-center justify-center text-xl group-hover:bg-[#4f46e5] group-hover:text-white transition-colors">
+            <i class="fas fa-user-plus"></i>
+          </div>
+          <span class="text-[10px] font-bold text-[#4f46e5] bg-[#eef2ff] px-2 py-0.5 rounded-sm uppercase tracking-wider">
+            Staff & Partners
+          </span>
+        </div>
+        <h2 class="text-base font-bold text-[#212121] group-hover:text-[#4f46e5] transition-colors">
+          Personnel Management
+        </h2>
+        <p class="mt-1.5 text-xs text-[#878787] leading-relaxed">
+          Onboard and manage vendor accounts or delivery partners with secure credentialing.
+        </p>
+      </div>
+      <div class="mt-4 pt-3 border-t border-[#f0f0f0] flex items-center justify-between text-xs font-bold text-[#4f46e5]">
+        <span>Add New Partner</span>
+        <i class="fas fa-arrow-right text-[11px] group-hover:translate-x-1 transition-transform"></i>
+      </div>
+    </a>
+
+    <!-- 4. User Directory -->
+    <a href="{{ url_for('admin_all_users') }}" 
+       class="fk-card p-5 group flex flex-col justify-between hover:border-[#7c3aed] transition-all">
+      <div>
+        <div class="flex items-start justify-between mb-3">
+          <div class="w-12 h-12 rounded-sm bg-[#f5f3ff] text-[#7c3aed] flex items-center justify-center text-xl group-hover:bg-[#7c3aed] group-hover:text-white transition-colors">
+            <i class="fas fa-users-viewfinder"></i>
+          </div>
+          <span class="text-[10px] font-bold text-[#7c3aed] bg-[#f5f3ff] px-2 py-0.5 rounded-sm uppercase tracking-wider">
+            Database
+          </span>
+        </div>
+        <h2 class="text-base font-bold text-[#212121] group-hover:text-[#7c3aed] transition-colors">
+          User Directory
+        </h2>
+        <p class="mt-1.5 text-xs text-[#878787] leading-relaxed">
+          Full database access. View all customers, vendors, and delivery staff in one centralized table.
+        </p>
+      </div>
+      <div class="mt-4 pt-3 border-t border-[#f0f0f0] flex items-center justify-between text-xs font-bold text-[#7c3aed]">
+        <span>Master Records</span>
+        <i class="fas fa-arrow-right text-[11px] group-hover:translate-x-1 transition-transform"></i>
+      </div>
+    </a>
+
+    <!-- 5. Inventory Status -->
+    <a href="{{ url_for('admin_inventory') }}" 
+       class="fk-card p-5 group flex flex-col justify-between hover:border-[#e11d48] transition-all">
+      <div>
+        <div class="flex items-start justify-between mb-3">
+          <div class="w-12 h-12 rounded-sm bg-[#fff1f2] text-[#e11d48] flex items-center justify-center text-xl group-hover:bg-[#e11d48] group-hover:text-white transition-colors">
+            <i class="fas fa-box-open"></i>
+          </div>
+          <span class="text-[10px] font-bold text-[#e11d48] bg-[#fff1f2] px-2 py-0.5 rounded-sm uppercase tracking-wider">
+            Stock Control
+          </span>
+        </div>
+        <h2 class="text-base font-bold text-[#212121] group-hover:text-[#e11d48] transition-colors">
+          Inventory Status
+        </h2>
+        <p class="mt-1.5 text-xs text-[#878787] leading-relaxed">
+          Quickly mark products as out of stock, restore availability, and search catalogue in real time.
+        </p>
+      </div>
+      <div class="mt-4 pt-3 border-t border-[#f0f0f0] flex items-center justify-between text-xs font-bold text-[#e11d48]">
+        <span>Stock Control Hub</span>
+        <i class="fas fa-arrow-right text-[11px] group-hover:translate-x-1 transition-transform"></i>
+      </div>
+    </a>
+
+    <!-- 6. Global Settings -->
+    <a href="{{ url_for('admin_fees_settings') }}" 
+       class="fk-card p-5 group flex flex-col justify-between hover:border-[#d97706] transition-all">
+      <div>
+        <div class="flex items-start justify-between mb-3">
+          <div class="w-12 h-12 rounded-sm bg-[#fffbeb] text-[#d97706] flex items-center justify-center text-xl group-hover:bg-[#d97706] group-hover:text-white transition-colors">
+            <i class="fas fa-gears"></i>
+          </div>
+          <span class="text-[10px] font-bold text-[#d97706] bg-[#fffbeb] px-2 py-0.5 rounded-sm uppercase tracking-wider">
+            Configuration
+          </span>
+        </div>
+        <h2 class="text-base font-bold text-[#212121] group-hover:text-[#d97706] transition-colors">
+          Global Settings
+        </h2>
+        <p class="mt-1.5 text-xs text-[#878787] leading-relaxed">
+          Configure platform algorithms including delivery thresholds, service fees, and app settings.
+        </p>
+      </div>
+      <div class="mt-4 pt-3 border-t border-[#f0f0f0] flex items-center justify-between text-xs font-bold text-[#d97706]">
+        <span>Config Engine</span>
+        <i class="fas fa-arrow-right text-[11px] group-hover:translate-x-1 transition-transform"></i>
+      </div>
+    </a>
+
+    <!-- 7. Manage Societies -->
+    <a href="{{ url_for('admin_societies') }}" 
+       class="fk-card p-5 group flex flex-col justify-between hover:border-[#0d9488] transition-all">
+      <div>
+        <div class="flex items-start justify-between mb-3">
+          <div class="w-12 h-12 rounded-sm bg-[#f0fdfa] text-[#0d9488] flex items-center justify-center text-xl group-hover:bg-[#0d9488] group-hover:text-white transition-colors">
+            <i class="fas fa-building"></i>
+          </div>
+          <span class="text-[10px] font-bold text-[#0d9488] bg-[#f0fdfa] px-2 py-0.5 rounded-sm uppercase tracking-wider">
+            Locations
+          </span>
+        </div>
+        <h2 class="text-base font-bold text-[#212121] group-hover:text-[#0d9488] transition-colors">
+          Manage Societies
+        </h2>
+        <p class="mt-1.5 text-xs text-[#878787] leading-relaxed">
+          Add or edit serviceable societies/locations and their geocoordinates.
+        </p>
+      </div>
+      <div class="mt-4 pt-3 border-t border-[#f0f0f0] flex items-center justify-between text-xs font-bold text-[#0d9488]">
+        <span>Location Hub</span>
+        <i class="fas fa-arrow-right text-[11px] group-hover:translate-x-1 transition-transform"></i>
+      </div>
+    </a>
+
+    <!-- 8. Service Area -->
+    <a href="{{ url_for('admin_service_area') }}" 
+       class="fk-card p-5 group flex flex-col justify-between hover:border-[#059669] transition-all">
+      <div>
+        <div class="flex items-start justify-between mb-3">
+          <div class="w-12 h-12 rounded-sm bg-[#ecfdf5] text-[#059669] flex items-center justify-center text-xl group-hover:bg-[#059669] group-hover:text-white transition-colors">
+            <i class="fas fa-location-crosshairs"></i>
+          </div>
+          <span class="text-[10px] font-bold text-[#059669] bg-[#ecfdf5] px-2 py-0.5 rounded-sm uppercase tracking-wider">
+            Geofence
+          </span>
+        </div>
+        <h2 class="text-base font-bold text-[#212121] group-hover:text-[#059669] transition-colors">
+          Service Area
+        </h2>
+        <p class="mt-1.5 text-xs text-[#878787] leading-relaxed">
+          Set coordinates and radius. Customers outside this zone will be blocked.
+        </p>
+      </div>
+      <div class="mt-4 pt-3 border-t border-[#f0f0f0] flex items-center justify-between text-xs font-bold text-[#059669]">
+        <span>Delivery Zone</span>
+        <i class="fas fa-arrow-right text-[11px] group-hover:translate-x-1 transition-transform"></i>
+      </div>
+    </a>
+
+    <!-- 9. Service Switch (Maintenance Mode Toggle) -->
+    <form action="{{ url_for('admin_service_toggle') }}" method="POST"
+          class="fk-card p-5 flex flex-col justify-between hover:border-gray-400 transition-all">
+      <div>
+        <div class="flex items-start justify-between mb-3">
+          <div class="w-12 h-12 rounded-sm {% if maintenance_on %}bg-red-50 text-red-600{% else %}bg-[#e8f5e9] text-[#388e3c]{% endif %} flex items-center justify-center text-xl">
+            <i class="fas fa-power-off"></i>
+          </div>
+          <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-sm
+                       {% if maintenance_on %} bg-red-100 text-red-700 {% else %} bg-[#e8f5e9] text-[#388e3c] {% endif %}">
+            {% if maintenance_on %} Offline Mode {% else %} Live Store {% endif %}
+          </span>
+        </div>
+
+        <h2 class="text-base font-bold text-[#212121]">
+          Service Switch
+        </h2>
+        <p class="mt-1.5 text-xs text-[#878787] leading-relaxed">
+          Instantly enable or disable customer ordering across FreshKart Express storefront.
+        </p>
+      </div>
+
+      <div class="mt-4 pt-3 border-t border-[#f0f0f0] flex items-center justify-between gap-3">
+        <span class="text-[10px] font-bold uppercase tracking-wider
+                     {% if maintenance_on %} text-red-600 {% else %} text-[#388e3c] {% endif %}">
+          {% if maintenance_on %}● Currently Offline{% else %}● Currently Live{% endif %}
+        </span>
+
+        {% if maintenance_on %}
+          <button type="submit" name="mode" value="off" 
+                  class="fk-btn-green px-4 py-2 rounded-sm text-xs uppercase tracking-wider shadow-sm">
+            Go Live
+          </button>
+        {% else %}
+          <button type="submit" name="mode" value="on" 
+                  class="fk-btn-orange px-4 py-2 rounded-sm text-xs uppercase tracking-wider shadow-sm">
+            Go Offline
+          </button>
+        {% endif %}
+      </div>
+    </form>
+
+    <!-- 10. Secure Logout -->
+    <a href="{{ url_for('admin_logout') }}" 
+       class="fk-card p-5 group flex flex-col justify-between hover:border-red-400 transition-all bg-[#fafafa]">
+      <div>
+        <div class="flex items-start justify-between mb-3">
+          <div class="w-12 h-12 rounded-sm bg-red-100 text-red-600 flex items-center justify-center text-xl group-hover:bg-red-600 group-hover:text-white transition-colors">
+            <i class="fas fa-lock"></i>
+          </div>
+          <span class="text-[10px] font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-sm uppercase tracking-wider">
+            Security
+          </span>
+        </div>
+        <h2 class="text-base font-bold text-[#212121] group-hover:text-red-600 transition-colors">
+          Secure Logout
+        </h2>
+        <p class="mt-1.5 text-xs text-[#878787] leading-relaxed">
+          End administrative session and securely lock access to the Flipkart Admin Console.
+        </p>
+      </div>
+      <div class="mt-4 pt-3 border-t border-[#f0f0f0] flex items-center justify-between text-xs font-bold text-red-600">
+        <span>Terminate Session</span>
+        <i class="fas fa-arrow-right text-[11px] group-hover:translate-x-1 transition-transform"></i>
+      </div>
+    </a>
+
+  </div>
+
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    // 1. Current Date Update
+    const el = document.getElementById('current-date');
+    if (el) {
+      el.textContent = new Date().toLocaleDateString('en-IN', {
+        month: 'short', day: 'numeric', year: 'numeric'
+      });
+    }
+
+    // 2. Trigger Admin Protocols in Android App (Preserved logic)
+    if (window.AndroidApp && typeof window.AndroidApp.initAdminProtocols === 'function') {
+      console.log("Flipkart Admin: Initiating Admin Protocols...");
+      window.AndroidApp.initAdminProtocols();
+    }
+  });
+</script>
+{% endblock %}

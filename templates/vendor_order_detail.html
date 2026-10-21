@@ -1,0 +1,1411 @@
+{% extends "base_vendor.html" %}
+
+{% block title %}Order #{{ order_id[-8:]|upper }} | {{ shop_name }} | Jippy Store Seller Hub{% endblock %}
+
+{% block content %}
+<style>
+  /* 🔤 Font Consistency - Plus Jakarta Sans (Form elements & overrides) */
+  input,
+  button,
+  select,
+  textarea,
+  .font-mono {
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  }
+
+  /* 🛡️ Preserve Font Awesome Icons (prevents squares/tofus) */
+  .fa,
+  .fas,
+  .far,
+  .fab,
+  .fa-solid,
+  .fa-regular,
+  .fa-brands {
+    font-family: "Font Awesome 6 Free" !important;
+  }
+
+  .fa,
+  .fas,
+  .far,
+  .fab,
+  .fa-solid,
+  .fa-regular,
+  .fa-brands,
+  [class*="fa-"]::before,
+  [class*="fa-"]::after {
+    font-family: "Font Awesome 6 Free" !important;
+  }
+
+  .fab,
+  .fab::before,
+  .fa-brands,
+  .fa-brands::before {
+    font-family: "Font Awesome 6 Brands" !important;
+  }
+
+  /* 🛒 Clean Flipkart Seller Card System */
+  .fk-card {
+    background: #ffffff;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  }
+
+  .fk-header-bar {
+    background: #2874f0;
+    color: #ffffff;
+  }
+
+  /* Receipt Dashed Divider */
+  .fk-dashed-divider {
+    border-top: 1px dashed #d6d6d6;
+  }
+
+  /* Custom Item Card Active State */
+  .pack-item-row {
+    transition: background-color 0.15s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .pack-item-row:active {
+    background-color: #f7f9fa;
+  }
+</style>
+
+<div class="max-w-3xl mx-auto space-y-3 pb-16 sm:pb-10 font-['Plus_Jakarta_Sans']">
+  {% set raw_pm = (order.get('payment_method') or 'COD')|upper %}
+  {% set is_store_credit = ('CREDIT' in raw_pm) or ('KHATA' in raw_pm) or ('UDHAR' in raw_pm) %}
+  {% set is_cod = not is_store_credit and (('COD' in raw_pm) or ('CASH' in raw_pm)) %}
+
+  <!-- ======================================================== -->
+  <!-- 1. TOP FLIPKART APP BAR (Order ID, Status, Back, Print)   -->
+  <!-- ======================================================== -->
+  <div class="fk-card p-3 sm:p-4">
+    <div class="flex items-center justify-between gap-2.5">
+
+      <!-- Left: Back Button & Order Title -->
+      {% set return_tab = request.args.get('from_tab') or ('delivered' if vstatus == 'delivered' else ('cancelled' if
+      vstatus in ['cancelled', 'canceled'] else 'pending')) %}
+      <a href="{{ url_for('vendor_orders') }}?tab={{ return_tab }}"
+        onclick="return checkUnsavedBeforeLeave(event, this.href)"
+        class="w-9 h-9 rounded-sm bg-[#f1f3f6] hover:bg-[#2874f0] hover:text-white text-[#212121] flex items-center justify-center transition-all shrink-0 active:scale-90"
+        title="Back to Orders ({{ return_tab|capitalize }})">
+        <i class="fas fa-arrow-left text-xs"></i>
+      </a>
+      <div class="min-w-0">
+        <div class="flex items-center gap-2">
+          <h1 class="text-sm sm:text-base font-bold text-[#212121] tracking-tight whitespace-nowrap">
+            Order #{{ order_id[-8:]|upper }}
+          </h1>
+
+          <!-- Status Pill (Strictly whitespace-nowrap) -->
+          {% if vstatus == 'delivered' %}
+          <span
+            class="whitespace-nowrap px-2 py-0.5 rounded-xs text-[10.5px] font-bold uppercase tracking-wider bg-green-50 text-[#388e3c] border border-green-200 flex items-center gap-1 shrink-0">
+            <i class="fas fa-check-circle text-[10px]"></i>
+            <span>DELIVERED</span>
+          </span>
+          {% elif vstatus in ['cancelled', 'canceled'] %}
+          <span
+            class="whitespace-nowrap px-2 py-0.5 rounded-xs text-[10.5px] font-bold uppercase tracking-wider bg-rose-50 text-rose-600 border border-rose-200 flex items-center gap-1 shrink-0">
+            <i class="fas fa-times-circle text-[10px]"></i>
+            <span>CANCELLED</span>
+          </span>
+          {% else %}
+          <span
+            class="whitespace-nowrap px-2 py-0.5 rounded-xs text-[10.5px] font-bold uppercase tracking-wider bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1 shrink-0">
+            <i class="fas fa-clock text-[10px]"></i>
+            <span>PENDING DELIVERY</span>
+          </span>
+          {% endif %}
+        </div>
+        <p class="text-[11px] text-[#878787] mt-0.5 whitespace-nowrap truncate" id="top-bar-items-meta">
+          {{ created_ist.strftime("%d %b %Y, %I:%M %p") }} • <span id="top-bar-units-count">{{ total_qty }}</span> Units
+          (<span id="top-bar-items-count">{{ items|length }}</span> Items)
+        </p>
+      </div>
+    </div>
+  </div>
+
+<!-- ======================================================== -->
+<!-- 2. DIRECT ACTION / DELIVERY SLIDER (if Pending)         -->
+<!-- ======================================================== -->
+{% if vstatus not in ['delivered', 'cancelled', 'canceled'] %}
+<div
+  class="fk-card p-3.5 sm:p-4 bg-gradient-to-r from-blue-50/70 via-indigo-50/50 to-blue-50/70 border-blue-200 space-y-2.5">
+  <div class="flex items-center justify-between gap-2">
+    <div class="min-w-0">
+      <h3 class="text-xs sm:text-sm font-bold text-[#212121] flex items-center gap-1.5 whitespace-nowrap">
+        <i class="fas fa-truck-fast text-[#2874f0]"></i>
+        <span>Direct Delivery Swipe</span>
+      </h3>
+      <p class="text-[11px] text-[#878787] whitespace-nowrap truncate">Slide handle to right to mark delivered once
+        handed over.</p>
+    </div>
+    <button type="button" onclick="cancelOrderPrompt('{{ order_id }}')"
+      class="whitespace-nowrap text-[11px] font-bold text-rose-600 hover:text-rose-700 hover:bg-rose-50 px-2.5 py-1 rounded-sm transition-colors border border-rose-200 active:scale-95 shrink-0">
+      <i class="fas fa-ban mr-1"></i>Cancel Order
+    </button>
+  </div>
+
+  <!-- ⚡ Interactive Slide-to-Deliver Slider -->
+  <div
+    class="slide-to-deliver-container relative w-full h-11 bg-white rounded-full overflow-hidden border-2 border-emerald-500 select-none shadow-inner"
+    style="touch-action: none; -webkit-user-select: none; user-select: none;" data-order-id="{{ order_id }}">
+    <div class="slide-fill absolute inset-y-0 left-0 bg-emerald-500 rounded-full pointer-events-none"
+      style="width: 0%;"></div>
+    <div
+      class="slide-label absolute inset-0 flex items-center justify-center text-xs font-bold uppercase tracking-wider text-emerald-800 pointer-events-none whitespace-nowrap">
+      <span>Slide to Mark Delivered</span>
+      <i class="fas fa-angles-right ml-1.5 text-xs animate-pulse text-emerald-600"></i>
+    </div>
+    <div
+      class="slide-thumb z-10 absolute left-1 top-0.5 bottom-0.5 w-10 bg-emerald-600 rounded-full shadow-md flex items-center justify-center cursor-grab active:cursor-grabbing text-white"
+      style="touch-action: none; -webkit-user-select: none; user-select: none;">
+      <i class="fas fa-check text-sm pointer-events-none"></i>
+    </div>
+  </div>
+</div>
+{% elif vstatus == 'delivered' %}
+<div class="fk-card p-3 sm:p-3.5 bg-green-50/80 border-green-200 flex items-center gap-3">
+  <div class="w-9 h-9 rounded-sm bg-[#388e3c] text-white flex items-center justify-center text-sm shrink-0">
+    <i class="fas fa-check-double"></i>
+  </div>
+  <div class="min-w-0">
+    <h4 class="text-xs sm:text-sm font-bold text-emerald-900 whitespace-nowrap">Delivered Successfully</h4>
+    <p class="text-[11.5px] text-emerald-700 whitespace-nowrap truncate">
+      Fulfilled on <strong>{{ delivered_ist.strftime("%d %b %Y, %I:%M %p") if delivered_ist else "Today" }}</strong>.
+      Order completed.
+    </p>
+  </div>
+</div>
+{% elif vstatus in ['cancelled', 'canceled'] %}
+<div class="fk-card p-3 sm:p-3.5 bg-rose-50/80 border-rose-200 flex items-center gap-3">
+  <div class="w-9 h-9 rounded-sm bg-rose-500 text-white flex items-center justify-center text-sm shrink-0">
+    <i class="fas fa-circle-xmark"></i>
+  </div>
+  <div class="min-w-0">
+    <h4 class="text-xs sm:text-sm font-bold text-rose-900 whitespace-nowrap">Order Cancelled</h4>
+    <p class="text-[11.5px] text-rose-700 whitespace-nowrap">This order was marked cancelled.</p>
+  </div>
+</div>
+{% endif %}
+
+<!-- ======================================================== -->
+<!-- 3. CUSTOMER & DELIVERY ADDRESS CARD                     -->
+<!-- ======================================================== -->
+{% set addr = order.get("address") or {} %}
+{% set main_phone = order.get("user_phone") or "" %}
+{% set alt_phone = (addr.get("alt_phone") if addr is mapping else '') or (addr.get("alternate_phone") if addr is mapping
+else '') or order.get("alt_phone") or order.get("alternate_phone") or '' %}
+<div class="fk-card overflow-hidden">
+  <div class="px-3.5 sm:px-4 py-2 border-b border-[#f0f0f0] flex items-center justify-between gap-2 min-w-0">
+    <span class="text-[10.5px] sm:text-[11px] font-bold uppercase tracking-wider text-[#878787] whitespace-nowrap shrink-0">
+      <span class="hidden sm:inline">CUSTOMER & </span>DELIVERY ADDRESS
+    </span>
+    {% if is_store_credit %}
+    <span
+      class="text-[10px] font-bold text-[#2874f0] bg-blue-50 px-2 py-0.5 rounded-xs border border-blue-200 whitespace-nowrap flex items-center gap-1 shrink-0">
+      <i class="fas fa-book-bookmark text-[9.5px]"></i>
+      <span class="sm:hidden">Store Credit</span>
+      <span class="hidden sm:inline">Society Khata (Store Credit)</span>
+    </span>
+    {% elif is_cod %}
+    <span
+      class="text-[10px] font-bold text-amber-900 bg-amber-50 px-2 py-0.5 rounded-xs border border-amber-200 whitespace-nowrap flex items-center gap-1 shrink-0">
+      <i class="fas fa-money-bill-wave text-[9.5px]"></i>
+      <span class="sm:hidden">COD</span>
+      <span class="hidden sm:inline">Cash on Delivery (COD)</span>
+    </span>
+    {% else %}
+    <span
+      class="text-[10px] font-bold text-[#388e3c] bg-green-50 px-2 py-0.5 rounded-xs border border-green-200 whitespace-nowrap flex items-center gap-1 shrink-0">
+      <i class="fas fa-check-circle text-[9.5px]"></i>
+      <span class="sm:hidden">Paid Online</span>
+      <span class="hidden sm:inline">Paid Online ({{ raw_pm }})</span>
+    </span>
+    {% endif %}
+  </div>
+
+  <div class="p-3.5 sm:p-4 space-y-3">
+    <!-- Customer Info & Action Buttons -->
+    <div class="flex items-center justify-between gap-3">
+      <div class="min-w-0">
+        <h3 class="text-sm font-bold text-[#212121] leading-tight whitespace-nowrap truncate">
+          {{ order.get("user_name") or "Resident Customer" }}
+        </h3>
+        <span class="text-xs font-bold text-[#2874f0] block mt-0.5 whitespace-nowrap">
+          {{ main_phone or "No phone" }}
+        </span>
+      </div>
+
+      <!-- Phone & WhatsApp Quick Chips (whitespace-nowrap) -->
+      {% if main_phone %}
+      <div class="flex items-center gap-1.5 shrink-0">
+        <a href="tel:{{ main_phone }}"
+          class="whitespace-nowrap px-2.5 py-1.5 rounded-sm bg-blue-50 text-[#2874f0] hover:bg-[#2874f0] hover:text-white text-xs font-bold transition-all border border-blue-200 flex items-center gap-1.5 active:scale-95 shadow-2xs">
+          <i class="fas fa-phone text-xs"></i>
+          <span>Call</span>
+        </a>
+        <a href="https://wa.me/{{ wa_phone }}?text=Hello%20{{ (order.get('user_name') or 'Customer')|urlencode }},%20regarding%20your%20Jippy%20Store%20order%20%23{{ order_id[-8:]|upper }}"
+          target="_blank"
+          class="whitespace-nowrap px-2.5 py-1.5 rounded-sm bg-emerald-50 text-emerald-700 hover:bg-emerald-600 hover:text-white text-xs font-bold transition-all border border-emerald-200 flex items-center gap-1.5 active:scale-95 shadow-2xs">
+          <i class="fab fa-whatsapp text-sm"></i>
+          <span>WhatsApp</span>
+        </a>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Address Box -->
+    <div class="bg-[#f9fafb] border border-[#e5e7eb] rounded-xs p-2.5 text-xs text-[#212121] space-y-1">
+      <p class="font-bold flex items-center gap-1.5">
+        <i class="fas fa-location-dot text-[#2874f0] text-xs shrink-0"></i>
+        <span class="truncate">{{ addr.get("line1") or (addr if addr is string else "Resident Address") }}</span>
+      </p>
+      {% if addr is mapping and addr.get("line2") %}
+      <p class="text-[#2874f0] font-semibold pl-4 truncate">
+        {{ addr.get("line2") }}
+      </p>
+      {% endif %}
+      {% if addr is mapping and (addr.get("city") or addr.get("pincode")) %}
+      <p class="text-[#878787] pl-4 whitespace-nowrap">
+        {{ addr.get("city") or "" }}{% if addr.get("pincode") %} - {{ addr.get("pincode") }}{% endif %}
+      </p>
+      {% endif %}
+      {% if alt_phone and alt_phone != main_phone %}
+      <p class="text-[#616161] pl-4 flex items-center gap-1.5 text-[11px] pt-1 border-t border-slate-200/60 mt-1">
+        <i class="fas fa-phone-alt text-slate-400 text-[10px]"></i>
+        <span>Alternate Phone:</span>
+        <a href="tel:{{ alt_phone }}" class="text-[#2874f0] font-bold hover:underline">
+          {{ alt_phone }}
+        </a>
+      </p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================== -->
+<!-- 4. ⭐ CUSTOMER NOTE & PRODUCT PRICE UPDATE               -->
+<!-- ======================================================== -->
+{% set cust_note = (order.get('notes') or order.get('order_notes') or '')|string|trim %}
+{% set is_note_finalized = order.get('notes_finalized') %}
+{% set note_available = order.get('notes_available') %}
+{% set note_price = (order.get('notes_price') or 0.0)|float %}
+{% set ns_notes = namespace(has_items=false) %}
+{% for it in parsed_note_items %}
+  {% if it.name and it.name|string|trim|length > 0 %}
+    {% set ns_notes.has_items = true %}
+  {% endif %}
+{% endfor %}
+{% set clean_cust_note = cust_note|lower %}
+{% set is_valid_note = cust_note|length > 0 and clean_cust_note not in ['none', 'nil', 'n/a', 'no', '-', 'null', 'no notes', 'no note'] %}
+{% set has_special_notes = is_valid_note or ns_notes.has_items or (note_price > 0) %}
+{% set show_notes_section = has_special_notes %}
+{% set is_order_locked = vstatus in ['delivered', 'cancelled', 'canceled'] %}
+
+{% if show_notes_section %}
+<div class="fk-card border-amber-300 overflow-hidden" id="vendor-notes-card">
+
+  <!-- Card Header -->
+  <div class="px-3 sm:px-4 py-2 bg-amber-50/80 border-b border-amber-200 flex items-center justify-between">
+    <div class="flex items-center gap-1.5 min-w-0">
+      <i class="fas fa-clipboard-list text-amber-700 text-xs shrink-0"></i>
+      <span class="text-[11px] font-bold uppercase tracking-wider text-amber-900 whitespace-nowrap truncate">
+        SPECIAL REQUEST ITEMS
+      </span>
+    </div>
+    {% if is_order_locked %}
+    <span class="px-2 py-0.5 rounded-xs text-[10px] font-bold uppercase tracking-wider bg-slate-200/90 text-slate-700 border border-slate-300 flex items-center gap-1">
+      <i class="fas fa-lock text-[9px] text-slate-500"></i> Locked ({{ vstatus|upper }})
+    </span>
+    {% else %}
+    <span class="text-[10.5px] font-semibold text-amber-800">Customer Note</span>
+    {% endif %}
+  </div>
+
+  <!-- Direct Card Body -->
+  <div class="p-2.5 sm:p-3.5 space-y-2">
+
+    <div class="border-b border-[#f0f0f0] pb-1.5 flex items-center justify-between">
+      <span class="text-[10.5px] sm:text-[11px] font-bold uppercase tracking-wide text-[#212121]">
+        {% if is_order_locked %}Requested Items (Bill Locked):{% else %}Requested Items (Enter price to add to bill):{% endif %}
+      </span>
+      {% if is_order_locked %}
+      <span class="text-[10.5px] font-bold text-rose-600 flex items-center gap-1">
+        <i class="fas fa-lock text-[10px]"></i> Cannot edit after delivery
+      </span>
+      {% endif %}
+    </div>
+
+    <!-- Dynamic Rows Container (Clean Sleek List Layout, No Boxy Clutter) -->
+    <div class="divide-y divide-slate-100" id="note-items-list-container">
+      {% for it in parsed_note_items %}
+      <div class="note-item-row flex items-center gap-1.5 sm:gap-2 py-2">
+        <span class="text-xs font-bold text-slate-400 w-4 text-center shrink-0 row-index">{{ loop.index }}.</span>
+
+        <!-- Item Name (Full space, clean flat input) -->
+        <div class="flex-1 min-w-0">
+          <input type="text"
+            class="note-item-name-input w-full px-2.5 py-1.5 {% if is_order_locked %}bg-slate-100 text-slate-500 cursor-not-allowed border-slate-200{% else %}bg-slate-50 focus:bg-white border-slate-200 focus:border-[#2874f0] focus:ring-1 focus:ring-[#2874f0] text-[#212121]{% endif %} border rounded-xs text-xs font-bold outline-hidden transition-all"
+            value="{{ it.name }}" placeholder="Item name" {% if is_order_locked %}disabled readonly{% endif %}>
+        </div>
+
+        <!-- Price Input (Numeric keypad, sleek clean input) -->
+        <div class="w-20 sm:w-24 shrink-0 relative">
+          <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">₹</span>
+          <input type="text" inputmode="decimal" pattern="[0-9]*"
+            class="note-item-price-input w-full pl-6 pr-2 py-1.5 {% if is_order_locked %}bg-slate-100 text-slate-500 cursor-not-allowed border-slate-200{% else %}bg-slate-50 focus:bg-white border-slate-200 focus:border-[#2874f0] focus:ring-1 focus:ring-[#2874f0] text-[#212121]{% endif %} border rounded-xs text-xs font-bold outline-hidden text-right transition-all"
+            value="{{ it.price if (it.price > 0) else '' }}" placeholder="0" autocomplete="off"
+            {% if is_order_locked %}disabled readonly{% else %}oninput="this.value = this.value.replace(/[^0-9.]/g, ''); onNotePriceInput()"{% endif %}>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Footer: Live Sum + Update Bill Button (Responsive mobile & desktop, zero overflow) -->
+    <div class="pt-2.5 border-t border-[#f0f0f0] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+      <div class="flex items-center gap-1.5 text-xs min-w-0">
+        <span class="text-[#878787] text-[11px] sm:text-xs font-medium whitespace-nowrap">Total Extra:</span>
+        <strong id="live-notes-total-sum" class="font-bold text-xs sm:text-sm text-[#2874f0] whitespace-nowrap">
+          ₹{{ "%.2f"|format(note_price) }}
+        </strong>
+      </div>
+
+      {% if is_order_locked %}
+      <div class="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xs bg-slate-100 text-slate-600 border border-slate-200 text-xs font-bold w-full sm:w-auto">
+        <i class="fas fa-lock text-slate-400 text-[10px]"></i>
+        <span>Bill Locked (Delivered)</span>
+      </div>
+      {% else %}
+      <div class="flex items-center gap-2 w-full sm:w-auto">
+        <button type="button" id="btn-reset-notes" onclick="clearAllNotesItems('{{ order_id }}')"
+          class="whitespace-nowrap px-2.5 py-1.5 rounded-xs text-rose-600 hover:bg-rose-50 border border-rose-200 text-[11px] font-bold transition-all active:scale-95 shrink-0 {{ '' if (note_price > 0) else 'hidden' }}">
+          Reset (₹0)
+        </button>
+        <button type="button" id="btn-finalize-note" onclick="finalizeAllNotesItems('{{ order_id }}')"
+          class="flex-1 sm:flex-initial whitespace-nowrap px-3.5 py-2 sm:px-4 sm:py-2 rounded-xs bg-[#2874f0] hover:bg-[#1259c7] text-white font-bold text-xs transition-all shadow-xs active:scale-95 flex items-center justify-center gap-1.5 min-w-0">
+          <i class="fas fa-check-double text-[11px]"></i>
+          <span>Update Bill</span>
+        </button>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Explanatory note in English -->
+    <p class="text-[10px] sm:text-[10.5px] text-[#878787] flex items-center gap-1.5 leading-snug">
+      <i class="fas fa-info-circle text-[#2874f0] shrink-0 text-xs"></i>
+      <span>Items with prices entered will be added to customer bill. Items left blank or 0 will not be charged.</span>
+    </p>
+
+  </div>
+
+</div>
+{% endif %}
+
+<!-- ======================================================== -->
+<!-- 5. FLIPKART STYLE ITEMS PACKING CHECKLIST               -->
+<!-- ======================================================== -->
+<div class="fk-card overflow-hidden">
+
+  <!-- Checklist Header -->
+  <div class="px-3.5 sm:px-4 py-2.5 border-b border-[#f0f0f0] flex items-center justify-between">
+    <div class="flex items-center gap-2">
+      <i class="fas fa-boxes-stacked text-[#2874f0] text-xs"></i>
+      <span class="text-[11px] font-bold uppercase tracking-wider text-[#878787] whitespace-nowrap">
+        ORDER ITEMS LIST
+      </span>
+    </div>
+    <span
+      class="whitespace-nowrap text-[10.5px] font-bold px-2 py-0.5 rounded-xs bg-blue-50 text-[#2874f0] border border-blue-100">
+      <span id="total-items-count">{{ items|length }}</span> Items
+    </span>
+  </div>
+
+  <!-- Items List (Flipkart Clean Rows) -->
+  <div class="divide-y divide-[#f0f0f0]" id="checklist-items-container">
+    {% for it in items %}
+    {% set item_price = (it.get('price') or 0)|float %}
+    {% set item_mrp = (it.get('mrp') or it.get('price') or 0)|float %}
+    {% set item_qty = (it.get('qty') or 1)|int %}
+    {% set item_total = item_price * item_qty %}
+    {% set is_custom = it.get('is_note_item') %}
+
+    <div
+      class="pack-item-row p-3 sm:p-3.5 flex items-center justify-between gap-3 {{ 'bg-amber-50/40' if is_custom else '' }}"
+      data-is-custom="{{ 'true' if is_custom else 'false' }}">
+
+      <!-- Left: Thumbnail + Details -->
+      <div class="flex items-center gap-2.5 sm:gap-3 min-w-0">
+        {% if it.get('image') %}
+        <div
+          class="w-10 h-10 sm:w-11 sm:h-11 rounded-xs border border-[#e0e0e0] p-0.5 flex items-center justify-center bg-white shrink-0">
+          <img src="{{ it.get('image') }}" alt="{{ it.get('name') }}"
+            class="max-w-full max-h-full object-contain mix-blend-multiply">
+        </div>
+        {% else %}
+        <div
+          class="w-10 h-10 sm:w-11 sm:h-11 rounded-xs bg-[#f1f3f6] border border-[#e0e0e0] flex items-center justify-center text-[#878787] shrink-0 text-xs">
+          {% if is_custom %}
+          <i class="fas fa-clipboard-check text-amber-600"></i>
+          {% else %}
+          <i class="fas fa-box"></i>
+          {% endif %}
+        </div>
+        {% endif %}
+
+        <div class="min-w-0">
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <h4 class="item-name text-xs sm:text-[13px] font-bold text-[#212121] leading-tight truncate">
+              {{ it.get('name') or 'Item' }}
+            </h4>
+            {% if is_custom %}
+            <span
+              class="whitespace-nowrap text-[9.5px] font-bold px-1.5 py-0.2 rounded-xs bg-amber-100 text-amber-800 border border-amber-300">
+              Custom Note Item
+            </span>
+            {% endif %}
+          </div>
+          <div class="flex items-center gap-2 mt-0.5 text-[11px] text-[#878787] whitespace-nowrap">
+            <span>{{ it.get('unit') or '1 pc' }}</span>
+            <span>•</span>
+            <span class="font-semibold text-[#212121]">₹{{ "%.2f"|format(item_price) }}</span>
+            {% if item_mrp > item_price %}
+            <span class="text-[#878787] line-through text-[10px]">₹{{ "%.2f"|format(item_mrp) }}</span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Qty & Line Total (Strictly whitespace-nowrap) -->
+      <div class="text-right shrink-0 whitespace-nowrap">
+        <span class="px-2 py-0.5 rounded-xs bg-[#f1f3f6] text-[#212121] font-bold text-xs inline-block">
+          ×{{ item_qty }}
+        </span>
+        <span class="block text-xs sm:text-sm font-bold text-[#212121] mt-0.5">
+          ₹{{ "%.2f"|format(item_total) }}
+        </span>
+      </div>
+
+    </div>
+    {% endfor %}
+  </div>
+
+</div>
+
+<!-- ======================================================== -->
+<!-- 6. 🧾 FLIPKART PRICE DETAILS RECEIPT (Live Dynamic)     -->
+<!-- ======================================================== -->
+<div class="fk-card overflow-hidden">
+
+  <!-- Receipt Header -->
+  <div class="px-3.5 sm:px-4 py-2.5 border-b border-[#f0f0f0] flex items-center justify-between">
+    <span class="text-[11px] font-bold uppercase tracking-wider text-[#878787] whitespace-nowrap">
+      PRICE DETAILS
+    </span>
+    {% if is_store_credit %}
+    <span
+      class="text-[10px] font-bold text-[#2874f0] bg-blue-50 px-2 py-0.5 rounded-xs border border-blue-200 whitespace-nowrap flex items-center gap-1">
+      <i class="fas fa-book-bookmark text-[9px]"></i>
+      STORE CREDIT (KHATA)
+    </span>
+    {% elif is_cod %}
+    <span
+      class="text-[10px] font-bold text-amber-900 bg-amber-50 px-2 py-0.5 rounded-xs border border-amber-200 whitespace-nowrap flex items-center gap-1">
+      <i class="fas fa-money-bill-wave text-[9px]"></i>
+      COD
+    </span>
+    {% else %}
+    <span
+      class="text-[10px] font-bold text-[#388e3c] bg-green-50 px-2 py-0.5 rounded-xs border border-green-200 whitespace-nowrap flex items-center gap-1">
+      <i class="fas fa-check text-[9px]"></i>
+      PAID ONLINE ({{ raw_pm }})
+    </span>
+    {% endif %}
+  </div>
+
+  <!-- Receipt Rows -->
+  <div class="p-3.5 sm:p-4 space-y-2 text-xs">
+
+    <!-- 1. Items MRP Value -->
+    <div class="flex items-center justify-between text-[#878787]">
+      <span class="whitespace-nowrap">Items Total (MRP Value)</span>
+      <span class="font-medium text-[#212121] whitespace-nowrap">₹{{ "%.2f"|format(items_mrp_total) }}</span>
+    </div>
+
+    <!-- 2. Product Savings -->
+    {% if product_savings > 0 %}
+    <div class="flex items-center justify-between text-[#388e3c]">
+      <span class="whitespace-nowrap">Product Discount Savings</span>
+      <span class="font-bold whitespace-nowrap">-₹{{ "%.2f"|format(product_savings) }}</span>
+    </div>
+    {% endif %}
+
+    <!-- 3. Store Items Net Subtotal -->
+    <div class="flex items-center justify-between text-[#212121] pt-1 border-t border-[#f0f0f0]">
+      <span class="font-semibold whitespace-nowrap">Store Items Subtotal:</span>
+      <span class="font-bold text-sm text-[#212121] whitespace-nowrap" id="dom-store-subtotal">
+        ₹{{ "%.2f"|format(vendor_total) }}
+      </span>
+    </div>
+
+    <!-- 4. Packaging & Handling -->
+    <div class="flex items-center justify-between text-[#878787]">
+      <span class="whitespace-nowrap">Packaging & Handling Charges</span>
+      {% if handling_fee > 0 %}
+      <span class="font-medium text-[#212121] whitespace-nowrap">₹{{ "%.2f"|format(handling_fee) }}</span>
+      {% else %}
+      <span
+        class="text-[#388e3c] font-bold text-[10.5px] bg-green-50 px-1.5 py-0.2 rounded-xs whitespace-nowrap">FREE</span>
+      {% endif %}
+    </div>
+
+    <!-- 5. Delivery Partner Fee -->
+    <div class="flex items-center justify-between text-[#878787]">
+      <span class="whitespace-nowrap">Delivery Charges</span>
+      {% if delivery_fee > 0 %}
+      <span class="font-medium text-[#212121] whitespace-nowrap">₹{{ "%.2f"|format(delivery_fee) }}</span>
+      {% else %}
+      <span class="text-[#388e3c] font-bold text-[10.5px] bg-green-50 px-1.5 py-0.2 rounded-xs whitespace-nowrap">FREE
+        DELIVERY</span>
+      {% endif %}
+    </div>
+
+    <!-- 6. Platform / Convenience Fee -->
+    {% if platform_fee > 0 %}
+    <div class="flex items-center justify-between text-[#878787]">
+      <span class="whitespace-nowrap">Platform Fee</span>
+      <span class="font-medium text-[#212121] whitespace-nowrap">₹{{ "%.2f"|format(platform_fee) }}</span>
+    </div>
+    {% endif %}
+
+    <!-- 7. Coupon Discount -->
+    {% if coupon_discount > 0 %}
+    <div class="flex items-center justify-between text-[#388e3c]">
+      <span class="whitespace-nowrap">Coupon Discount</span>
+      <span class="font-bold whitespace-nowrap">-₹{{ "%.2f"|format(coupon_discount) }}</span>
+    </div>
+    {% endif %}
+
+    <!-- Dashed Divider -->
+    <div class="fk-dashed-divider my-2"></div>
+
+    <!-- 8. Grand Total -->
+    <div class="flex items-center justify-between pt-1">
+      <div>
+        <span class="text-sm font-bold text-[#212121] block leading-tight whitespace-nowrap">Total Amount</span>
+        <span class="text-[10px] text-[#878787] whitespace-nowrap">
+          {% if is_store_credit %}Debited to Society Khata (Store Credit){% else %}Final payable amount by customer{% endif %}
+        </span>
+      </div>
+      <span class="text-base sm:text-lg font-black text-[#2874f0] whitespace-nowrap" id="dom-grand-total">
+        ₹{{ "%.2f"|format(order_grand_total) }}
+      </span>
+    </div>
+
+    <!-- Payment Notice Banner (Dynamic Store Credit / COD / Online Live) -->
+    {% if is_store_credit %}
+    <div id="payment-notice-banner"
+      class="mt-3 p-3 rounded-xs border {{ 'bg-amber-50 border-amber-300' if (order.notes_cod_extra and order.notes_cod_extra > 0) else 'bg-blue-50 border-blue-200' }} flex items-center justify-between gap-2.5">
+      <div class="flex items-center gap-2.5 min-w-0">
+        <div id="payment-notice-icon-box"
+          class="w-8 h-8 rounded-xs {{ 'bg-amber-500' if (order.notes_cod_extra and order.notes_cod_extra > 0) else 'bg-[#2874f0]' }} text-white flex items-center justify-center text-xs shrink-0 shadow-2xs">
+          <i id="payment-notice-icon" class="fas {{ 'fa-hand-holding-dollar' if (order.notes_cod_extra and order.notes_cod_extra > 0) else 'fa-book-bookmark' }}"></i>
+        </div>
+        <div class="min-w-0">
+          <h5 id="payment-notice-title" class="text-xs font-bold {{ 'text-amber-950' if (order.notes_cod_extra and order.notes_cod_extra > 0) else 'text-blue-950' }} whitespace-nowrap">
+            {{ 'Store Credit + Cash Collection' if (order.notes_cod_extra and order.notes_cod_extra > 0) else 'Society Khata (Store Credit)' }}
+          </h5>
+          <p id="payment-notice-desc" class="text-[11px] {{ 'text-amber-900' if (order.notes_cod_extra and order.notes_cod_extra > 0) else 'text-blue-800' }} leading-snug">
+            {% if order.notes_cod_extra and order.notes_cod_extra > 0 %}
+            Khata billed up to limit. Collect cash <strong class="text-rose-700 font-extrabold">₹{{ "%.2f"|format(order.notes_cod_extra) }}</strong> at doorstep.
+            {% else %}
+            Added to resident monthly Khata. Do not collect cash.
+            {% endif %}
+          </p>
+        </div>
+      </div>
+    </div>
+    {% elif is_cod %}
+    <div
+      class="mt-3 p-3 rounded-xs border bg-amber-50 border-amber-200 flex items-center justify-between gap-2.5">
+      <div class="flex items-center gap-2.5 min-w-0">
+        <div
+          class="w-8 h-8 rounded-xs bg-amber-500 text-white flex items-center justify-center text-xs shrink-0 shadow-2xs">
+          <i class="fas fa-money-bill-wave"></i>
+        </div>
+        <div class="min-w-0">
+          <h5 class="text-xs font-bold text-amber-950 whitespace-nowrap">
+            Cash On Delivery (COD)
+          </h5>
+          <p class="text-[11px] text-amber-800 leading-snug">
+            Collect cash amount <strong id="dom-cod-collect">₹{{ "%.2f"|format(order_grand_total) }}</strong> from
+            customer.
+          </p>
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <div
+      class="mt-3 p-3 rounded-xs border bg-green-50 border-green-200 flex items-center justify-between gap-2.5">
+      <div class="flex items-center gap-2.5 min-w-0">
+        <div
+          class="w-8 h-8 rounded-xs bg-[#388e3c] text-white flex items-center justify-center text-xs shrink-0 shadow-2xs">
+          <i class="fas fa-check"></i>
+        </div>
+        <div class="min-w-0">
+          <h5 class="text-xs font-bold text-emerald-950 whitespace-nowrap">
+            Paid Online (UPI / Prepaid)
+          </h5>
+          <p class="text-[11px] text-emerald-800 leading-snug">
+            Payment received online. Do not collect cash.
+          </p>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+
+</div>
+
+</div>
+
+<script>
+(function() {
+  'use strict';
+  const CURRENT_ORDER_ID = '{{ order_id }}';
+  const IS_ORDER_LOCKED = "{{ 'true' if (vstatus in ['delivered', 'cancelled', 'canceled']) else 'false' }}" === "true";
+
+  // ─── 1. Calculate Live Notes Total Sum & Unsaved Changes Tracking ───
+  let _initialNotesSnapshot = "";
+
+  function getNotesStateSnapshot() {
+    const list = [];
+    document.querySelectorAll('#note-items-list-container .note-item-row').forEach(r => {
+      const n = (r.querySelector('.note-item-name-input')?.value || '').trim();
+      const p = parseFloat(r.querySelector('.note-item-price-input')?.value || 0) || 0;
+      list.push(`${n}:${p}`);
+    });
+    return list.join('|');
+  }
+
+  function hasUnsavedNotesChanges() {
+    return _initialNotesSnapshot !== "" && getNotesStateSnapshot() !== _initialNotesSnapshot;
+  }
+
+  function calculateLiveNotesTotal() {
+    let total = 0;
+    document.querySelectorAll('.note-item-price-input').forEach(input => {
+      const val = Math.max(0, parseFloat(input.value || 0));
+      if (!isNaN(val) && val > 0) total += val;
+    });
+    const sumEl = document.getElementById('live-notes-total-sum');
+    if (sumEl) sumEl.textContent = '₹' + total.toFixed(2);
+
+    const resetBtn = document.getElementById('btn-reset-notes');
+    if (resetBtn) {
+      if (total > 0 || (typeof NOTE_PRICE !== 'undefined' && NOTE_PRICE > 0)) {
+        resetBtn.classList.remove('hidden');
+      } else {
+        resetBtn.classList.add('hidden');
+      }
+    }
+
+    const btn = document.getElementById('btn-finalize-note');
+    if (btn && !IS_ORDER_LOCKED) {
+      if (hasUnsavedNotesChanges()) {
+        btn.classList.add('ring-2', 'ring-amber-300', 'bg-[#fb641b]');
+        btn.classList.remove('bg-[#2874f0]');
+        btn.innerHTML = '<i class="fas fa-floppy-disk text-[11px] animate-pulse"></i> <span>Save &amp; Update Bill</span>';
+      } else {
+        btn.classList.remove('ring-2', 'ring-amber-300', 'bg-[#fb641b]');
+        btn.classList.add('bg-[#2874f0]');
+        btn.innerHTML = '<i class="fas fa-check-double text-[11px]"></i> <span>Update Bill</span>';
+      }
+    }
+    return total;
+  }
+
+  function onNotePriceInput() {
+    calculateLiveNotesTotal();
+  }
+
+  function attachNoteInputListeners() {
+    document.querySelectorAll('.note-item-price-input, .note-item-name-input').forEach(input => {
+      input.removeEventListener('input', calculateLiveNotesTotal);
+      input.addEventListener('input', calculateLiveNotesTotal);
+    });
+  }
+
+  // Initialize initial snapshot
+  _initialNotesSnapshot = getNotesStateSnapshot();
+
+  function checkUnsavedBeforeLeave(e, href) {
+    if (typeof hasUnsavedNotesChanges === 'function' && hasUnsavedNotesChanges()) {
+      e.preventDefault();
+      const proceed = confirm("⚠️ Unsaved Changes: You have entered custom item prices without clicking 'Update Bill'.\n\nWould you like to save this bill now before leaving?\n\n- OK: Save bill and return\n- Cancel: Stay on page to review");
+      if (proceed) {
+        finalizeAllNotesItems(CURRENT_ORDER_ID).then(() => {
+          window.location.href = href;
+        });
+      }
+      return false;
+    }
+    return true;
+  }
+  window.checkUnsavedBeforeLeave = checkUnsavedBeforeLeave;
+
+  // ─── 2. Add New Empty Row for Samaan ───
+  function addEmptyNoteRow(name = '', price = '') {
+    const container = document.getElementById('note-items-list-container');
+    if (!container) return;
+    const newIndex = container.querySelectorAll('.note-item-row').length + 1;
+    const numPrice = Math.max(0, parseFloat(price || 0));
+
+    const row = document.createElement('div');
+    row.className = 'note-item-row flex items-center gap-1.5 sm:gap-2 py-2';
+    row.innerHTML = `
+      <span class="text-xs font-bold text-slate-400 w-4 text-center shrink-0 row-index">${newIndex}.</span>
+      <div class="flex-1 min-w-0">
+        <input type="text" 
+               class="note-item-name-input w-full px-2.5 py-1.5 bg-slate-50 focus:bg-white border border-slate-200 focus:border-[#2874f0] focus:ring-1 focus:ring-[#2874f0] rounded-xs text-xs font-bold text-[#212121] outline-hidden transition-all" 
+               value="${name}" 
+               placeholder="Item name">
+      </div>
+      <div class="w-20 sm:w-24 shrink-0 relative">
+        <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">₹</span>
+        <input type="text" 
+               inputmode="decimal" 
+               pattern="[0-9]*" 
+               class="note-item-price-input w-full pl-6 pr-2 py-1.5 bg-slate-50 focus:bg-white border border-slate-200 focus:border-[#2874f0] focus:ring-1 focus:ring-[#2874f0] rounded-xs text-xs font-bold text-[#212121] outline-hidden text-right transition-all" 
+               value="${numPrice > 0 ? numPrice : ''}" 
+               placeholder="0" 
+               autocomplete="off" 
+               oninput="this.value = this.value.replace(/[^0-9.]/g, ''); onNotePriceInput()">
+      </div>
+    `;
+    container.appendChild(row);
+    reindexNoteRows();
+    attachNoteInputListeners();
+    const nameInput = row.querySelector('.note-item-name-input');
+    if (nameInput && !name) nameInput.focus();
+  }
+
+  // ─── 4. Remove Single Samaan Row & Auto-Save ───
+  function removeNoteRow(btn) {
+    if (IS_ORDER_LOCKED) return;
+    const row = btn.closest('.note-item-row');
+    if (row) {
+      row.remove();
+      reindexNoteRows();
+      calculateLiveNotesTotal();
+    }
+  }
+
+  function reindexNoteRows() {
+    const rows = document.querySelectorAll('#note-items-list-container .note-item-row');
+    rows.forEach((r, idx) => {
+      const idxEl = r.querySelector('.row-index');
+      if (idxEl) idxEl.textContent = (idx + 1) + '.';
+    });
+  }
+
+  // ─── 5. Finalize & Update Bill with All Note Items (Zero Page Reload) ───
+  function finalizeAllNotesItems(orderId, silent = false, actionMode = "") {
+    if (IS_ORDER_LOCKED) {
+      if (!silent) showToast("This order has already been delivered. The bill can no longer be modified.", "warning");
+      return Promise.resolve();
+    }
+
+    const targetOrderId = orderId || CURRENT_ORDER_ID;
+
+    const rows = document.querySelectorAll('#note-items-list-container .note-item-row');
+    const items = [];
+    rows.forEach((r, idx) => {
+      const nameInput = r.querySelector('.note-item-name-input');
+      const priceInput = r.querySelector('.note-item-price-input');
+      const rawName = nameInput ? nameInput.value.trim() : '';
+      const price = Math.max(0, parseFloat(priceInput ? priceInput.value : 0) || 0);
+      if (rawName || price > 0) {
+        const safeName = rawName || ('Extra Item #' + (idx + 1));
+        if (nameInput && !rawName) nameInput.value = safeName;
+        items.push({ name: safeName, price: price });
+      }
+    });
+
+    const btn = document.getElementById('btn-finalize-note');
+    if (btn && !silent) {
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Updating...';
+    }
+
+    const payload = { items: items };
+    if (actionMode) {
+      payload.action_mode = actionMode;
+    }
+
+    return fetch('/vendor/api/finalize-notes-item/' + targetOrderId, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (btn && !silent) {
+          btn.disabled = false;
+          btn.classList.remove('ring-2', 'ring-amber-300', 'bg-[#fb641b]');
+          btn.classList.add('bg-[#2874f0]');
+          btn.innerHTML = '<i class="fas fa-check-double text-[11px]"></i> <span>Update Bill</span>';
+        }
+
+        // ⚠️ Credit Limit Exceeded modal trigger
+        if (data && data.credit_limit_exceeded) {
+          showCreditLimitExceedModal(data);
+          return null;
+        }
+
+        if (data && data.success) {
+          if (!silent && data.message) showToast("✓ " + data.message, "success");
+
+          // Update Payment Notice Banner if split COD
+          const banner = document.getElementById('payment-notice-banner');
+          if (banner && data.notes_cod_extra > 0) {
+            banner.className = "mt-3 p-3 rounded-xs border bg-amber-50 border-amber-300 flex items-center justify-between gap-2.5";
+            const iconBox = document.getElementById('payment-notice-icon-box');
+            if (iconBox) iconBox.className = "w-8 h-8 rounded-xs bg-amber-500 text-white flex items-center justify-center text-xs shrink-0 shadow-2xs";
+            const iconEl = document.getElementById('payment-notice-icon');
+            if (iconEl) iconEl.className = "fas fa-hand-holding-dollar";
+            const titleEl = document.getElementById('payment-notice-title');
+            if (titleEl) {
+              titleEl.className = "text-xs font-bold text-amber-950 whitespace-nowrap";
+              titleEl.textContent = "Store Credit + Cash Collection";
+            }
+            const descEl = document.getElementById('payment-notice-desc');
+            if (descEl) {
+              descEl.className = "text-[11px] text-amber-900 leading-snug";
+              descEl.innerHTML = `Khata billed up to limit. Collect cash <strong class="text-rose-700 font-extrabold">₹${data.notes_cod_extra.toFixed(2)}</strong> at doorstep.`;
+            }
+          }
+
+          // 2. Toggle Reset Button Visibility
+          const resetBtn = document.getElementById('btn-reset-notes');
+          if (resetBtn) {
+            if (data.notes_price > 0) {
+              resetBtn.classList.remove('hidden');
+            } else {
+              resetBtn.classList.add('hidden');
+            }
+          }
+
+          // 3. Update Live Total Sum Element
+          const sumEl = document.getElementById('live-notes-total-sum');
+          if (sumEl) sumEl.textContent = `₹${data.notes_price.toFixed(2)}`;
+
+          // 4. Update Price Breakdown Values in DOM
+          const storeSub = document.getElementById('dom-store-subtotal');
+          if (storeSub) storeSub.textContent = `₹${data.vendor_total.toFixed(2)}`;
+
+          const grandTot = document.getElementById('dom-grand-total');
+          if (grandTot) grandTot.textContent = `₹${data.grand_total.toFixed(2)}`;
+
+          const codCollect = document.getElementById('dom-cod-collect');
+          if (codCollect) codCollect.textContent = `₹${data.grand_total.toFixed(2)}`;
+
+          // 5. Update Top Bar Units and Items Counters
+          const topBarItems = document.getElementById('top-bar-items-count');
+          if (topBarItems && data.items_count) topBarItems.textContent = data.items_count;
+          const topBarUnits = document.getElementById('top-bar-units-count');
+          if (topBarUnits && data.items_count) topBarUnits.textContent = data.items_count;
+
+          // 6. Update Checklist Item Counter & Insert Each Custom Note Item
+          const totalItemsCounter = document.getElementById('total-items-count');
+          if (totalItemsCounter && data.items_count) {
+            totalItemsCounter.textContent = data.items_count;
+          }
+
+          _initialNotesSnapshot = getNotesStateSnapshot();
+          calculateLiveNotesTotal();
+          updateChecklistCustomRow(data);
+          return data;
+        } else {
+          if (!silent) showToast((data && data.message) || "Failed to update bill", "error");
+          return null;
+        }
+      })
+      .catch(err => {
+        console.error("finalizeAllNotesItems error:", err);
+        if (btn && !silent) {
+          btn.disabled = false;
+          btn.classList.remove('ring-2', 'ring-amber-300', 'bg-[#fb641b]');
+          btn.classList.add('bg-[#2874f0]');
+          btn.innerHTML = '<i class="fas fa-check-double text-[11px]"></i> <span>Update Bill</span>';
+        }
+        if (!silent) showToast("Network error updating bill", "error");
+        return null;
+      });
+  }
+  window.finalizeAllNotesItems = finalizeAllNotesItems;
+
+  // ─── 5. Reset / Clear All Note Items (₹0) ───
+  function clearAllNotesItems(orderId) {
+    if (!confirm("Are you sure you want to remove all extra items from the bill (₹0)?")) return;
+    document.querySelectorAll('.note-item-price-input').forEach(input => input.value = '');
+    calculateLiveNotesTotal();
+    finalizeAllNotesItems(orderId);
+  }
+
+  // ─── 6. Insert Each Extracted Custom Note Row in Items List ───
+  function updateChecklistCustomRow(data) {
+    const container = document.getElementById('checklist-items-container');
+    if (!container) return;
+
+    // Remove any previous custom note items
+    container.querySelectorAll('[data-is-custom="true"]').forEach(el => el.remove());
+
+    const billableItems = (data.valid_bill_items || data.notes_items || []).filter(it => (parseFloat(it.price) || 0) > 0);
+    if (billableItems.length > 0) {
+      billableItems.forEach(it => {
+        const formattedPrice = (parseFloat(it.price) || 0).toFixed(2);
+        const newDiv = document.createElement('div');
+        newDiv.className = 'pack-item-row p-3 sm:p-3.5 flex items-center justify-between gap-3 bg-amber-50/40 border-t border-amber-200';
+        newDiv.setAttribute('data-is-custom', 'true');
+        newDiv.innerHTML = `
+          <div class="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-xs bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-700 shrink-0 text-xs">
+              <i class="fas fa-clipboard-check"></i>
+            </div>
+            <div class="min-w-0">
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <h4 class="item-name text-xs sm:text-[13px] font-bold text-[#212121] leading-tight truncate">
+                  ${it.name}
+                </h4>
+                <span class="whitespace-nowrap text-[9.5px] font-bold px-1.5 py-0.2 rounded-xs bg-amber-100 text-amber-800 border border-amber-300">
+                  Custom Note Item
+                </span>
+              </div>
+              <div class="flex items-center gap-2 mt-0.5 text-[11px] text-[#878787] whitespace-nowrap">
+                <span>Custom Item</span>
+                <span>•</span>
+                <span class="font-semibold text-[#212121]">₹${formattedPrice}</span>
+              </div>
+            </div>
+          </div>
+          <div class="text-right shrink-0 whitespace-nowrap">
+            <span class="px-2 py-0.5 rounded-xs bg-amber-100 text-amber-900 font-bold text-xs inline-block">
+              ×1
+            </span>
+            <span class="block text-xs sm:text-sm font-bold text-[#212121] mt-0.5">
+              ₹${formattedPrice}
+            </span>
+          </div>
+        `;
+        container.appendChild(newDiv);
+      });
+    }
+  }
+
+  // ─── 8. Cancel Order Confirmation ───
+  function cancelOrderPrompt(orderId) {
+    if (!confirm("Are you sure you want to cancel this order?")) return;
+    fetch('/vendor/api/update-order-status/' + orderId, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'cancelled' })
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) {
+          showToast(data.message || "Order cancelled", "info");
+          setTimeout(() => {
+            if (typeof navigateVendor === 'function') {
+              navigateVendor('/vendor/orders?tab=cancelled', true);
+            } else {
+              window.location.href = '/vendor/orders?tab=cancelled';
+            }
+          }, 600);
+        } else {
+          showToast(data.message || "Cancel failed", "error");
+        }
+      })
+      .catch(err => {
+        showToast("Network error while cancelling order", "error");
+      });
+  }
+
+  // ─── 9. Slide-to-Deliver gesture logic (Ultra-Reliable Touch & Mouse Engine) ───
+  function initSlideToDeliver() {
+    const sliders = document.querySelectorAll('.slide-to-deliver-container');
+    sliders.forEach(container => {
+      if (container._sliderBound) return;
+      container._sliderBound = true;
+
+      const thumb = container.querySelector('.slide-thumb');
+      const fill = container.querySelector('.slide-fill');
+      const label = container.querySelector('.slide-label');
+      const orderId = container.getAttribute('data-order-id') || CURRENT_ORDER_ID;
+
+      if (!thumb || !orderId) return;
+
+      let isDragging = false;
+      let startX = 0;
+
+      function getMaxDrag() {
+        const cRect = container.getBoundingClientRect();
+        const tRect = thumb.getBoundingClientRect();
+        const cWidth = (cRect && cRect.width > 0) ? cRect.width : (container.offsetWidth || container.clientWidth || 300);
+        const tWidth = (tRect && tRect.width > 0) ? tRect.width : (thumb.offsetWidth || thumb.clientWidth || 40);
+        return Math.max(50, cWidth - tWidth - 8);
+      }
+
+      function onStart(x) {
+        isDragging = true;
+        startX = x;
+        thumb.style.transition = 'none';
+        if (fill) fill.style.transition = 'none';
+      }
+
+      function onMove(x) {
+        if (!isDragging) return;
+        const maxDrag = getMaxDrag();
+        let delta = x - startX;
+        if (delta < 0) delta = 0;
+        if (delta > maxDrag) delta = maxDrag;
+
+        thumb.style.transform = `translateX(${delta}px)`;
+        const percent = Math.min(100, Math.max(0, (delta / maxDrag) * 100));
+        if (fill) fill.style.width = `${percent}%`;
+
+        if (label) {
+          label.style.opacity = Math.max(0, 1 - (delta / maxDrag) * 1.5).toString();
+        }
+      }
+
+      async function onEnd() {
+        if (!isDragging) return;
+        isDragging = false;
+        thumb.style.transition = 'transform 0.25s cubic-bezier(0.2, 0.9, 0.3, 1)';
+        if (fill) fill.style.transition = 'width 0.25s cubic-bezier(0.2, 0.9, 0.3, 1)';
+
+        const maxDrag = getMaxDrag();
+        const match = (thumb.style.transform || '').match(/translateX\(([\d.]+)px\)/);
+        const currentDelta = match ? parseFloat(match[1]) : 0;
+
+        // 60% swipe threshold for effortless delivery
+        if (currentDelta >= maxDrag * 0.60) {
+          thumb.style.transform = `translateX(${maxDrag}px)`;
+          if (fill) fill.style.width = '100%';
+          if (label) {
+            label.style.opacity = '1';
+            label.innerHTML = '<span class="text-white font-bold"><i class="fas fa-spinner fa-spin mr-1"></i> Delivering...</span>';
+          }
+
+          try {
+            if (hasUnsavedNotesChanges()) {
+              await finalizeAllNotesItems(orderId, true);
+            }
+          } catch(e) {
+            console.warn("Delivery pre-save error:", e);
+          }
+
+          fetch('/vendor/api/update-order-status/' + orderId, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: 'delivered' })
+          })
+            .then(r => r.json())
+            .then(data => {
+              if (data.success) {
+                showToast("✓ " + (data.message || "Order marked Delivered!"), "success");
+                const topBackBtn = document.querySelector('a[title^="Back to Orders"]');
+                if (topBackBtn) {
+                  topBackBtn.href = '/vendor/orders?tab=pending';
+                }
+                setTimeout(() => {
+                  if (typeof navigateVendor === 'function') {
+                    navigateVendor('/vendor/orders?tab=pending', true);
+                  } else {
+                    window.location.href = '/vendor/orders?tab=pending';
+                  }
+                }, 300);
+              } else {
+                showToast(data.message || "Status update failed", "error");
+                resetSlider();
+              }
+            })
+            .catch(err => {
+              showToast("Network error while marking delivered", "error");
+              resetSlider();
+            });
+
+        } else {
+          resetSlider();
+        }
+      }
+
+      function resetSlider() {
+        thumb.style.transform = 'translateX(0px)';
+        if (fill) fill.style.width = '0%';
+        if (label) {
+          label.style.opacity = '1';
+          label.innerHTML = '<span>Slide to Mark Delivered</span><i class="fas fa-angles-right ml-1.5 text-xs animate-pulse text-emerald-600"></i>';
+        }
+      }
+
+      // ── Touch Events (Mobile phones, Android Webview, iOS) ──
+      function handleTouchStart(e) {
+        if (!e.touches || !e.touches[0]) return;
+        if (e.cancelable) e.preventDefault();
+        onStart(e.touches[0].clientX);
+
+        window.addEventListener('touchmove', handleTouchMove, { passive: false });
+        window.addEventListener('touchend', handleTouchEnd, { passive: false });
+        window.addEventListener('touchcancel', handleTouchEnd, { passive: false });
+      }
+
+      function handleTouchMove(e) {
+        if (!isDragging || !e.touches || !e.touches[0]) return;
+        if (e.cancelable) e.preventDefault();
+        onMove(e.touches[0].clientX);
+      }
+
+      function handleTouchEnd() {
+        window.removeEventListener('touchmove', handleTouchMove);
+        window.removeEventListener('touchend', handleTouchEnd);
+        window.removeEventListener('touchcancel', handleTouchEnd);
+        onEnd();
+      }
+
+      thumb.addEventListener('touchstart', handleTouchStart, { passive: false });
+      container.addEventListener('touchstart', function(e) {
+        if (e.target !== thumb && !thumb.contains(e.target)) {
+          handleTouchStart(e);
+        }
+      }, { passive: false });
+
+      // ── Mouse Events (Desktop) ──
+      function handleMouseDown(e) {
+        if (e.button !== 0) return;
+        e.preventDefault();
+        onStart(e.clientX);
+
+        function handleMouseMove(ev) {
+          if (!isDragging) return;
+          onMove(ev.clientX);
+        }
+
+        function handleMouseUp() {
+          window.removeEventListener('mousemove', handleMouseMove);
+          window.removeEventListener('mouseup', handleMouseUp);
+          onEnd();
+        }
+
+        window.addEventListener('mousemove', handleMouseMove);
+        window.addEventListener('mouseup', handleMouseUp);
+      }
+
+      thumb.addEventListener('mousedown', handleMouseDown);
+      container.addEventListener('mousedown', function(e) {
+        if (e.target !== thumb && !thumb.contains(e.target)) {
+          handleMouseDown(e);
+        }
+      });
+    });
+  }
+
+  // ─── 10. Live Background Status Poller (Check if Customer/Admin Cancelled) ───
+  function initOrderStatusWatcher() {
+    window._vendorPageIntervals = window._vendorPageIntervals || [];
+    const poller = setInterval(function () {
+      fetch('/api/order-poll/' + CURRENT_ORDER_ID)
+        .then(r => r.json())
+        .then(data => {
+          if (!data || !data.success) return;
+          if (data.status === 'cancelled' || data.status === 'canceled') {
+            showToast("⚠️ Notice: This order was cancelled!", "error");
+            setTimeout(() => {
+              if (typeof navigateVendor === 'function') {
+                navigateVendor('/vendor/orders?tab=cancelled', true);
+              } else {
+                window.location.href = '/vendor/orders?tab=cancelled';
+              }
+            }, 1200);
+          }
+        })
+        .catch(() => { });
+    }, 10000);
+    window._vendorPageIntervals.push(poller);
+  }
+
+  // ─── 9. Credit Limit Exceed Modal Handlers ───
+  function showCreditLimitExceedModal(data) {
+    const modal = document.getElementById('credit-limit-exceed-modal');
+    if (!modal) return;
+
+    const nameEl = document.getElementById('modal-cl-resident-name');
+    if (nameEl) nameEl.textContent = data.customer_name + (data.flat_info ? ` (${data.flat_info})` : '');
+    
+    const limEl = document.getElementById('modal-cl-limit');
+    if (limEl) limEl.textContent = `₹${parseFloat(data.credit_limit || 0).toFixed(2)}`;
+    
+    const dueEl = document.getElementById('modal-cl-current-due');
+    if (dueEl) dueEl.textContent = `₹${parseFloat(data.current_balance || 0).toFixed(2)}`;
+    
+    const extraEl = document.getElementById('modal-cl-extra-added');
+    if (extraEl) extraEl.textContent = `+₹${parseFloat(data.diff || 0).toFixed(2)}`;
+    
+    const newTotEl = document.getElementById('modal-cl-new-total');
+    if (newTotEl) newTotEl.textContent = `₹${parseFloat(data.new_balance || 0).toFixed(2)}`;
+    
+    const excEl = document.getElementById('modal-cl-exceeded-by');
+    if (excEl) excEl.textContent = `₹${parseFloat(data.exceeded_by || 0).toFixed(2)}`;
+    
+    const splitBtnExtra = document.getElementById('modal-btn-split-extra');
+    if (splitBtnExtra) splitBtnExtra.textContent = `₹${parseFloat(data.exceeded_by || 0).toFixed(2)}`;
+
+    modal.classList.remove('hidden');
+  }
+
+  function closeCreditLimitModal() {
+    const modal = document.getElementById('credit-limit-exceed-modal');
+    if (modal) modal.classList.add('hidden');
+  }
+
+  function submitFinalizeWithMode(mode) {
+    closeCreditLimitModal();
+    finalizeAllNotesItems(CURRENT_ORDER_ID, false, mode);
+  }
+
+  window.showCreditLimitExceedModal = showCreditLimitExceedModal;
+  window.closeCreditLimitModal = closeCreditLimitModal;
+  window.submitFinalizeWithMode = submitFinalizeWithMode;
+
+  // Initialize all features on load FIRST (before exports, to guarantee slider works)
+  initSlideToDeliver();
+  setTimeout(initSlideToDeliver, 60);
+  setTimeout(initSlideToDeliver, 250);
+  initOrderStatusWatcher();
+  attachNoteInputListeners();
+
+  // Export functions to window for inline onclick handlers & outside access
+  window.calculateLiveNotesTotal = calculateLiveNotesTotal;
+  window.onNotePriceInput = onNotePriceInput;
+  window.attachNoteInputListeners = attachNoteInputListeners;
+  window.addEmptyNoteRow = addEmptyNoteRow;
+  window.removeNoteRow = removeNoteRow;
+  window.clearAllNotesItems = clearAllNotesItems;
+  window.finalizeAllNotesItems = finalizeAllNotesItems;
+  window.cancelOrderPrompt = cancelOrderPrompt;
+  window.initSlideToDeliver = initSlideToDeliver;
+})();
+</script>
+
+<!-- ======================================================== -->
+<!-- 6. CREDIT LIMIT EXCEEDED WARNING MODAL                    -->
+<!-- ======================================================== -->
+<div id="credit-limit-exceed-modal" class="fixed inset-0 z-[200] bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 hidden">
+  <div class="bg-white rounded-xl shadow-2xl max-w-md w-full max-h-[88vh] sm:max-h-[90vh] flex flex-col overflow-hidden border border-amber-200 animate-in fade-in zoom-in-95 duration-150">
+    <!-- Header (Fixed at top of modal) -->
+    <div class="shrink-0 bg-gradient-to-r from-amber-500 to-amber-600 px-4 sm:px-5 py-3 sm:py-3.5 text-white flex items-center justify-between">
+      <div class="flex items-center gap-2.5 min-w-0">
+        <div class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-sm shrink-0">
+          <i class="fas fa-triangle-exclamation"></i>
+        </div>
+        <div class="min-w-0">
+          <h3 class="font-extrabold text-sm sm:text-base leading-tight truncate">Credit Limit Exceeded</h3>
+          <p class="text-[11px] text-amber-100 truncate">Customer monthly credit threshold reached</p>
+        </div>
+      </div>
+      <button type="button" onclick="closeCreditLimitModal()" class="text-white/80 hover:text-white text-2xl leading-none px-1.5 py-0.5 cursor-pointer shrink-0" title="Close">
+        &times;
+      </button>
+    </div>
+
+    <!-- Body (Scrollable on small mobile screens) -->
+    <div class="overflow-y-auto flex-1 p-3.5 sm:p-5 space-y-2.5 sm:space-y-3.5">
+      <!-- Resident Info Pill -->
+      <div class="bg-amber-50/70 border border-amber-200 rounded-lg p-2.5 sm:p-3 text-xs space-y-1.5">
+        <div class="flex items-center justify-between gap-2">
+          <span class="text-slate-500 font-medium shrink-0">Resident:</span>
+          <strong id="modal-cl-resident-name" class="text-slate-800 text-right truncate"></strong>
+        </div>
+        <div class="flex items-center justify-between pt-1 border-t border-amber-200/60">
+          <span class="text-slate-500 font-medium">Monthly Credit Limit:</span>
+          <strong id="modal-cl-limit" class="text-slate-800"></strong>
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="text-slate-500 font-medium">Current Khata Due:</span>
+          <span id="modal-cl-current-due" class="text-slate-700 font-bold"></span>
+        </div>
+        <div class="flex items-center justify-between text-rose-600">
+          <span class="font-semibold">Extra Items Added:</span>
+          <strong id="modal-cl-extra-added" class="font-bold"></strong>
+        </div>
+        <div class="flex items-center justify-between pt-1 border-t border-amber-200 font-bold text-amber-950">
+          <span>New Total Due:</span>
+          <span id="modal-cl-new-total" class="text-amber-900"></span>
+        </div>
+      </div>
+
+      <!-- Excess Alert Banner -->
+      <div class="p-2.5 sm:p-3 bg-rose-50 border border-rose-200 rounded-lg flex items-start gap-2 text-xs text-rose-900">
+        <i class="fas fa-circle-exclamation text-rose-500 text-sm mt-0.5 shrink-0"></i>
+        <div class="min-w-0">
+          <span>This order exceeds the resident's credit limit by </span>
+          <strong id="modal-cl-exceeded-by" class="text-rose-700 font-extrabold whitespace-nowrap">₹0.00</strong>.
+          <span class="block text-[11px] text-rose-700 mt-0.5">Please choose how you wish to settle the extra amount:</span>
+        </div>
+      </div>
+
+      <!-- Action Choice Buttons -->
+      <div class="space-y-2 pt-0.5">
+        <!-- Choice 1: Split COD -->
+        <button type="button" 
+                onclick="submitFinalizeWithMode('SPLIT_COD')"
+                class="w-full p-2.5 sm:p-3 text-left rounded-lg border-2 border-emerald-500 bg-emerald-50/70 hover:bg-emerald-100/60 text-emerald-950 font-bold text-xs transition-all active:scale-98 flex items-center justify-between group cursor-pointer">
+          <div class="flex items-center gap-2.5 min-w-0">
+            <div class="w-7 h-7 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs shrink-0 shadow-xs">
+              <i class="fas fa-money-bill-wave"></i>
+            </div>
+            <div class="min-w-0">
+              <div class="font-extrabold text-xs text-emerald-900">Option 1: Collect Excess as Cash (Recommended)</div>
+              <div class="text-[11px] text-emerald-800 font-normal mt-0.5">
+                Bill up to limit on Khata, and collect <strong id="modal-btn-split-extra" class="text-emerald-900 font-extrabold">₹0</strong> cash at doorstep.
+              </div>
+            </div>
+          </div>
+          <i class="fas fa-chevron-right text-emerald-600 text-xs shrink-0 ml-2 transition-transform group-hover:translate-x-0.5"></i>
+        </button>
+
+        <!-- Choice 2: Approve Credit Extension -->
+        <button type="button" 
+                onclick="submitFinalizeWithMode('APPROVE_CREDIT')"
+                class="w-full p-2.5 sm:p-3 text-left rounded-lg border border-slate-300 hover:border-[#2874f0] bg-white hover:bg-blue-50/50 text-slate-800 font-bold text-xs transition-all active:scale-98 flex items-center justify-between group cursor-pointer">
+          <div class="flex items-center gap-2.5 min-w-0">
+            <div class="w-7 h-7 rounded-full bg-[#2874f0] text-white flex items-center justify-center text-xs shrink-0 shadow-xs">
+              <i class="fas fa-signature"></i>
+            </div>
+            <div class="min-w-0">
+              <div class="font-extrabold text-xs text-[#2874f0]">Option 2: Approve Full Credit Extension</div>
+              <div class="text-[11px] text-slate-600 font-normal mt-0.5">
+                Authorize store credit override and bill the entire amount to Khata.
+              </div>
+            </div>
+          </div>
+          <i class="fas fa-chevron-right text-slate-400 text-xs shrink-0 ml-2 transition-transform group-hover:translate-x-0.5"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Footer (Fixed at bottom of modal, never cut off) -->
+    <div class="shrink-0 bg-slate-50 px-4 sm:px-5 py-2.5 border-t border-slate-200 flex justify-end">
+      <button type="button" 
+              onclick="closeCreditLimitModal()" 
+              class="w-full sm:w-auto px-4 py-2 rounded-lg border border-slate-300 hover:bg-slate-100 text-slate-700 text-xs font-bold transition-all text-center cursor-pointer">
+        Modify / Cancel
+      </button>
+    </div>
+  </div>
+</div>
+{% endblock %}

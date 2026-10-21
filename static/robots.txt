@@ -1,0 +1,14 @@
+User-agent: *
+Allow: /
+Allow: /static/
+Disallow: /admin/
+Disallow: /vendor/
+Disallow: /portal/
+Disallow: /logistics/
+Disallow: /api/
+Disallow: /my-orders
+Disallow: /cart
+Disallow: /checkout
+
+# Sitemap Index for Googlebot and Bingbot
+Sitemap: https://jippy.store/sitemap.xml

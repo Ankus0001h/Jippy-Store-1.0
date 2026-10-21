@@ -1,0 +1,609 @@
+{% extends "base_vendor.html" %}
+
+{% block title %}Orders for {{ formatted_date }} | {{ shop_name }} | Jippy Store Seller Hub{% endblock %}
+
+{% block content %}
+<style>
+  /* 🔤 Font & Typography - Flipkart Seller Hub ('Plus Jakarta Sans') */
+  input, button, select, textarea, .font-mono, body {
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  }
+
+  /* 🛡️ Preserve Font Awesome Icons */
+  .fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands {
+    font-family: "Font Awesome 6 Free" !important;
+  }
+  .fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands,
+  [class*="fa-"]::before, [class*="fa-"]::after {
+    font-family: "Font Awesome 6 Free" !important;
+  }
+  .fab, .fab::before, .fa-brands, .fa-brands::before {
+    font-family: "Font Awesome 6 Brands" !important;
+  }
+
+  /* 🛒 Clean Flipkart Seller Card System */
+  .fk-card {
+    background: #ffffff;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  }
+
+  .fk-dashboard-card {
+    background: #ffffff;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    transition: all 0.15s ease-in-out;
+  }
+
+  .fk-order-card {
+    background: #ffffff;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+    transition: all 0.15s ease-in-out;
+  }
+  .fk-order-card:hover {
+    border-color: #2874f0;
+    box-shadow: 0 2px 6px 0 rgba(40, 116, 240, 0.10);
+  }
+
+  /* Pagination Buttons */
+  .fk-page-btn {
+    min-width: 32px;
+    height: 32px;
+    padding: 0 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 700;
+    border: 1px solid #e0e0e0;
+    background: #ffffff;
+    color: #424242;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+  }
+  .fk-page-btn:hover:not(:disabled) {
+    border-color: #2874f0;
+    color: #2874f0;
+    background: #f1f3f6;
+  }
+  .fk-page-btn.active {
+    background: #2874f0;
+    color: #ffffff;
+    border-color: #2874f0;
+  }
+  .fk-page-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    background: #f9f9f9;
+  }
+</style>
+
+<div class="max-w-4xl mx-auto space-y-3 sm:space-y-4 pb-14 sm:pb-8">
+
+  <!-- ======================================================== -->
+  <!-- 📱 1. TOP BAR WITH BACK TO LEDGER LINK                    -->
+  <!-- ======================================================== -->
+  <div class="fk-card p-3 sm:p-4">
+    <div class="flex items-center justify-between gap-3">
+      
+      <div class="flex items-center gap-2.5 sm:gap-3 min-w-0">
+        <a href="{{ url_for('vendor_ledger') }}" 
+           class="w-9 h-9 rounded-xs bg-[#f1f3f6] hover:bg-blue-50 text-slate-700 hover:text-[#2874f0] border border-[#e0e0e0] flex items-center justify-center transition-all active:scale-95 shrink-0"
+           title="Back to Sales Ledger">
+          <i class="fas fa-arrow-left text-xs"></i>
+        </a>
+        <div class="min-w-0">
+          <div class="flex items-center gap-1.5">
+            <span class="text-[9.5px] font-black uppercase tracking-wider text-[#388e3c] bg-green-50 px-1.5 py-0.2 rounded-xs border border-green-200">
+              Delivered Statement
+            </span>
+          </div>
+          <h1 class="text-sm sm:text-base font-extrabold text-[#212121] leading-tight truncate mt-0.5">
+            Orders for {{ formatted_date }}
+          </h1>
+        </div>
+      </div>
+
+      <a href="{{ url_for('vendor_ledger') }}" 
+         class="h-8.5 px-3 rounded-xs bg-[#f1f3f6] hover:bg-slate-200 text-slate-700 text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95 border border-[#e0e0e0] shrink-0">
+        <i class="fas fa-wallet text-xs text-[#2874f0]"></i>
+        <span class="hidden sm:inline">All Days</span>
+      </a>
+
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- 📊 2. DAY KPI SUMMARY SCORECARD                           -->
+  <!-- ======================================================== -->
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
+    
+    <!-- Day Total -->
+    <div class="fk-dashboard-card p-3 sm:p-3.5 flex flex-col justify-between">
+      <div class="w-7 h-7 rounded-xs bg-green-50 text-[#388e3c] flex items-center justify-center text-xs shrink-0 border border-green-200">
+        <i class="fas fa-indian-rupee-sign"></i>
+      </div>
+      <div class="mt-2.5">
+        <span class="text-lg sm:text-2xl font-extrabold text-[#212121] leading-none block truncate">
+          ₹{{ '%.2f'|format(day_total) }}
+        </span>
+        <span class="text-[10px] font-bold text-[#878787] uppercase tracking-wider block mt-1">
+          Delivered Total
+        </span>
+      </div>
+    </div>
+
+    <!-- Delivered Orders -->
+    <div class="fk-dashboard-card p-3 sm:p-3.5 flex flex-col justify-between">
+      <div class="w-7 h-7 rounded-xs bg-blue-50 text-[#2874f0] flex items-center justify-center text-xs shrink-0 border border-blue-200">
+        <i class="fas fa-bag-shopping"></i>
+      </div>
+      <div class="mt-2.5">
+        <span class="text-lg sm:text-2xl font-extrabold text-[#212121] leading-none block truncate">
+          {{ day_orders_count }}
+        </span>
+        <span class="text-[10px] font-bold text-[#878787] uppercase tracking-wider block mt-1">
+          Delivered Orders
+        </span>
+      </div>
+    </div>
+
+    <!-- Items Dispatched -->
+    <div class="fk-dashboard-card p-3 sm:p-3.5 flex flex-col justify-between">
+      <div class="w-7 h-7 rounded-xs bg-purple-50 text-purple-700 flex items-center justify-center text-xs shrink-0 border border-purple-200">
+        <i class="fas fa-boxes-stacked"></i>
+      </div>
+      <div class="mt-2.5">
+        <span class="text-lg sm:text-2xl font-extrabold text-[#212121] leading-none block truncate">
+          {{ day_items_count }}
+        </span>
+        <span class="text-[10px] font-bold text-[#878787] uppercase tracking-wider block mt-1">
+          Items Sold
+        </span>
+      </div>
+    </div>
+
+    <!-- Day Avg Order Value -->
+    <div class="fk-dashboard-card p-3 sm:p-3.5 flex flex-col justify-between">
+      <div class="w-7 h-7 rounded-xs bg-orange-50 text-[#fb641b] flex items-center justify-center text-xs shrink-0 border border-orange-200">
+        <i class="fas fa-chart-line"></i>
+      </div>
+      <div class="mt-2.5">
+        <span class="text-lg sm:text-2xl font-extrabold text-[#212121] leading-none block truncate">
+          ₹{{ day_aov }}
+        </span>
+        <span class="text-[10px] font-bold text-[#878787] uppercase tracking-wider block mt-1">
+          Avg. Order Value
+        </span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- 🔍 3. SEARCH ORDERS WITHIN THIS DAY                       -->
+  <!-- ======================================================== -->
+  {% if day_orders|length > 0 %}
+  <div class="fk-card p-2.5 sm:p-3">
+    <div class="flex items-center gap-2">
+      <div class="relative flex-1">
+        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-[#878787] text-xs"></i>
+        <input type="text" 
+               id="order-search-input" 
+               oninput="handleOrderSearch(this.value)" 
+               placeholder="Search by Order #, customer name, or item..." 
+               class="w-full pl-8 pr-8 py-2 bg-[#f1f3f6] border border-[#e0e0e0] rounded-xs text-xs font-semibold text-[#212121] placeholder-[#878787] focus:outline-none focus:border-[#2874f0] focus:bg-white transition-all">
+        <button type="button" 
+                id="clear-order-search-btn"
+                onclick="clearOrderSearch()" 
+                class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 w-5 h-5 flex items-center justify-center text-xs">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <span id="filtered-orders-badge" class="text-[11px] font-bold text-[#878787] bg-[#f1f3f6] px-2.5 py-2 rounded-xs shrink-0 border border-[#e0e0e0]">
+        {{ day_orders_count }} orders
+      </span>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ======================================================== -->
+  <!-- 📋 4. ORDERS LIST FOR THIS SPECIFIC DAY                   -->
+  <!-- ======================================================== -->
+  <div class="space-y-3" id="day-orders-container">
+    
+    {% for o in day_orders %}
+    {% set oid_str = (o.get('order_number') or o.get('_id')|string) %}
+    {% set addr = o.get('address') or {} %}
+    {% set items_names = o.get('vendor_items', [])|map(attribute='name')|join(' ') %}
+    <div class="fk-order-card fk-day-order-item overflow-hidden"
+         data-search="{{ (oid_str ~ ' ' ~ (o.get('user_name') or '') ~ ' ' ~ (o.get('user_phone') or '') ~ ' ' ~ items_names)|lower }}">
+      
+      <!-- Order Card Top Bar -->
+      <div class="p-3 sm:p-3.5 bg-[#fbfbfb] border-b border-[#e0e0e0] flex items-center justify-between gap-2.5 flex-wrap">
+        <div class="flex items-center gap-2">
+          <span class="text-xs font-extrabold text-[#212121]">
+            #{{ oid_str[-8:]|upper }}
+          </span>
+          <span class="text-[11px] text-[#878787]">
+            • {{ o.created_ist.strftime('%I:%M %p') if o.created_ist else '' }}
+          </span>
+        </div>
+
+        <div class="flex items-center gap-1.5">
+          <!-- Delivered Badge -->
+          <span class="px-2 py-0.5 rounded-xs text-[10px] font-bold uppercase tracking-wider bg-green-50 text-[#388e3c] border border-green-200 flex items-center gap-1">
+            <i class="fas fa-check-circle text-[9px]"></i>
+            <span>Delivered</span>
+          </span>
+
+          <!-- Payment Mode -->
+          {% set raw_pm = (o.get('payment_method') or 'COD')|upper %}
+          {% set is_sc = ('CREDIT' in raw_pm) or ('KHATA' in raw_pm) or ('UDHAR' in raw_pm) %}
+          {% set is_cod = not is_sc and (('COD' in raw_pm) or ('CASH' in raw_pm)) %}
+          {% if is_sc %}
+          <span class="px-2 py-0.5 rounded-xs text-[10px] font-bold bg-blue-50 text-[#2874f0] border border-blue-200 flex items-center gap-1">
+            <i class="fas fa-book-bookmark text-[9px]"></i> Store Credit
+          </span>
+          {% elif is_cod %}
+          <span class="px-2 py-0.5 rounded-xs text-[10px] font-bold bg-amber-50 text-amber-900 border border-amber-200">
+            COD
+          </span>
+          {% else %}
+          <span class="px-2 py-0.5 rounded-xs text-[10px] font-bold bg-green-50 text-[#388e3c] border border-green-200">
+            Online Paid
+          </span>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Order Details Body -->
+      <div class="p-3 sm:p-4 space-y-3">
+        
+        <!-- Customer & Order Value Row -->
+        <div class="flex items-start justify-between gap-3">
+          <div class="space-y-0.5 min-w-0">
+            <div class="flex items-center gap-2">
+              <span class="text-xs sm:text-sm font-bold text-[#212121]">
+                {{ o.get("user_name") or "Customer" }}
+              </span>
+              {% if o.get('user_phone') %}
+              <a href="tel:{{ o.get('user_phone') }}" 
+                 class="w-6 h-6 rounded-xs bg-blue-50 text-[#2874f0] hover:bg-[#2874f0] hover:text-white flex items-center justify-center text-[10px] transition-all border border-blue-200"
+                 title="Call Customer">
+                <i class="fas fa-phone"></i>
+              </a>
+              {% endif %}
+            </div>
+
+            {% if addr %}
+            <div class="text-[11px] text-[#616161] flex items-center gap-1 truncate">
+              <i class="fas fa-location-dot text-[#2874f0] text-[10px] shrink-0"></i>
+              <span class="truncate">{{ addr.get('line1') or addr.get('society_name') or 'Delivered to address' }}</span>
+            </div>
+            {% endif %}
+          </div>
+
+          <!-- Order Amount -->
+          <div class="text-right shrink-0">
+            <span class="text-base sm:text-lg font-extrabold text-[#212121] block leading-tight">
+              ₹{{ "%.2f"|format(o.get('calculated_grand_total', o.get('vendor_items_total', 0.0))) }}
+            </span>
+            <span class="text-[10px] text-[#878787] block mt-0.5">Full Order Total</span>
+          </div>
+        </div>
+
+        <!-- Items Table -->
+        <div class="border border-[#e0e0e0] rounded-xs overflow-hidden">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-[#f1f3f6] text-[#616161] text-[10.5px] uppercase font-bold border-b border-[#e0e0e0]">
+              <tr>
+                <th class="py-1.5 px-2.5">Item</th>
+                <th class="py-1.5 px-2.5 text-center">Qty</th>
+                <th class="py-1.5 px-2.5 text-right">Price</th>
+                <th class="py-1.5 px-2.5 text-right">Total</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-[#f0f0f0]">
+              {% for it in o.get('vendor_items', []) %}
+              {% set it_qty = it.get('qty', 1) or 1 %}
+              {% set it_price = it.get('price', 0) or 0 %}
+              <tr class="hover:bg-[#fafafa]">
+                <td class="py-2 px-2.5 font-semibold text-[#212121]">
+                  {{ it.get('name') or 'Item' }}
+                  {% if it.get('unit') %}
+                  <span class="text-[10.5px] text-[#878787] font-normal">({{ it.get('unit') }})</span>
+                  {% endif %}
+                </td>
+                <td class="py-2 px-2.5 text-center font-bold text-slate-700">
+                  {{ it_qty }}
+                </td>
+                <td class="py-2 px-2.5 text-right text-[#616161]">
+                  ₹{{ "%.2f"|format(it_price) }}
+                </td>
+                <td class="py-2 px-2.5 text-right font-bold text-[#212121]">
+                  ₹{{ "%.2f"|format(it_price * it_qty) }}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+            <!-- Bill Breakdown Footer -->
+            <tfoot class="bg-[#fcfcfc] border-t border-[#e0e0e0] text-xs">
+              <tr>
+                <td colspan="3" class="py-1.5 px-2.5 text-right text-[#878787] font-medium">Cart Items Subtotal:</td>
+                <td class="py-1.5 px-2.5 text-right font-bold text-[#212121]">₹{{ "%.2f"|format(o.get('vendor_items_total', 0.0)) }}</td>
+              </tr>
+              {% if o.get('delivery_fee') and o.get('delivery_fee')|float > 0 %}
+              <tr>
+                <td colspan="3" class="py-1 px-2.5 text-right text-[#878787] font-medium">Delivery Charge:</td>
+                <td class="py-1 px-2.5 text-right font-bold text-[#212121]">+₹{{ "%.2f"|format(o.get('delivery_fee')|float) }}</td>
+              </tr>
+              {% endif %}
+              {% if o.get('handling_fee') and o.get('handling_fee')|float > 0 %}
+              <tr>
+                <td colspan="3" class="py-1 px-2.5 text-right text-[#878787] font-medium">Handling Fee:</td>
+                <td class="py-1 px-2.5 text-right font-bold text-[#212121]">+₹{{ "%.2f"|format(o.get('handling_fee')|float) }}</td>
+              </tr>
+              {% endif %}
+              {% if o.get('platform_fee') and o.get('platform_fee')|float > 0 %}
+              <tr>
+                <td colspan="3" class="py-1 px-2.5 text-right text-[#878787] font-medium">Platform Fee:</td>
+                <td class="py-1 px-2.5 text-right font-bold text-[#212121]">+₹{{ "%.2f"|format(o.get('platform_fee')|float) }}</td>
+              </tr>
+              {% endif %}
+              {% if o.get('surge_charge') and o.get('surge_charge')|float > 0 %}
+              <tr>
+                <td colspan="3" class="py-1 px-2.5 text-right text-[#878787] font-medium">Surge Charge:</td>
+                <td class="py-1 px-2.5 text-right font-bold text-[#212121]">+₹{{ "%.2f"|format(o.get('surge_charge')|float) }}</td>
+              </tr>
+              {% endif %}
+              {% if o.get('discount') and o.get('discount')|float > 0 %}
+              <tr>
+                <td colspan="3" class="py-1 px-2.5 text-right text-[#388e3c] font-medium">Discount Applied:</td>
+                <td class="py-1 px-2.5 text-right font-bold text-[#388e3c]">-₹{{ "%.2f"|format(o.get('discount')|float) }}</td>
+              </tr>
+              {% endif %}
+              <tr class="bg-blue-50/60 font-black border-t border-[#e0e0e0]">
+                <td colspan="3" class="py-2 px-2.5 text-right text-[#212121]">Final Order Total:</td>
+                <td class="py-2 px-2.5 text-right text-sm text-[#2874f0]">₹{{ "%.2f"|format(o.get('calculated_grand_total', o.get('vendor_items_total', 0.0))) }}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+
+        <!-- Customer Note (if any) -->
+        {% if o.get('has_meaningful_note') %}
+        <div class="p-2 rounded-xs bg-amber-50 border border-amber-200 text-xs text-amber-900 flex items-start gap-1.5">
+          <i class="fas fa-note-sticky text-amber-600 text-xs mt-0.5 shrink-0"></i>
+          <div>
+            <strong class="font-bold">Customer Note:</strong>
+            <span>{{ o.customer_note }}</span>
+          </div>
+        </div>
+        {% endif %}
+
+      </div>
+
+    </div>
+    {% else %}
+    <!-- Empty State -->
+    <div class="fk-card p-8 sm:p-12 text-center space-y-3">
+      <div class="w-12 h-12 rounded-xs bg-blue-50 text-[#2874f0] flex items-center justify-center text-lg mx-auto border border-blue-200">
+        <i class="fas fa-boxes-packing"></i>
+      </div>
+      <h3 class="text-sm font-bold text-[#212121]">No delivered orders for this date</h3>
+      <p class="text-xs text-[#878787] max-w-sm mx-auto">
+        There are no completed/delivered orders recorded on {{ formatted_date }}.
+      </p>
+      <a href="{{ url_for('vendor_ledger') }}" class="inline-flex items-center gap-1.5 btn-fk-blue px-4 py-2 rounded-xs text-xs font-bold uppercase tracking-wider mt-1">
+        <i class="fas fa-arrow-left text-xs"></i>
+        <span>Back to Sales Ledger</span>
+      </a>
+    </div>
+    {% endfor %}
+
+  </div>
+
+  <!-- Search No Results -->
+  <div id="no-order-search-results" class="hidden fk-card p-8 text-center space-y-2">
+    <div class="w-10 h-10 rounded-xs bg-[#f1f3f6] text-[#878787] flex items-center justify-center text-sm mx-auto border border-[#e0e0e0]">
+      <i class="fas fa-search"></i>
+    </div>
+    <h4 class="text-xs font-bold text-[#212121]">No matching orders found</h4>
+    <p class="text-xs text-[#878787]">Try searching with a different keyword.</p>
+    <button type="button" onclick="clearOrderSearch()" class="mt-1 text-xs font-bold text-[#2874f0] hover:underline">
+      Clear Search
+    </button>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- 📄 5. FLIPKART STYLE PAGINATION CONTROLS                 -->
+  <!-- ======================================================== -->
+  <div id="orders-pagination-bar" class="hidden fk-card p-2.5 sm:p-3.5 flex flex-col sm:flex-row items-center justify-between gap-2.5">
+    <span id="orders-pagination-info" class="text-xs font-semibold text-[#878787]">
+      Showing 1-10 of 10 orders
+    </span>
+
+    <div class="flex items-center gap-1" id="orders-pagination-controls">
+      <!-- Buttons dynamically injected via JS -->
+    </div>
+  </div>
+
+  <!-- Bottom Back Navigation -->
+  <div class="pt-2 text-center">
+    <a href="{{ url_for('vendor_ledger') }}" class="inline-flex items-center gap-1.5 text-xs font-bold text-[#2874f0] hover:underline">
+      <i class="fas fa-arrow-left text-[11px]"></i>
+      <span>Return to Full Sales Ledger</span>
+    </a>
+  </div>
+
+</div>
+
+<!-- ======================================================== -->
+<!-- 📜 CLIENT-SIDE SCRIPT: Search & Pagination                -->
+<!-- ======================================================== -->
+<script>
+  let currentOrderPage = 1;
+  const orderPageSize = 10;
+  let matchingOrders = [];
+
+  document.addEventListener('DOMContentLoaded', () => {
+    applyOrderFiltering();
+  });
+
+  function handleOrderSearch(val) {
+    const clearBtn = document.getElementById('clear-order-search-btn');
+    if (clearBtn) {
+      clearBtn.classList.toggle('hidden', !val.trim());
+    }
+    currentOrderPage = 1;
+    applyOrderFiltering();
+  }
+
+  function clearOrderSearch() {
+    const input = document.getElementById('order-search-input');
+    if (input) input.value = '';
+    const clearBtn = document.getElementById('clear-order-search-btn');
+    if (clearBtn) clearBtn.classList.add('hidden');
+    currentOrderPage = 1;
+    applyOrderFiltering();
+  }
+
+  function applyOrderFiltering() {
+    const searchVal = (document.getElementById('order-search-input')?.value || '').toLowerCase().trim();
+    const items = Array.from(document.querySelectorAll('.fk-day-order-item'));
+
+    matchingOrders = [];
+
+    items.forEach(item => {
+      const searchData = item.dataset.search || '';
+      if (!searchVal || searchData.includes(searchVal)) {
+        matchingOrders.push(item);
+      } else {
+        item.style.display = 'none';
+      }
+    });
+
+    const badge = document.getElementById('filtered-orders-badge');
+    if (badge) badge.textContent = `${matchingOrders.length} orders`;
+
+    const noResults = document.getElementById('no-order-search-results');
+    if (noResults) {
+      noResults.classList.toggle('hidden', matchingOrders.length > 0);
+    }
+
+    renderOrdersPagination();
+  }
+
+  function renderOrdersPagination() {
+    const totalItems = matchingOrders.length;
+    const totalPages = Math.ceil(totalItems / orderPageSize) || 1;
+    const paginationBar = document.getElementById('orders-pagination-bar');
+    const controlsContainer = document.getElementById('orders-pagination-controls');
+    const infoEl = document.getElementById('orders-pagination-info');
+
+    if (currentOrderPage > totalPages) currentOrderPage = totalPages;
+    if (currentOrderPage < 1) currentOrderPage = 1;
+
+    const startIdx = (currentOrderPage - 1) * orderPageSize;
+    const endIdx = Math.min(startIdx + orderPageSize, totalItems);
+
+    matchingOrders.forEach((item, idx) => {
+      if (idx >= startIdx && idx < endIdx) {
+        item.style.display = '';
+      } else {
+        item.style.display = 'none';
+      }
+    });
+
+    if (!paginationBar || !controlsContainer) return;
+
+    if (totalItems === 0) {
+      paginationBar.classList.add('hidden');
+      return;
+    }
+
+    paginationBar.classList.remove('hidden');
+
+    if (infoEl) {
+      infoEl.textContent = `Showing ${startIdx + 1}-${endIdx} of ${totalItems} orders`;
+    }
+
+    controlsContainer.innerHTML = '';
+
+    // Prev Button
+    const prevBtn = document.createElement('button');
+    prevBtn.type = 'button';
+    prevBtn.className = 'fk-page-btn';
+    prevBtn.disabled = (currentOrderPage === 1);
+    prevBtn.innerHTML = '<i class="fas fa-chevron-left text-[10px]"></i>';
+    prevBtn.title = 'Previous Page';
+    prevBtn.onclick = () => goToOrderPage(currentOrderPage - 1);
+    controlsContainer.appendChild(prevBtn);
+
+    // Page Pills
+    let startPage = Math.max(1, currentOrderPage - 2);
+    let endPage = Math.min(totalPages, startPage + 4);
+    if (endPage - startPage < 4) {
+      startPage = Math.max(1, endPage - 4);
+    }
+
+    if (startPage > 1) {
+      controlsContainer.appendChild(createOrderPageBtn(1));
+      if (startPage > 2) {
+        const dots = document.createElement('span');
+        dots.className = 'px-1 text-slate-400 text-xs';
+        dots.textContent = '...';
+        controlsContainer.appendChild(dots);
+      }
+    }
+
+    for (let p = startPage; p <= endPage; p++) {
+      controlsContainer.appendChild(createOrderPageBtn(p));
+    }
+
+    if (endPage < totalPages) {
+      if (endPage < totalPages - 1) {
+        const dots = document.createElement('span');
+        dots.className = 'px-1 text-slate-400 text-xs';
+        dots.textContent = '...';
+        controlsContainer.appendChild(dots);
+      }
+      controlsContainer.appendChild(createOrderPageBtn(totalPages));
+    }
+
+    // Next Button
+    const nextBtn = document.createElement('button');
+    nextBtn.type = 'button';
+    nextBtn.className = 'fk-page-btn';
+    nextBtn.disabled = (currentOrderPage === totalPages);
+    nextBtn.innerHTML = '<i class="fas fa-chevron-right text-[10px]"></i>';
+    nextBtn.title = 'Next Page';
+    nextBtn.onclick = () => goToOrderPage(currentOrderPage + 1);
+    controlsContainer.appendChild(nextBtn);
+  }
+
+  function createOrderPageBtn(p) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = `fk-page-btn ${p === currentOrderPage ? 'active' : ''}`;
+    btn.textContent = p;
+    btn.onclick = () => goToOrderPage(p);
+    return btn;
+  }
+
+  function goToOrderPage(p) {
+    currentOrderPage = p;
+    renderOrdersPagination();
+    const container = document.getElementById('day-orders-container');
+    if (container) {
+      container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+</script>
+{% endblock %}

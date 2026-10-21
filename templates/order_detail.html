@@ -1,0 +1,498 @@
+{% extends "base.html" %}
+
+{% block navbar %}
+<!-- 🛍️ Flipkart Style Blue Header -->
+<nav class="sticky top-0 z-[60] bg-[#2874f0] text-white px-3 sm:px-4 py-2.5 flex items-center justify-between font-['Plus_Jakarta_Sans'] shadow-md">
+   <div class="flex items-center justify-between max-w-[540px] mx-auto w-full">
+     <div class="flex items-center gap-2.5">
+       <a href="{{ url_for('my_orders') }}" class="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center text-white hover:bg-white/15 active:scale-90 rounded-full transition-all" title="Back to Orders">
+         <i class="fas fa-arrow-left text-sm sm:text-base"></i>
+       </a>
+       <div>
+         <h1 class="text-[15px] sm:text-[16px] font-bold text-white leading-tight">Order Details</h1>
+         <p class="text-[10.5px] sm:text-[11px] font-medium text-blue-100 truncate mt-0.5 font-mono">#{{ (order.get('order_id', '')[-12:])|upper }}</p>
+       </div>
+     </div>
+     <div class="flex items-center gap-1.5 px-2.5 py-1 bg-white/15 border border-white/20 rounded-md text-[10px] sm:text-[10.5px] font-bold text-white shadow-2xs">
+       {% if is_delivered %}
+         <i class="fas fa-check-circle text-emerald-300"></i>
+         <span>DELIVERED</span>
+       {% elif is_cancelled %}
+         <i class="fas fa-times-circle text-rose-300"></i>
+         <span>CANCELLED</span>
+       {% else %}
+         <i class="fas fa-receipt text-yellow-300"></i>
+         <span>RECEIVED</span>
+       {% endif %}
+     </div>
+   </div>
+</nav>
+{% endblock %}
+
+{% block full_content %}
+<div class="bg-[#f1f3f6] min-h-[100dvh] font-['Plus_Jakarta_Sans'] pb-20 pt-2 sm:pt-3">
+  <div class="max-w-[540px] mx-auto px-2.5 sm:px-4 space-y-2.5">
+
+    <!-- ─── 1. STATUS CARD with ETA / Delivered Info ─── -->
+    <div class="bg-white border border-[#e0e0e0] rounded-none sm:rounded-sm shadow-2xs overflow-hidden">
+
+      <!-- Status + ETA Banner -->
+      {% if is_delivered and order.created_at and order.delivered_at %}
+        {% set diff = ((order.delivered_at - order.created_at).total_seconds() // 60)|int %}
+        <div class="px-3.5 sm:px-4 py-3 bg-emerald-50 border-b border-emerald-100 flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full bg-[#388e3c] text-white flex items-center justify-center text-sm shrink-0">
+            <i class="fas fa-check"></i>
+          </div>
+          <div>
+            <h3 class="text-[14px] font-bold text-[#212121] leading-tight">Delivered Successfully</h3>
+            <p class="text-[11px] text-[#388e3c] font-bold mt-0.5">Delivered in {{ diff }} mins</p>
+          </div>
+        </div>
+      {% elif is_cancelled %}
+        <div class="px-3.5 sm:px-4 py-3 bg-rose-50 border-b border-rose-100 flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full bg-rose-500 text-white flex items-center justify-center text-sm shrink-0">
+            <i class="fas fa-xmark"></i>
+          </div>
+          <div>
+            <h3 class="text-[14px] font-bold text-[#212121] leading-tight">Order Cancelled</h3>
+            <p class="text-[11px] text-rose-600 font-bold mt-0.5">Delivery is currently not available at your address.</p>
+          </div>
+        </div>
+      {% else %}
+        <div class="px-3.5 sm:px-4 py-3 bg-blue-50 border-b border-blue-100 flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full bg-[#2874f0] text-white flex items-center justify-center text-sm shrink-0">
+            <i class="fas fa-receipt"></i>
+          </div>
+          <div>
+            <h3 class="text-[14px] font-bold text-[#212121] leading-tight">Order Received</h3>
+            <p class="text-[11px] text-[#2874f0] font-bold mt-0.5">Your order has been placed & received.</p>
+          </div>
+        </div>
+      {% endif %}
+
+      <!-- Horizontal Status Stepper -->
+      <div class="px-4 sm:px-5 py-4">
+        {% if is_cancelled %}
+          {% set steps = [{'icon': 'fa-receipt', 'label': 'Received'}, {'icon': 'fa-ban', 'label': 'Cancelled'}] %}
+          {% set effective_index = 1 %}
+        {% else %}
+          {% set steps = [{'icon': 'fa-receipt', 'label': 'Received'}, {'icon': 'fa-house-chimney', 'label': 'Delivered'}] %}
+          {% set effective_index = 1 if is_delivered else 0 %}
+        {% endif %}
+
+        <div class="relative px-1">
+          <!-- Track Background -->
+          <div class="absolute left-0 right-0 top-[18px] h-[3px] bg-[#f0f0f0] rounded-full"></div>
+          <!-- Track Active -->
+          <div class="absolute left-0 top-[18px] h-[3px] rounded-full transition-all duration-700
+                      {{ 'bg-rose-400' if is_cancelled else 'bg-[#2874f0]' }}"
+               {{ ('style="width: ' ~ ((effective_index / (steps|length - 1)) * 100) ~ '%;"') | safe }}>
+          </div>
+
+          <div class="flex justify-between relative z-10">
+            {% for s in steps %}
+                {% set idx = loop.index0 %}
+                {% set done = idx <= effective_index %}
+                <div class="flex flex-col items-center">
+                  <div class="w-9 h-9 rounded-full flex items-center justify-center text-[11px] transition-all border-2
+                              {% if done %}
+                                  {{ 'bg-rose-500 text-white border-rose-500' if is_cancelled else 'bg-[#2874f0] text-white border-[#2874f0]' }}
+                              {% else %}
+                                  bg-white border-[#e0e0e0] text-[#878787]
+                              {% endif %}">
+                      <i class="fas {{ s.icon }}"></i>
+                  </div>
+                  <span class="mt-1.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-tight text-center max-w-[70px]
+                              {% if is_cancelled %}
+                                  {{ 'text-rose-700' if done else 'text-[#878787]' }}
+                              {% else %}
+                                  {{ 'text-[#212121]' if done else 'text-[#878787]' }}
+                              {% endif %}">
+                      {{ s.label }}
+                  </span>
+                </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Order Info Row -->
+      <div class="px-3.5 sm:px-4 py-2.5 bg-[#f5f5f5] border-t border-[#f0f0f0] flex items-center justify-between text-[11.5px]">
+        <div class="flex items-center gap-4 text-[#878787] font-medium">
+          <span>Order ID: <b class="text-[#212121] font-mono">{{ (order.get('order_id', '')[-12:])|upper }}</b></span>
+        </div>
+        <span class="text-[#878787] font-medium">{{ order.created_at|ist_time }}</span>
+      </div>
+    </div>
+
+    <!-- ─── 2. ITEMS ORDERED ─── -->
+    {% set order_items = order.get('items', []) if order.get('items') else [] %}
+    {% if order_items and order_items|length > 0 %}
+    <div class="bg-white border border-[#e0e0e0] rounded-none sm:rounded-sm shadow-2xs overflow-hidden">
+      <div class="px-3.5 sm:px-4 py-2.5 border-b border-[#f0f0f0] flex items-center justify-between">
+        <h3 class="text-[12px] font-bold uppercase tracking-wider text-[#878787]">
+          Items Ordered ({{ order_items|length }})
+        </h3>
+        <span class="text-[10.5px] font-bold text-[#2874f0] bg-blue-50 px-2 py-0.5 rounded-sm border border-blue-100">
+          {{ order_items|length }} Item{% if order_items|length != 1 %}s{% endif %}
+        </span>
+      </div>
+
+      <div class="divide-y divide-[#f0f0f0]" id="cust-order-items-list">
+        {% for item in order_items if item.name and not ('special request' in item.name|lower or 'special note' in item.name|lower or 'order note' in item.name|lower) %}
+        <div class="px-3.5 sm:px-4 py-2.5 flex items-center justify-between gap-3">
+          <div class="flex items-center gap-3 min-w-0">
+            {% if item.image %}
+            <div class="w-12 h-12 bg-white rounded-sm border border-[#f0f0f0] p-1 flex items-center justify-center shrink-0">
+              <img src="{{ item.image }}" alt="{{ item.name }}" class="max-w-full max-h-full object-contain mix-blend-multiply" onerror="this.src='/static/images/placeholder.png'">
+            </div>
+            {% else %}
+            <div class="w-10 h-10 rounded-sm bg-slate-50 border border-[#f0f0f0] flex items-center justify-center text-[#878787] shrink-0 text-sm">
+              <i class="fas fa-box"></i>
+            </div>
+            {% endif %}
+            <div class="min-w-0">
+              <h4 class="text-[13px] font-medium text-[#212121] leading-tight truncate">{{ item.name }}</h4>
+              <div class="flex items-center gap-2 mt-0.5 text-[11px] text-[#878787]">
+                {% if item.unit %}<span>{{ item.unit }}</span> • {% endif %}
+                <span>Qty: <b class="text-[#212121]">{{ item.qty or 1 }}</b></span>
+                <span>× ₹{{ item.price }}</span>
+              </div>
+            </div>
+          </div>
+          <div class="text-right shrink-0">
+            <span class="text-[13.5px] font-bold text-[#212121]">₹{{ ((item.price|float) * ((item.qty or 1)|float))|int }}</span>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- ─── 3. SPECIAL NOTES / REQUEST ITEMS ─── -->
+    {% set notes_val = (order.get('notes') or order.get('order_notes') or '')|string|trim %}
+    {% set is_note_finalized = order.get('notes_finalized') %}
+    {% set note_avail = order.get('notes_available') %}
+    {% set note_pr = (order.get('notes_price', 0) or 0)|float %}
+    {% if notes_val %}
+    <div class="bg-white border border-[#e0e0e0] rounded-none sm:rounded-sm p-3.5 sm:p-4 shadow-2xs space-y-2.5" id="cust-notes-container">
+      <div class="flex items-center justify-between border-b border-[#f0f0f0] pb-2">
+        <h3 class="text-[12px] font-bold uppercase tracking-wider text-[#878787] flex items-center gap-1.5 whitespace-nowrap">
+          <i class="fas fa-clipboard-list text-amber-600"></i>
+          <span>SPECIAL NOTES / REQUEST ITEMS</span>
+        </h3>
+        <span id="cust-notes-badge" class="whitespace-nowrap text-[10px] font-bold px-2 py-0.5 rounded-sm border
+          {% if is_note_finalized %}
+            {% if note_avail and note_pr > 0 %}bg-green-50 text-[#388e3c] border-green-200
+            {% else %}bg-slate-50 text-slate-700 border-slate-200{% endif %}
+          {% else %}bg-amber-50 text-amber-700 border-amber-200{% endif %}">
+          {% if is_note_finalized %}
+            {% if note_avail and note_pr > 0 %}✓ Added to Bill (+₹{{ "%.2f"|format(note_pr) }})
+            {% else %}✓ Note Received (₹0){% endif %}
+          {% else %}Pending Store Review{% endif %}
+        </span>
+      </div>
+      <div class="bg-amber-50/70 border border-amber-200/80 rounded-sm p-3 text-[12.5px] font-medium text-slate-800 whitespace-pre-line leading-relaxed">
+        {{ notes_val }}
+      </div>
+      {% set stored_note_items = order.get('notes_items') or [] %}
+      {% if stored_note_items and stored_note_items|length > 0 %}
+      <div class="bg-green-50/70 border border-green-200 rounded-sm p-2.5 space-y-1.5" id="cust-note-items-breakdown">
+        <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-800 block">Requested Items Status:</span>
+        <div class="divide-y divide-emerald-100 text-xs">
+          {% for ni in stored_note_items if ni.name and not ('special request' in ni.name|lower or 'special note' in ni.name|lower or 'order note' in ni.name|lower) %}
+          <div class="py-1 flex items-center justify-between text-[#212121]">
+            <span class="font-medium truncate">{{ ni.name }}</span>
+            {% if ni.price|float > 0 %}
+            <span class="font-mono font-bold text-emerald-800 shrink-0">+₹{{ "%.2f"|format(ni.price|float) }}</span>
+            {% else %}
+            <span class="text-[10.5px] font-mono text-slate-400 shrink-0">₹0 (Not charged)</span>
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+      <p id="cust-notes-desc" class="text-[10.5px] text-[#878787] flex items-center gap-1.5">
+        {% if is_note_finalized and note_avail and note_pr > 0 %}
+          <i class="fas fa-check-circle text-[#388e3c] shrink-0"></i>
+          <span class="text-[#388e3c] font-medium">Store confirmed requested items. Total ₹{{ "%.2f"|format(note_pr) }} has been added to your bill.</span>
+        {% elif is_note_finalized %}
+          <i class="fas fa-check-circle text-[#388e3c] shrink-0"></i>
+          <span class="text-slate-600 font-medium">Store received your notes / instructions. No extra charges added.</span>
+        {% else %}
+          <i class="fas fa-circle-info text-amber-600 shrink-0"></i>
+          <span>Store is checking availability. If extra items are available, price will be added to your bill automatically.</span>
+        {% endif %}
+      </p>
+    </div>
+    {% endif %}
+
+    <!-- ─── 4. PRICE BREAKDOWN ─── -->
+    <div class="bg-white border border-[#e0e0e0] rounded-none sm:rounded-sm p-3.5 sm:p-4 shadow-2xs space-y-3">
+      <div class="flex items-center justify-between border-b border-[#f0f0f0] pb-2">
+        <h3 class="text-[12px] font-bold uppercase tracking-wider text-[#878787]">
+          PRICE DETAILS
+        </h3>
+        <span class="text-[10.5px] font-bold text-[#388e3c] bg-green-50 px-2 py-0.5 rounded-sm border border-green-200">
+          {{ order.get('payment_method', 'Cash on Delivery') }}
+        </span>
+      </div>
+
+      <div class="space-y-2 text-[13px]">
+        <!-- Items Subtotal -->
+        <div class="flex justify-between items-center text-[#212121]">
+          <span class="text-[#878787]">Items Total (<span id="cust-items-count">{% if order_items %}{{ order_items|length }}{% else %}0{% endif %}</span> items)</span>
+          <span class="font-medium text-[#212121]" id="cust-items-subtotal">₹{{ "{:,.2f}".format((order.get('subtotal', 0) or 0)|float) }}</span>
+        </div>
+
+        <!-- Handling Fee -->
+        {% if order.get('handling_fee') is not none and (order.get('handling_fee', 0)|float > 0) %}
+        <div class="flex justify-between items-center text-[#212121]">
+          <span class="text-[#878787]">Handling Fee</span>
+          <span class="font-medium text-[#212121]">₹{{ "{:,.2f}".format(order.get('handling_fee', 0)|float) }}</span>
+        </div>
+        {% endif %}
+
+        <!-- Platform Fee -->
+        {% if order.get('platform_fee') is not none and (order.get('platform_fee', 0)|float > 0) %}
+        <div class="flex justify-between items-center text-[#212121]">
+          <span class="text-[#878787]">Platform Fee</span>
+          <span class="font-medium text-[#212121]">₹{{ "{:,.2f}".format(order.get('platform_fee', 0)|float) }}</span>
+        </div>
+        {% endif %}
+
+        <!-- Surge Charge -->
+        {% if order.get('surge_charge') is not none and (order.get('surge_charge', 0)|float > 0) %}
+        <div class="flex justify-between items-center text-rose-600">
+          <span>Surge Charge</span>
+          <span class="font-bold">₹{{ "{:,.2f}".format(order.get('surge_charge', 0)|float) }}</span>
+        </div>
+        {% endif %}
+
+        <!-- Delivery Fee -->
+        <div class="flex justify-between items-center text-[#212121]">
+          <span class="text-[#878787]">Delivery Charges</span>
+          <div>
+            {% if (order.get('delivery_fee', 0) or 0)|float == 0 %}
+              <span class="text-[#388e3c] font-bold text-[12px] bg-green-50 px-2 py-0.5 rounded-sm border border-green-200">FREE</span>
+            {% else %}
+              <span class="font-medium text-[#212121]">₹{{ "{:,.2f}".format((order.get('delivery_fee', 0) or 0)|float) }}</span>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="h-px border-b border-dashed border-[#e0e0e0] my-2"></div>
+
+        <!-- Grand Total -->
+        <div class="flex justify-between items-center text-[15px] font-bold text-[#212121]">
+          <span>Total Amount</span>
+          <span class="text-[18px] text-[#212121]" id="cust-grand-total">₹{{ "{:,.2f}".format((order.get('total', 0) or 0)|float) }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── 5. DELIVERY ADDRESS ─── -->
+    {% set addr = order.get('address') %}
+    {% if addr %}
+    <div class="bg-white border border-[#e0e0e0] rounded-none sm:rounded-sm p-3.5 sm:p-4 shadow-2xs space-y-2">
+      <h3 class="text-[12px] font-bold uppercase tracking-wider text-[#878787] border-b border-[#f0f0f0] pb-2">
+        DELIVERY ADDRESS
+      </h3>
+      <div class="flex items-start gap-2.5 pt-0.5">
+        <i class="fas fa-map-marker-alt text-[#2874f0] text-sm mt-0.5 shrink-0"></i>
+        <div class="text-[12.5px] font-medium text-[#212121] leading-relaxed">
+          {% if addr is mapping %}
+            <p class="font-bold text-[#212121]">{{ addr.line1 or '' }}</p>
+            {% if addr.line2 %}<p class="text-[#878787]">{{ addr.line2 }}</p>{% endif %}
+            <p class="text-[#878787]">{{ addr.city or '' }}{% if addr.pincode %} - {{ addr.pincode }}{% endif %}</p>
+            <div class="mt-2 pt-1.5 border-t border-[#f0f0f0] flex flex-wrap items-center gap-x-3 gap-y-1 text-[11.5px] text-[#878787]">
+              {% if order.get('user_phone') or order.user_phone %}
+              <p><i class="fas fa-phone text-[9px] mr-1 text-[#2874f0]"></i> Phone: <b class="text-[#212121] font-semibold">{{ order.get('user_phone') or order.user_phone }}</b></p>
+              {% endif %}
+              {% if addr.alt_phone %}
+              <p><i class="fas fa-phone-alt text-[9px] mr-1 text-slate-400"></i> Alternate: <span class="text-[#212121] font-medium">{{ addr.alt_phone }}</span></p>
+              {% endif %}
+            </div>
+          {% else %}
+            <p class="font-bold text-[#212121]">{{ addr }}</p>
+            {% if order.get('user_phone') or order.user_phone %}
+            <p class="text-[11.5px] text-[#878787] mt-1.5 pt-1.5 border-t border-[#f0f0f0]"><i class="fas fa-phone text-[9px] mr-1 text-[#2874f0]"></i> Phone: <b class="text-[#212121] font-semibold">{{ order.get('user_phone') or order.user_phone }}</b></p>
+            {% endif %}
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- ─── 6. ACTIONS ─── -->
+    <div class="pt-1 space-y-2.5">
+      {% if is_delivered %}
+      <a href="{{ url_for('download_invoice', order_id=order.order_id) }}"
+         class="w-full py-3 bg-[#2874f0] hover:bg-blue-700 active:scale-[0.98] text-white font-bold text-[13px] rounded-sm shadow-sm transition-all uppercase tracking-wider flex items-center justify-center gap-2">
+        <i class="fas fa-file-invoice text-sm"></i>
+        <span>Download Invoice</span>
+      </a>
+      {% endif %}
+
+      <a href="{{ url_for('index') }}"
+         class="w-full py-3 bg-white hover:bg-slate-50 active:scale-[0.98] text-[#2874f0] border border-[#e0e0e0] font-bold text-[13px] rounded-sm transition-all uppercase tracking-wider flex items-center justify-center gap-2">
+        <i class="fas fa-bag-shopping text-sm"></i>
+        <span>Continue Shopping</span>
+      </a>
+    </div>
+
+    <!-- 🛡️ Trust Footer -->
+    <div class="p-3 bg-white border border-[#e0e0e0] rounded-none sm:rounded-sm flex items-center justify-center gap-2 text-[#878787] text-[11px] font-medium text-center">
+      <i class="fas fa-shield-halved text-[#388e3c]"></i>
+      <span>100% Safe & Contactless Delivery Guaranteed</span>
+    </div>
+
+    <!-- Hidden meta for safe JS access without inline Jinja in script tag -->
+    <div id="cust-order-meta" 
+         data-order-id="{{ order.get('order_id') }}" 
+         data-completed="{{ 'true' if (is_delivered or is_cancelled) else 'false' }}" 
+         class="hidden"></div>
+
+  </div>
+</div>
+
+<style>
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .space-y-2\.5 > div, .space-y-2\.5 > a { animation: fadeUp 0.35s ease-out both; }
+</style>
+
+<script>
+  (function initCustomerOrderSync() {
+    var metaEl = document.getElementById('cust-order-meta');
+    if (!metaEl) return;
+    var orderId = metaEl.getAttribute('data-order-id') || '';
+    var isCompleted = (metaEl.getAttribute('data-completed') === 'true');
+    if (!orderId || isCompleted) return;
+
+    var pollInterval = setInterval(function() {
+      fetch('/api/order-poll/' + orderId)
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (!data || !data.success) return;
+
+          // 1. Update Subtotal & Grand Total live
+          var subtotalEl = document.getElementById('cust-items-subtotal');
+          if (subtotalEl && data.subtotal !== undefined) {
+            subtotalEl.textContent = '₹' + data.subtotal.toFixed(2);
+          }
+          var totalEl = document.getElementById('cust-grand-total');
+          if (totalEl && data.total !== undefined) {
+            totalEl.textContent = '₹' + data.total.toFixed(2);
+          }
+
+          // 2. Update Items Count and Dynamic Custom Items
+          if (Array.isArray(data.items)) {
+            var itemsCountEl = document.getElementById('cust-items-count');
+            if (itemsCountEl) itemsCountEl.textContent = data.items.length;
+
+            var orderItemsContainer = document.getElementById('cust-order-items-list');
+            if (orderItemsContainer) {
+              var oldDynamicItems = orderItemsContainer.querySelectorAll('[data-custom-note-item="true"]');
+              oldDynamicItems.forEach(function(el) { el.remove(); });
+
+              data.items.forEach(function(item) {
+                if (item.is_note_item && item.price > 0) {
+                  var itemRow = document.createElement('div');
+                  itemRow.className = 'px-3.5 sm:px-4 py-2.5 flex items-center justify-between gap-3 bg-amber-50/40 border-t border-amber-100';
+                  itemRow.setAttribute('data-custom-note-item', 'true');
+                  itemRow.innerHTML = 
+                    '<div class="flex items-center gap-3 min-w-0">' +
+                      '<div class="w-10 h-10 rounded-sm bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-700 shrink-0 text-sm">' +
+                        '<i class="fas fa-clipboard-check"></i>' +
+                      '</div>' +
+                      '<div class="min-w-0">' +
+                        '<div class="flex items-center gap-1.5 flex-wrap">' +
+                          '<h4 class="text-[13px] font-medium text-[#212121] leading-tight truncate">' + String(item.name) + '</h4>' +
+                          '<span class="text-[9.5px] font-bold px-1.5 py-0.2 rounded-xs bg-amber-100 text-amber-800 border border-amber-200">Note Item</span>' +
+                        '</div>' +
+                        '<div class="flex items-center gap-2 mt-0.5 text-[11px] text-[#878787]">' +
+                          '<span>Custom Item</span> • <span>Qty: <b class="text-[#212121]">' + (item.qty || 1) + '</b></span>' +
+                          '<span>× ₹' + item.price.toFixed(2) + '</span>' +
+                        '</div>' +
+                      '</div>' +
+                    '</div>' +
+                    '<div class="text-right shrink-0">' +
+                      '<span class="text-[13.5px] font-bold text-[#212121]">₹' + (item.price * (item.qty || 1)).toFixed(2) + '</span>' +
+                    '</div>';
+                  orderItemsContainer.appendChild(itemRow);
+                }
+              });
+            }
+          }
+
+          // 3. Update Notes Badge & Description
+          if (data.notes_finalized) {
+            var badgeEl = document.getElementById('cust-notes-badge');
+            var descEl = document.getElementById('cust-notes-desc');
+            if (badgeEl && data.notes_available && data.notes_price > 0) {
+              badgeEl.className = 'whitespace-nowrap text-[10px] font-bold px-2 py-0.5 rounded-sm border bg-green-50 text-[#388e3c] border-green-200';
+              badgeEl.textContent = '✓ Added to Bill (+₹' + data.notes_price.toFixed(2) + ')';
+              if (descEl) {
+                descEl.innerHTML = '<i class="fas fa-check-circle text-[#388e3c] shrink-0"></i><span class="text-[#388e3c] font-medium">Store confirmed requested items. Total ₹' + data.notes_price.toFixed(2) + ' has been added to your bill.</span>';
+              }
+
+              var breakdownEl = document.getElementById('cust-note-items-breakdown');
+              if (data.notes_items && data.notes_items.length > 0) {
+                var itemsHtml = '';
+                for (var i = 0; i < data.notes_items.length; i++) {
+                  var ni = data.notes_items[i];
+                  var p = parseFloat(ni.price || 0);
+                  if (p > 0) {
+                    itemsHtml += '<div class="py-1 flex items-center justify-between text-[#212121]">' +
+                      '<span class="font-medium truncate">' + String(ni.name) + '</span>' +
+                      '<span class="font-mono font-bold text-emerald-800 shrink-0">+₹' + p.toFixed(2) + '</span>' +
+                    '</div>';
+                  } else {
+                    itemsHtml += '<div class="py-1 flex items-center justify-between text-slate-500">' +
+                      '<span class="truncate">' + String(ni.name) + '</span>' +
+                      '<span class="text-[10.5px] font-mono text-slate-400 shrink-0">₹0 (Not charged)</span>' +
+                    '</div>';
+                  }
+                }
+
+                if (!breakdownEl) {
+                  breakdownEl = document.createElement('div');
+                  breakdownEl.id = 'cust-note-items-breakdown';
+                  breakdownEl.className = 'bg-green-50/70 border border-green-200 rounded-sm p-2.5 space-y-1.5 my-2';
+                  if (descEl) descEl.parentNode.insertBefore(breakdownEl, descEl);
+                }
+                breakdownEl.innerHTML = '<span class="text-[10px] font-bold uppercase tracking-wider text-emerald-800 block">Requested Items Status:</span>' +
+                  '<div class="divide-y divide-emerald-100 text-xs">' + itemsHtml + '</div>';
+              }
+            } else if (badgeEl) {
+              badgeEl.className = 'whitespace-nowrap text-[10px] font-bold px-2 py-0.5 rounded-sm border bg-slate-50 text-slate-700 border-slate-200';
+              badgeEl.textContent = '✓ Note Received (₹0)';
+              if (descEl) {
+                descEl.innerHTML = '<i class="fas fa-check-circle text-[#388e3c] shrink-0"></i><span class="text-slate-600 font-medium">Store received your notes / instructions. No extra charges added.</span>';
+              }
+              var oldBreakdownEl = document.getElementById('cust-note-items-breakdown');
+              if (oldBreakdownEl) oldBreakdownEl.remove();
+            }
+          }
+
+          // 4. Status change check
+          if (data.status === 'delivered' || data.status === 'cancelled') {
+            clearInterval(pollInterval);
+            window.location.reload();
+          }
+        })
+        .catch(function(err) {
+          // silent error handling
+        });
+    }, 3000);
+  })();
+</script>
+{% endblock %}
+
+{% block mobile_nav %}{% endblock %}
+{% block footer %}{% endblock %}

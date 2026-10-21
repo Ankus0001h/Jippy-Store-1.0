@@ -1,0 +1,1238 @@
+{% extends "base.html" %}
+
+{% block extra_head %}
+<meta name="turbo-cache-control" content="no-cache">
+{% endblock %}
+
+{% block navbar %}
+<!-- 🛍️ Flipkart Style Blue Header -->
+<nav
+  class="sticky top-0 z-[60] bg-[#2874f0] text-white px-3 sm:px-4 py-2.5 flex items-center justify-between font-['Plus_Jakarta_Sans'] shadow-md">
+  <div class="flex items-center gap-2.5 max-w-[540px] mx-auto w-full">
+    <button onclick="history.back()"
+      class="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center text-white hover:bg-white/15 active:scale-90 rounded-full transition-all"
+      title="Back">
+      <i class="fas fa-arrow-left text-sm sm:text-base"></i>
+    </button>
+    <div>
+      <h1 class="text-[15px] sm:text-[16px] font-bold text-white leading-tight">Delivery Address</h1>
+      <p class="text-[10.5px] sm:text-[11px] font-medium text-blue-100 truncate mt-0.5">Step 2 of 2 • Order Details</p>
+    </div>
+  </div>
+</nav>
+{% endblock %}
+
+{% block full_content %}
+<!-- 📱 Main Page Content Container (Flipkart Style: #f1f3f6 body, compact spacing, pb-24 for flush bottom bar) -->
+<div class="bg-[#f1f3f6] min-h-[100dvh] pb-24 pt-2 font-['Plus_Jakarta_Sans']">
+  <div class="max-w-[540px] mx-auto px-2 sm:px-3.5 space-y-2">
+
+    <!-- 📍 Saved Addresses (Flipkart Style) -->
+    {% if saved_addresses and saved_addresses|length > 0 %}
+    <div class="bg-white border border-[#e0e0e0] rounded-none sm:rounded-sm p-3 sm:p-3.5 shadow-2xs">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-[11px] font-bold uppercase tracking-wider text-[#878787]">Saved Addresses</span>
+        <span class="text-[10.5px] font-bold text-[#2874f0]">{{ saved_addresses|length }} Available</span>
+      </div>
+      <div class="flex gap-2.5 overflow-x-auto pb-1 hide-scrollbar">
+        {% for addr in saved_addresses %}
+        <button type="button"
+          class="group shrink-0 w-[240px] sm:w-[260px] bg-[#f8f9fa] border border-[#e0e0e0] rounded-sm p-3 text-left hover:border-[#2874f0] hover:bg-blue-50/30 transition-all focus:outline-none focus:border-[#2874f0] focus:ring-1 focus:ring-[#2874f0]"
+          data-address="{{ addr|tojson|forceescape }}" onclick='fillAddressFromSaved(JSON.parse(this.dataset.address))'>
+          <div class="flex items-center justify-between mb-1">
+            <span
+              class="text-[11px] font-bold text-[#2874f0] bg-blue-50 px-1.5 py-0.5 rounded-sm uppercase tracking-wide">
+              {{ addr.label or ("Address " ~ loop.index) }}
+            </span>
+            <span class="text-[10px] font-semibold text-[#878787]">Tap to use</span>
+          </div>
+          <div class="text-[12px] font-medium text-[#212121] leading-snug line-clamp-2 mt-1">
+            {{ addr.line1 }}{% if addr.line2 %}, {{ addr.line2 }}{% endif %}
+          </div>
+          <div class="text-[11px] text-[#878787] mt-0.5">
+            {{ addr.city }} - {{ addr.pincode }}
+          </div>
+          {% if addr.alt_phone %}
+          <div class="mt-1 text-[10.5px] font-semibold text-[#878787]">
+            <i class="fas fa-phone-alt text-[9px] mr-1"></i> {{ addr.alt_phone }}
+          </div>
+          {% endif %}
+        </button>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <div id="addr-alert"
+      class="hidden text-[12.5px] font-bold px-3.5 py-2.5 rounded-sm bg-rose-50 text-rose-600 border border-rose-200 text-center">
+    </div>
+
+    <form id="address-form" class="space-y-2">
+
+      <!-- Hidden inputs for coordinates (populated from session) -->
+      <input type="hidden" id="lat" value="{{ session.get('user_lat', '') }}" />
+      <input type="hidden" id="lng" value="{{ session.get('user_lng', '') }}" />
+      <input type="hidden" id="location-line" value="{{ session.get('user_address', '') }}" />
+
+      <!-- 📝 Address Input Fields (Flipkart Style) -->
+      <div class="bg-white border border-[#e0e0e0] rounded-none sm:rounded-sm p-3.5 sm:p-4 shadow-2xs space-y-3">
+        <!-- Section Header -->
+        <div class="flex items-center justify-between border-b border-[#f0f0f0] pb-2">
+          <h3 class="text-[12px] font-bold uppercase tracking-wider text-[#878787]">
+            Address Information
+          </h3>
+          <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 text-[11px] font-bold text-[#16a34a] bg-emerald-50 border border-emerald-200 rounded-sm shadow-2xs">
+            <i class="fas fa-circle-check text-xs"></i>
+            <span>Society Verified</span>
+          </span>
+        </div>
+
+        <!-- 📍 Interactive Delivery Society Banner -->
+        <div id="auto-fetch-banner"
+          class="bg-emerald-50/80 border border-emerald-200/90 rounded-sm p-3 flex items-center gap-3 transition-all">
+          <div id="fetch-banner-icon-box"
+            class="w-9 h-9 rounded-full bg-emerald-100 flex items-center justify-center text-[#16a34a] shrink-0">
+            <i class="fas fa-building text-base" id="banner-main-icon"></i>
+          </div>
+          <div class="min-w-0 flex-1">
+            <p id="fetch-status-title" class="text-[13px] font-bold text-[#16a34a] leading-tight truncate">
+              Delivering to {{ (society.name if society else session.get('current_society_name', 'Amarpali Empire')) | escape }}
+            </p>
+            <p id="fetch-status-desc" class="text-[11px] text-[#6b7280] truncate mt-0.5 font-medium">
+              Direct doorstep delivery to flats in {{ (society.city if society else session.get('current_society_city', 'Ghaziabad')) | escape }} (PIN: {{ (society.pincode if society else '201016') | escape }})
+            </p>
+          </div>
+        </div>
+
+        <!-- 🏢 Tower / Block / Wing -->
+        <div>
+          <label class="block text-[11px] font-bold uppercase tracking-wider text-[#212121] mb-1.5">
+            Tower / Block / Wing <span class="text-rose-500">*</span>
+          </label>
+          <input type="text" id="addr-block"
+            class="w-full px-3.5 h-11 rounded-sm bg-white border border-[#c2c2c2] text-[13.5px] font-bold text-[#212121] uppercase focus:outline-none focus:border-[#2874f0] focus:ring-1 focus:ring-[#2874f0] transition-all placeholder:normal-case placeholder:font-normal placeholder:text-slate-400"
+            placeholder="e.g. Tower B, Wing C, Block 2, or B" required />
+        </div>
+
+        <!-- Flat / House No & Floor (Optional) Grid -->
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-[11px] font-bold uppercase tracking-wider text-[#212121] mb-1">
+              Flat / House No <span class="text-rose-500">*</span>
+            </label>
+            <input type="text" id="addr-flat"
+              class="w-full px-3 h-11 rounded-sm bg-white border border-[#c2c2c2] text-[13px] font-bold text-[#212121] uppercase focus:outline-none focus:border-[#2874f0] focus:ring-1 focus:ring-[#2874f0] transition-all placeholder:normal-case placeholder:font-normal placeholder:text-slate-400 placeholder:text-[11.5px]"
+              placeholder="e.g. 402, 1903, Villa 4" required />
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold uppercase tracking-wider text-[#212121] mb-1">
+              Floor <span class="text-[#878787] font-normal">(Optional)</span>
+            </label>
+            <input type="text" id="addr-floor"
+              class="w-full px-3 h-11 rounded-sm bg-white border border-[#c2c2c2] text-[13px] font-bold text-[#212121] uppercase focus:outline-none focus:border-[#2874f0] focus:ring-1 focus:ring-[#2874f0] transition-all placeholder:normal-case placeholder:font-normal placeholder:text-slate-400 placeholder:text-[11.5px]"
+              placeholder="e.g. 4th, Ground, 19" />
+          </div>
+        </div>
+
+        <!-- Hidden input for backward compatibility -->
+        <input type="hidden" id="addr-line1" />
+
+        <!-- Area / Society / Locality (Locked to Society) -->
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label class="block text-[11px] font-bold uppercase tracking-wider text-[#212121]">
+              Society / Locality <span class="text-rose-500">*</span>
+            </label>
+            <span
+              class="text-[9.5px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-sm border border-emerald-200 flex items-center gap-1">
+              <i class="fas fa-lock text-[8px]"></i> Society Locked
+            </span>
+          </div>
+          <input type="text" id="addr-line2"
+            class="w-full px-3.5 h-11 rounded-sm bg-[#f8f9fa] border border-[#e0e0e0] text-[13.5px] font-semibold text-[#212121] cursor-not-allowed transition-all select-none"
+            value="{{ (society.name if society else session.get('current_society_name', 'Amarpali Empire')) | escape }}"
+            readonly required />
+        </div>
+
+        <!-- City & PIN Code (Locked to Society) -->
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <label class="block text-[11px] font-bold uppercase tracking-wider text-[#212121]">
+                City <span class="text-rose-500">*</span>
+              </label>
+              <span
+                class="text-[9.5px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded-sm border border-slate-200 flex items-center gap-1">
+                <i class="fas fa-lock text-[8px]"></i> Fixed
+              </span>
+            </div>
+            <input type="text" id="addr-city"
+              class="w-full px-3.5 h-11 rounded-sm bg-[#f8f9fa] border border-[#e0e0e0] text-[13.5px] font-semibold text-[#212121] cursor-not-allowed transition-all select-none"
+              value="{{ (society.city if society else 'Ghaziabad') | escape }}" readonly required />
+          </div>
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <label class="block text-[11px] font-bold uppercase tracking-wider text-[#212121]">
+                PIN Code <span class="text-rose-500">*</span>
+              </label>
+              <span
+                class="text-[9.5px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded-sm border border-slate-200 flex items-center gap-1">
+                <i class="fas fa-lock text-[8px]"></i> Fixed
+              </span>
+            </div>
+            <input type="text" id="addr-pincode" maxlength="6" inputmode="numeric"
+              class="w-full px-3.5 h-11 rounded-sm bg-[#f8f9fa] border border-[#e0e0e0] text-[13.5px] font-semibold text-[#212121] cursor-not-allowed transition-all select-none"
+              value="{{ (society.pincode if society else '201016') | escape }}" readonly required />
+          </div>
+        </div>
+      </div>
+
+      <!-- 📞 Contact Details (Flipkart Style) -->
+      <div class="bg-white border border-[#e0e0e0] rounded-none sm:rounded-sm p-3.5 sm:p-4 shadow-2xs space-y-3">
+        <h3 class="text-[12px] font-bold uppercase tracking-wider text-[#878787] border-b border-[#f0f0f0] pb-2">
+          Contact Details
+        </h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-[11px] font-bold uppercase tracking-wider text-[#212121] mb-1">
+              Phone Number <span class="text-rose-500">*</span>
+            </label>
+            <div class="relative">
+              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[13px] font-bold text-[#878787]">+91</span>
+              <input type="tel" id="delivery-phone"
+                class="w-full pl-11 pr-3.5 h-11 rounded-sm bg-slate-100 border border-[#e0e0e0] text-[13.5px] font-semibold text-slate-600 cursor-not-allowed"
+                value="{{ (session.get('user_phone') or (user.phone if user else '')) | replace('+91', '') }}" readonly />
+            </div>
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold uppercase tracking-wider text-[#212121] mb-1">
+              Alternate Phone <span class="text-[#878787] font-normal">(Optional)</span>
+            </label>
+            <div class="relative">
+              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[13px] font-bold text-[#878787]">+91</span>
+              <input type="tel" id="alt-phone" maxlength="10" inputmode="numeric"
+                class="w-full pl-11 pr-3.5 h-11 rounded-sm bg-white border border-[#c2c2c2] text-[13.5px] font-medium text-[#212121] focus:outline-none focus:border-[#2874f0] focus:ring-1 focus:ring-[#2874f0] transition-all placeholder:text-slate-400"
+                placeholder="10 digit number" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 💳 Payment Options (Flipkart Style: COD & Society Store Credit) -->
+      <div class="bg-white border border-[#e0e0e0] rounded-none sm:rounded-sm p-3.5 sm:p-4 shadow-2xs space-y-3">
+        <h3 class="text-[12px] font-bold uppercase tracking-wider text-[#878787] border-b border-[#f0f0f0] pb-2">
+          Select Payment Method
+        </h3>
+
+        <!-- Option 1: Cash on Delivery (COD) -->
+        <div id="pay-opt-cod" onclick="selectPaymentMethod('COD')"
+          class="border-2 border-[#2874f0] bg-blue-50/20 rounded-sm p-3 flex items-center justify-between gap-2.5 cursor-pointer transition-all active:scale-[0.99]">
+          <div class="flex items-center gap-2.5 min-w-0 flex-1">
+            <div class="w-9 h-9 rounded-sm bg-emerald-50 flex items-center justify-center text-[#388e3c] border border-emerald-200 shrink-0">
+              <i class="fas fa-wallet text-sm"></i>
+            </div>
+            <div class="min-w-0 flex-1">
+              <h4 class="text-[13px] font-bold text-[#212121] whitespace-nowrap truncate">Pay on Delivery</h4>
+              <p class="text-[11px] text-[#878787] whitespace-nowrap truncate mt-0.5">Cash, UPI, or Card at doorstep</p>
+            </div>
+          </div>
+          <div id="cod-radio-indicator" class="w-5 h-5 rounded-full bg-[#2874f0] text-white flex items-center justify-center shadow-2xs shrink-0">
+            <i class="fas fa-check text-[9px]"></i>
+          </div>
+        </div>
+
+        <!-- Option 2: Society Store Credit (Khata) -->
+        <div id="pay-opt-khata" onclick="selectPaymentMethod('STORE_CREDIT')"
+          class="border border-[#e0e0e0] bg-white hover:border-[#2874f0] rounded-sm p-3 flex items-center justify-between gap-2.5 cursor-pointer transition-all active:scale-[0.99]">
+          <div class="flex items-center gap-2.5 min-w-0 flex-1">
+            <div class="w-9 h-9 rounded-sm bg-blue-50 flex items-center justify-center text-[#2874f0] border border-blue-200 shrink-0">
+              <i class="fas fa-book-bookmark text-sm"></i>
+            </div>
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-1.5 flex-nowrap">
+                <h4 class="text-[12.5px] sm:text-[13px] font-bold text-[#212121] whitespace-nowrap shrink-0">Store Credit (Khata)</h4>
+                <span id="khata-badge" class="text-[9px] sm:text-[9.5px] font-bold px-1.5 py-0.5 rounded-xs shrink-0 whitespace-nowrap bg-slate-100 text-slate-600 border border-slate-200">Checking...</span>
+              </div>
+              <p class="text-[11px] text-[#878787] whitespace-nowrap truncate mt-0.5" id="khata-subtext">Pay at month-end directly to store</p>
+            </div>
+          </div>
+          <div id="khata-radio-indicator" class="w-5 h-5 rounded-full border border-slate-300 text-transparent flex items-center justify-center shrink-0">
+            <i class="fas fa-check text-[9px]"></i>
+          </div>
+        </div>
+
+      </div>
+
+    </form>
+  </div>
+</div>
+
+<!-- ============================================== -->
+<!-- ⚠️ POPUP MODAL: STORE CREDIT UNVERIFIED       -->
+<!-- ============================================== -->
+<div id="khata-unverified-modal"
+  class="fixed inset-0 z-[120] bg-black/60 backdrop-blur-[2px] hidden flex items-center justify-center p-4 font-['Plus_Jakarta_Sans'] animate-fade-in"
+  onclick="if(event.target === this) { closeKhataWarningModal(); selectPaymentMethod('COD'); }">
+  <div class="bg-white rounded-md sm:rounded-lg max-w-[400px] w-full p-5 sm:p-6 shadow-2xl relative border border-[#e0e0e0] text-center"
+    onclick="event.stopPropagation()">
+    
+    <!-- Close (✕) Button -->
+    <button type="button" onclick="closeKhataWarningModal(); selectPaymentMethod('COD');"
+      class="absolute top-3 right-3 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition-colors cursor-pointer"
+      title="Close">
+      <i class="fas fa-times text-xs"></i>
+    </button>
+
+    <!-- Triangle Warning Sign Badge -->
+    <div id="modal-icon-badge" class="w-14 h-14 rounded-full bg-amber-100 border border-amber-200 text-amber-500 flex items-center justify-center mx-auto mb-3.5 shadow-2xs">
+      <i id="modal-icon" class="fas fa-triangle-exclamation text-2xl text-amber-500"></i>
+    </div>
+
+    <!-- Title & Description -->
+    <h3 id="modal-title" class="text-[16px] sm:text-[17px] font-black text-[#212121] leading-tight">
+      Store Credit Account Not Verified
+    </h3>
+    <p id="modal-desc" class="text-[12.5px] text-[#555] mt-2.5 leading-relaxed">
+      Your Store Credit (Khata) account is not yet approved by <strong class="text-[#212121]" id="modal-store-name">{{ (society.name if society else 'your society store') | escape }}</strong>.
+    </p>
+
+    <!-- Quick Status Box (No Wrap on phone) -->
+    <div id="modal-status-box" class="mt-3.5 py-2.5 px-3 bg-amber-50 border border-amber-200 rounded-sm text-left flex items-start gap-2">
+      <i class="fas fa-info-circle text-amber-600 text-xs mt-0.5 shrink-0"></i>
+      <p id="modal-status-box-text" class="text-[11.5px] text-amber-900 leading-normal">
+        Request instant approval from your store manager, or complete this order with <strong>Cash on Delivery (COD)</strong>.
+      </p>
+    </div>
+
+    <!-- Actions (Vertical Stack for 100% NO WRAP on all phones) -->
+    <div class="mt-5 space-y-2.5">
+      <button type="button" onclick="requestCheckoutKhataApproval()" id="btn-request-khata-checkout"
+        class="w-full h-11 bg-[#2874f0] hover:bg-blue-600 active:scale-[0.98] text-white text-[13px] font-bold rounded-sm shadow-xs transition-all flex items-center justify-center gap-2 uppercase tracking-wide whitespace-nowrap cursor-pointer">
+        <i id="btn-request-icon" class="fas fa-paper-plane text-xs"></i>
+        <span id="btn-request-text">Request Store Approval</span>
+      </button>
+
+      <button type="button" onclick="closeKhataWarningModal(); selectPaymentMethod('COD');"
+        class="w-full h-11 bg-white hover:bg-slate-50 active:scale-[0.98] border border-[#c2c2c2] text-[#212121] text-[13px] font-bold rounded-sm shadow-2xs transition-all flex items-center justify-center gap-2 uppercase tracking-wide whitespace-nowrap cursor-pointer">
+        <i class="fas fa-wallet text-[#388e3c] text-xs"></i>
+        <span>Pay with Cash on Delivery</span>
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============================================== -->
+<!-- 🔔 FLOATING TOAST ALERT (Top Slide-Down Pill)   -->
+<!-- ============================================== -->
+<div id="addr-floating-toast"
+  class="fixed top-4 sm:top-6 left-1/2 -translate-x-1/2 z-[200] w-[94%] max-w-[460px] pointer-events-none transition-all duration-300 ease-out -translate-y-8 opacity-0 scale-95 font-['Plus_Jakarta_Sans']">
+  <div id="floating-toast-container"
+    class="bg-white/95 backdrop-blur-md rounded-lg sm:rounded-xl p-3 sm:p-3.5 shadow-[0_12px_40px_rgba(225,29,72,0.18)] border border-rose-200/90 flex items-start gap-3 pointer-events-auto transition-all">
+    
+    <!-- Icon Circle -->
+    <div id="floating-toast-icon-box"
+      class="w-8 h-8 rounded-full bg-rose-50 border border-rose-200/80 text-rose-600 flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
+      <i class="fas fa-circle-exclamation text-sm" id="floating-toast-icon"></i>
+    </div>
+
+    <!-- Content -->
+    <div class="min-w-0 flex-1 space-y-0.5">
+      <div class="text-[10.5px] font-black uppercase tracking-wider text-rose-600 flex items-center gap-1.5" id="floating-toast-title">
+        <span>Order Notice</span>
+      </div>
+      <p class="text-[12px] sm:text-[12.5px] font-semibold text-[#212121] leading-snug break-words" id="floating-toast-msg"></p>
+    </div>
+
+    <!-- Close Button -->
+    <button type="button" onclick="hideFloatingToast()"
+      class="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-400 hover:text-slate-700 flex items-center justify-center shrink-0 transition-colors cursor-pointer"
+      title="Dismiss">
+      <i class="fas fa-times text-xs"></i>
+    </button>
+
+  </div>
+</div>
+
+<!-- ============================================== -->
+<!-- 🛍️ FLIPKART STYLE FLUSH BOTTOM CHECKOUT BAR   -->
+<!-- ============================================== -->
+<div id="checkout-bar"
+  class="fixed bottom-0 left-0 right-0 bg-white border-t border-[#e0e0e0] z-[70] shadow-[0_-2px_10px_rgba(0,0,0,0.08)]">
+  <div class="max-w-[540px] mx-auto px-3.5 sm:px-4 py-2 sm:py-2.5 flex items-center justify-between">
+    <div class="flex flex-col">
+      <span class="text-[11px] font-bold text-[#878787] uppercase tracking-wider">Payment Method</span>
+      <span class="text-[13px] font-bold text-[#212121]" id="selected-payment-display">Pay on Delivery</span>
+    </div>
+    <button type="button" id="place-order-btn" onclick="handlePlaceOrder(event)"
+      class="bg-[#fb641b] hover:bg-[#e85a15] active:scale-[0.98] text-white font-bold text-[14px] px-8 py-2.5 sm:py-3 rounded-sm shadow-sm transition-all uppercase tracking-wider flex items-center gap-1.5 disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer">
+      <span id="place-order-text">Place Order</span>
+      <span id="place-order-spinner" class="hidden">
+        <i class="fas fa-circle-notch fa-spin"></i>
+      </span>
+      <i class="fas fa-chevron-right text-xs" id="place-order-icon"></i>
+    </button>
+  </div>
+  <!-- Safe area spacer for modern phone gesture indicator -->
+  <div class="h-[env(safe-area-inset-bottom,0px)] bg-white"></div>
+</div>
+
+<style>
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+</style>
+
+<script type="application/json" id="address-page-context">
+{
+  "fallbackSociety": {{ (society.name if society else session.get('current_society_name', 'Amarpali Empire')) | tojson }},
+  "fallbackCity": {{ (society.city if society else session.get('current_society_city', 'Ghaziabad')) | tojson }},
+  "fallbackPin": {{ (society.pincode if society else session.get('current_society_pincode', '201016')) | tojson }},
+  "societyLat": {{ (society.location.lat if society and society.location and society.location.lat else 28.632254) | tojson }},
+  "societyLng": {{ (society.location.lng if society and society.location and society.location.lng else 77.442971) | tojson }},
+  "sessionAddr": {{ session.get('user_address', '') | tojson }}
+}
+</script>
+
+<script>
+(function() {
+  const _ctxEl = document.getElementById("address-page-context");
+  const _pageCtx = _ctxEl ? JSON.parse(_ctxEl.textContent || "{}") : {};
+  const fallbackSociety = _pageCtx.fallbackSociety || "Amarpali Empire";
+  const fallbackCity = _pageCtx.fallbackCity || "Ghaziabad";
+  const fallbackPin = _pageCtx.fallbackPin || "201016";
+  const societyLat = parseFloat(_pageCtx.societyLat) || 28.632254;
+  const societyLng = parseFloat(_pageCtx.societyLng) || 77.442971;
+  const sessionAddr = _pageCtx.sessionAddr || "";
+
+  let selectedPaymentMethod = 'COD';
+  let khataStatusData = null;
+  let toastTimer = null;
+
+  function highlightField(el) {
+    if (!el) return;
+    el.classList.add("ring-2", "ring-[#2874f0]", "bg-blue-50/40");
+    try { el.focus(); } catch (_) {}
+    setTimeout(() => {
+      el.classList.remove("ring-2", "ring-[#2874f0]", "bg-blue-50/40");
+    }, 1500);
+  }
+
+  window.hideFloatingToast = function() {
+    const toast = document.getElementById("addr-floating-toast");
+    if (!toast) return;
+    toast.classList.add("-translate-y-8", "opacity-0", "pointer-events-none", "scale-95");
+    toast.classList.remove("translate-y-0", "opacity-100", "scale-100");
+  };
+
+  function showAlert(msg, isError = true) {
+    // 1. Top banner alert update
+    const box = document.getElementById("addr-alert");
+    if (box) {
+      box.textContent = msg;
+      box.className = isError
+        ? "text-[12.5px] font-bold px-3.5 py-2.5 rounded-sm bg-rose-50 text-rose-600 border border-rose-200 text-center"
+        : "text-[12.5px] font-bold px-3.5 py-2.5 rounded-sm bg-emerald-50 text-emerald-700 border border-emerald-200 text-center";
+      box.classList.remove("hidden");
+    }
+
+    // 2. Premium top floating pill notification (never covers payment options or button)
+    const toast = document.getElementById("addr-floating-toast");
+    const toastContainer = document.getElementById("floating-toast-container");
+    const toastMsg = document.getElementById("floating-toast-msg");
+    const toastIconBox = document.getElementById("floating-toast-icon-box");
+    const toastIcon = document.getElementById("floating-toast-icon");
+    const toastTitle = document.getElementById("floating-toast-title");
+
+    if (toast && toastMsg) {
+      toastMsg.textContent = msg;
+
+      if (isError) {
+        if (toastContainer) {
+          toastContainer.className = "bg-white/95 backdrop-blur-md rounded-lg sm:rounded-xl p-3 sm:p-3.5 shadow-[0_12px_40px_rgba(225,29,72,0.18)] border border-rose-200/90 flex items-start gap-3 pointer-events-auto transition-all";
+        }
+        if (toastIconBox) {
+          toastIconBox.className = "w-8 h-8 rounded-full bg-rose-50 border border-rose-200/80 text-rose-600 flex items-center justify-center shrink-0 mt-0.5 shadow-2xs";
+        }
+        if (toastIcon) toastIcon.className = "fas fa-circle-exclamation text-sm";
+        if (toastTitle) {
+          toastTitle.className = "text-[10.5px] font-black uppercase tracking-wider text-rose-600 flex items-center gap-1.5";
+          toastTitle.innerText = "Order Notice";
+        }
+      } else {
+        if (toastContainer) {
+          toastContainer.className = "bg-white/95 backdrop-blur-md rounded-lg sm:rounded-xl p-3 sm:p-3.5 shadow-[0_12px_40px_rgba(16,185,129,0.18)] border border-emerald-200 flex items-start gap-3 pointer-events-auto transition-all";
+        }
+        if (toastIconBox) {
+          toastIconBox.className = "w-8 h-8 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-600 flex items-center justify-center shrink-0 mt-0.5 shadow-2xs";
+        }
+        if (toastIcon) toastIcon.className = "fas fa-circle-check text-sm";
+        if (toastTitle) {
+          toastTitle.className = "text-[10.5px] font-black uppercase tracking-wider text-emerald-700 flex items-center gap-1.5";
+          toastTitle.innerText = "Notice";
+        }
+      }
+
+      toast.classList.remove("-translate-y-8", "opacity-0", "pointer-events-none", "scale-95");
+      toast.classList.add("translate-y-0", "opacity-100", "scale-100");
+
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        window.hideFloatingToast();
+      }, 5000);
+    }
+  }
+
+  function showAutoFetchSuccess(sourceName) {
+    const banner = document.getElementById("auto-fetch-banner");
+    const iconBox = document.getElementById("fetch-banner-icon-box");
+    const statusTitle = document.getElementById("fetch-status-title");
+    const statusDesc = document.getElementById("fetch-status-desc");
+
+    if (banner) {
+      banner.className = "bg-emerald-50 border border-emerald-200 rounded-sm p-3 flex items-center justify-between gap-2.5 transition-all";
+    }
+    if (iconBox) {
+      iconBox.className = "w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-[#16a34a] shrink-0";
+      iconBox.innerHTML = '<i class="fas fa-check text-sm"></i>';
+    }
+    if (statusTitle) {
+      statusTitle.textContent = `✓ Locked to ${fallbackSociety}`;
+      statusTitle.className = "text-[12px] font-bold text-[#16a34a] leading-tight truncate";
+    }
+    if (statusDesc) {
+      statusDesc.textContent = `Delivering directly to flats in ${fallbackSociety} • ${fallbackCity} (${fallbackPin})`;
+    }
+  }
+
+  window.openKhataWarningModal = function() {
+    const modal = document.getElementById("khata-unverified-modal");
+    if (modal) {
+      updateModalForKhataStatus();
+      modal.classList.remove("hidden");
+      document.body.style.overflow = "hidden";
+    }
+  };
+
+  window.closeKhataWarningModal = function() {
+    const modal = document.getElementById("khata-unverified-modal");
+    if (modal) {
+      modal.classList.add("hidden");
+      document.body.style.overflow = "";
+    }
+  };
+
+  function updateModalForKhataStatus() {
+    const modalTitle = document.getElementById("modal-title");
+    const modalDesc = document.getElementById("modal-desc");
+    const modalStatusBoxText = document.getElementById("modal-status-box-text");
+    const modalIconBadge = document.getElementById("modal-icon-badge");
+    const modalIcon = document.getElementById("modal-icon");
+    const reqBtn = document.getElementById("btn-request-khata-checkout");
+    const reqText = document.getElementById("btn-request-text");
+    const reqIcon = document.getElementById("btn-request-icon");
+    const storeName = (khataStatusData && khataStatusData.shop_name) ? khataStatusData.shop_name : fallbackSociety;
+
+    if (khataStatusData && khataStatusData.status === 'PENDING') {
+      if (modalIconBadge) modalIconBadge.className = "w-14 h-14 rounded-full bg-amber-100 border border-amber-200 text-amber-600 flex items-center justify-center mx-auto mb-3.5 shadow-2xs";
+      if (modalIcon) modalIcon.className = "fas fa-clock text-2xl text-amber-600 animate-pulse";
+      if (modalTitle) modalTitle.textContent = "Approval Request Pending";
+      if (modalDesc) modalDesc.innerHTML = `Your Store Credit request has already been sent to <strong class="text-[#212121]">${storeName}</strong> and is currently awaiting approval.`;
+      if (modalStatusBoxText) modalStatusBoxText.innerHTML = `Your request is under review. The store manager will approve or decline it shortly. You can complete this order using <strong>Cash on Delivery (COD)</strong>.`;
+      if (reqBtn) {
+        reqBtn.disabled = true;
+        reqBtn.className = "w-full h-11 bg-slate-200 border border-slate-300 text-slate-500 text-[13px] font-bold rounded-sm shadow-none cursor-not-allowed flex items-center justify-center gap-2 uppercase tracking-wide whitespace-nowrap";
+      }
+      if (reqIcon) reqIcon.className = "fas fa-hourglass-half text-xs";
+      if (reqText) reqText.textContent = "Request Already Pending";
+    } else if (khataStatusData && khataStatusData.status === 'REJECTED') {
+      if (modalIconBadge) modalIconBadge.className = "w-14 h-14 rounded-full bg-rose-100 border border-rose-200 text-rose-500 flex items-center justify-center mx-auto mb-3.5 shadow-2xs";
+      if (modalIcon) modalIcon.className = "fas fa-times-circle text-2xl text-rose-500";
+      if (modalTitle) modalTitle.textContent = "Store Credit Request Declined";
+      if (modalDesc) modalDesc.innerHTML = `Your previous request was declined by <strong class="text-[#212121]">${storeName}</strong>. You can verify your flat number and re-apply, or complete your order with COD.`;
+      if (modalStatusBoxText) modalStatusBoxText.innerHTML = `Re-submit your request with correct flat & tower, or pay via <strong>Cash on Delivery (COD)</strong>.`;
+      if (reqBtn) {
+        reqBtn.disabled = false;
+        reqBtn.className = "w-full h-11 bg-[#2874f0] hover:bg-blue-600 active:scale-[0.98] text-white text-[13px] font-bold rounded-sm shadow-xs transition-all flex items-center justify-center gap-2 uppercase tracking-wide whitespace-nowrap cursor-pointer";
+      }
+      if (reqIcon) reqIcon.className = "fas fa-paper-plane text-xs";
+      if (reqText) reqText.textContent = "Re-apply for Approval";
+    } else {
+      if (modalIconBadge) modalIconBadge.className = "w-14 h-14 rounded-full bg-amber-100 border border-amber-200 text-amber-500 flex items-center justify-center mx-auto mb-3.5 shadow-2xs";
+      if (modalIcon) modalIcon.className = "fas fa-triangle-exclamation text-2xl text-amber-500";
+      if (modalTitle) modalTitle.textContent = "Store Credit Account Not Verified";
+      if (modalDesc) modalDesc.innerHTML = `Your Store Credit (Khata) account is not yet approved by <strong class="text-[#212121]">${storeName}</strong>.`;
+      if (modalStatusBoxText) modalStatusBoxText.innerHTML = `Request instant approval from your store manager, or complete this order with <strong>Cash on Delivery (COD)</strong>.`;
+      if (reqBtn) {
+        reqBtn.disabled = false;
+        reqBtn.className = "w-full h-11 bg-[#2874f0] hover:bg-blue-600 active:scale-[0.98] text-white text-[13px] font-bold rounded-sm shadow-xs transition-all flex items-center justify-center gap-2 uppercase tracking-wide whitespace-nowrap cursor-pointer";
+      }
+      if (reqIcon) reqIcon.className = "fas fa-paper-plane text-xs";
+      if (reqText) reqText.textContent = "Request Store Approval";
+    }
+  }
+
+  async function checkKhataVerification() {
+    try {
+      const res = await fetch("/api/khata/check-status?_t=" + Date.now(), { cache: "no-store" });
+      const data = await res.json();
+      khataStatusData = data;
+      const badge = document.getElementById("khata-badge");
+      const subtext = document.getElementById("khata-subtext");
+      const modalStoreName = document.getElementById("modal-store-name");
+      if (modalStoreName && data.shop_name) modalStoreName.textContent = data.shop_name;
+
+      if (badge) {
+        if (data.is_verified) {
+          badge.className = "text-[9px] sm:text-[9.5px] font-bold px-1.5 py-0.5 rounded-xs shrink-0 whitespace-nowrap bg-emerald-100 text-emerald-800 border border-emerald-300";
+          badge.innerHTML = '<i class="fas fa-check-circle text-[8px] mr-0.5"></i> Verified';
+          if (subtext) {
+            const due = data.current_balance > 0 ? ` • Due: ₹${data.current_balance.toFixed(0)}` : (data.current_balance < 0 ? ` • Adv: ₹${Math.abs(data.current_balance).toFixed(0)}` : '');
+            subtext.textContent = `Limit: ${limit}${due}`;
+          }
+        } else if (data.status === 'PENDING') {
+          badge.className = "text-[9px] sm:text-[9.5px] font-bold px-1.5 py-0.5 rounded-xs shrink-0 whitespace-nowrap bg-amber-100 text-amber-800 border border-amber-300";
+          badge.innerHTML = '<i class="fas fa-clock text-[8px] mr-0.5"></i> Pending Approval';
+          if (subtext) subtext.textContent = "Request under review by store";
+        } else if (data.status === 'REJECTED') {
+          badge.className = "text-[9px] sm:text-[9.5px] font-bold px-1.5 py-0.5 rounded-xs shrink-0 whitespace-nowrap bg-rose-100 text-rose-800 border border-rose-300";
+          badge.innerHTML = '<i class="fas fa-ban text-[8px] mr-0.5"></i> Declined';
+          if (subtext) subtext.textContent = "Request declined • Tap to re-apply";
+        } else {
+          badge.className = "text-[9px] sm:text-[9.5px] font-bold px-1.5 py-0.5 rounded-xs shrink-0 whitespace-nowrap bg-slate-100 text-slate-600 border border-slate-200";
+          badge.textContent = "Approval Required";
+          if (subtext) subtext.textContent = "Pay at month-end directly to store";
+        }
+      }
+      updateModalForKhataStatus();
+    } catch (err) {
+      console.error("Khata status check error:", err);
+    }
+  }
+
+  window.selectPaymentMethod = function(method) {
+    const codOpt = document.getElementById("pay-opt-cod");
+    const khataOpt = document.getElementById("pay-opt-khata");
+    const codRadio = document.getElementById("cod-radio-indicator");
+    const khataRadio = document.getElementById("khata-radio-indicator");
+    const displayLabel = document.getElementById("selected-payment-display");
+    const submitBtn = document.getElementById("place-order-btn");
+
+    if (method === 'STORE_CREDIT') {
+      if (!khataStatusData || !khataStatusData.is_verified) {
+        openKhataWarningModal();
+        return;
+      }
+
+      // If verified
+      closeKhataWarningModal();
+      selectedPaymentMethod = 'STORE_CREDIT';
+      if (khataOpt) khataOpt.className = "border-2 border-[#2874f0] bg-blue-50/20 rounded-sm p-3 flex items-center justify-between gap-2.5 cursor-pointer transition-all active:scale-[0.99]";
+      if (khataRadio) {
+        khataRadio.className = "w-5 h-5 rounded-full bg-[#2874f0] text-white flex items-center justify-center shadow-2xs shrink-0";
+        khataRadio.innerHTML = '<i class="fas fa-check text-[9px]"></i>';
+      }
+      if (codOpt) codOpt.className = "border border-[#e0e0e0] bg-white rounded-sm p-3 flex items-center justify-between gap-2.5 cursor-pointer transition-all active:scale-[0.99]";
+      if (codRadio) {
+        codRadio.className = "w-5 h-5 rounded-full border border-slate-300 text-transparent flex items-center justify-center shrink-0";
+        codRadio.innerHTML = '<i class="fas fa-check text-[9px]"></i>';
+      }
+      if (displayLabel) displayLabel.textContent = "Store Credit (Khata)";
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.classList.remove("opacity-70", "cursor-not-allowed");
+      }
+    } else {
+      // COD
+      closeKhataWarningModal();
+      selectedPaymentMethod = 'COD';
+      if (codOpt) codOpt.className = "border-2 border-[#2874f0] bg-blue-50/20 rounded-sm p-3 flex items-center justify-between gap-2.5 cursor-pointer transition-all active:scale-[0.99]";
+      if (codRadio) {
+        codRadio.className = "w-5 h-5 rounded-full bg-[#2874f0] text-white flex items-center justify-center shadow-2xs shrink-0";
+        codRadio.innerHTML = '<i class="fas fa-check text-[9px]"></i>';
+      }
+      if (khataOpt) khataOpt.className = "border border-[#e0e0e0] bg-white rounded-sm p-3 flex items-center justify-between gap-2.5 cursor-pointer transition-all active:scale-[0.99]";
+      if (khataRadio) {
+        khataRadio.className = "w-5 h-5 rounded-full border border-slate-300 text-transparent flex items-center justify-center shrink-0";
+        khataRadio.innerHTML = '<i class="fas fa-check text-[9px]"></i>';
+      }
+      if (displayLabel) displayLabel.textContent = "Pay on Delivery";
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.classList.remove("opacity-70", "cursor-not-allowed");
+      }
+    }
+  };
+
+  window.requestCheckoutKhataApproval = async function() {
+    if (khataStatusData && khataStatusData.status === 'PENDING') {
+      showAlert("Your approval request has already been submitted and is currently pending review by the store manager.");
+      closeKhataWarningModal();
+      return;
+    }
+
+    const block = (document.getElementById("addr-block")?.value || "").trim();
+    const floor = (document.getElementById("addr-floor")?.value || "").trim();
+    const flat = (document.getElementById("addr-flat")?.value || "").trim();
+    const reqBtn = document.getElementById("btn-request-khata-checkout");
+    const reqText = document.getElementById("btn-request-text");
+
+    if (!block || !flat) {
+      closeKhataWarningModal();
+      showAlert("Please enter your Tower / Block and Flat Number first.");
+      if (!block) highlightField(document.getElementById("addr-block"));
+      if (!flat) highlightField(document.getElementById("addr-flat"));
+      return;
+    }
+
+    if (reqBtn) {
+      reqBtn.disabled = true;
+      if (reqText) reqText.textContent = "Submitting Request...";
+    }
+
+    try {
+      const res = await fetch("/api/khata/request-approval", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          block: block,
+          floor: floor,
+          flat_no: flat
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        closeKhataWarningModal();
+        showAlert("Authorization request submitted! Store manager has been notified. Pay on Delivery is selected for this order.", false);
+        await checkKhataVerification();
+        selectPaymentMethod('COD');
+      } else {
+        showAlert(data.error || "Failed to submit approval request.");
+        await checkKhataVerification();
+      }
+    } catch (err) {
+      showAlert("Network error submitting request. Please try again.");
+    } finally {
+      if (reqBtn && (!khataStatusData || khataStatusData.status !== 'PENDING')) {
+        reqBtn.disabled = false;
+        if (reqText) reqText.textContent = "Request Store Approval";
+      }
+    }
+  };
+
+  // 🧠 Client-Side Address Auto-Prefixer & Capitalizer
+  function getOrdinalFloor(n) {
+    n = parseInt(n);
+    if (isNaN(n) || n === 0) return 'GROUND FLOOR';
+    if (n % 100 >= 11 && n % 100 <= 13) return n + 'TH FLOOR';
+    const last = n % 10;
+    if (last === 1) return n + 'ST FLOOR';
+    if (last === 2) return n + 'ND FLOOR';
+    if (last === 3) return n + 'RD FLOOR';
+    return n + 'TH FLOOR';
+  }
+
+  function standardizeBlock(b) {
+    let s = (b || "").trim().toUpperCase().replace(/[()\[\]{}]/g, '');
+    if (!s) return "GENERAL BLOCK";
+
+    // 1. Phase / Pocket / Sector
+    const phaseM = s.match(/^(PHASE|PHS|PH|POCKET|PKT|PCKT|SECTOR|SEC|SCTR)\s*[\-:#\.]*\s*(.*)$/i);
+    if (phaseM) {
+      let kw = phaseM[1].toUpperCase();
+      if (['PHS', 'PH'].includes(kw)) kw = 'PHASE';
+      else if (['PKT', 'PCKT'].includes(kw)) kw = 'POCKET';
+      else if (['SEC', 'SCTR'].includes(kw)) kw = 'SECTOR';
+      const rem = phaseM[2].replace(/^[\-:#\.\s]+/, '').trim();
+      return rem ? `${kw} ${rem}` : kw;
+    }
+
+    // 2. Wing (keywords, typos e.g. WENG/WEENG/VING/WIG, shorthand e.g. W-A/WA/W1, reverse order)
+    if (/\b(?:WING|WNG|WNNG|WENG|WEENG|VING|VEENG|WIG|WIGN)\b/i.test(s) || /^W[\-\s#:\.]+[A-Z0-9]+$/i.test(s) || /^[A-Z0-9]+\s*(?:WING|WNG|WNNG|WENG|WEENG|VING|VEENG|WIG|WIGN)$/i.test(s)) {
+      const revM = s.match(/^([A-Z0-9]+)\s*(?:WING|WNG|WNNG|WENG|WEENG|VING|VEENG|WIG|WIGN)$/i);
+      let core = '';
+      if (revM) {
+        core = revM[1].trim();
+      } else {
+        core = s.replace(/^(?:WING|WNG|WNNG|WENG|WEENG|VING|VEENG|WIG|WIGN)\s*(?:NO\.?|NUMBER|NUM)?\s*[:\-#]?\s*|^(?:W[\-\s#:\.]+)/gi, '')
+                .replace(/WING|WNG|WNNG|WENG|WEENG|VING|VEENG|WIG|WIGN/gi, '');
+      }
+      core = core.replace(/^[\-:#\.\s]+|[\-:#\.\s]+$/g, '').trim();
+      return 'WING ' + (core || 'GENERAL');
+    }
+
+    // 3. Tower (keywords, typos e.g. TOWR/TAWAR/TWR, shorthand T-1/T1, reverse order e.g. 1 TOWER)
+    if (/\b(?:TOWER|TOWR|TOWUR|TOWRE|TOWERR|TWR|TAWAR|TAWER|TOUWER|TOW)\b/i.test(s) || /^T[\-\s#:\.]*\d+[A-Z]?$/i.test(s) || /^[A-Z0-9]+\s*(?:TOWER|TOWR|TOWUR|TWR)$/i.test(s)) {
+      const revM = s.match(/^([A-Z0-9]+)\s*(?:TOWER|TOWR|TOWUR|TOWRE|TOWERR|TWR)$/i);
+      let core = '';
+      if (revM) {
+        core = revM[1].trim();
+      } else {
+        core = s.replace(/^(?:TOWER|TOWR|TOWUR|TOWRE|TOWERR|TWR|TAWAR|TAWER|TOUWER|TOW)\s*(?:NO\.?|NUMBER|NUM)?\s*[:\-#]?\s*|^T[\-\s#:\.]*/gi, '')
+                .replace(/TOWER|TOWR|TOWUR|TOWRE|TOWERR|TWR|TAWAR|TAWER|TOUWER|TOW/gi, '');
+      }
+      core = core.replace(/^[\-:#\.\s]+|[\-:#\.\s]+$/g, '').trim();
+      return 'TOWER ' + (core || 'GENERAL');
+    }
+
+    // 4. Block (keywords, typos e.g. BLCK/BLOK/BLK, reverse order e.g. A BLOCK)
+    if (/\b(?:BLOCK|BLCK|BLOK|BLK|BLKK|BLC|BLOC)\b/i.test(s) || /^[A-Z0-9]+\s*(?:BLOCK|BLCK|BLOK|BLK)$/i.test(s)) {
+      const revM = s.match(/^([A-Z0-9]+)\s*(?:BLOCK|BLCK|BLOK|BLK|BLKK|BLC|BLOC)$/i);
+      let core = '';
+      if (revM) {
+        core = revM[1].trim();
+      } else {
+        core = s.replace(/^(?:BLOCK|BLCK|BLOK|BLK|BLKK|BLC|BLOC)\s*(?:NO\.?|NUMBER|NUM)?\s*[:\-#]?\s*/gi, '')
+                .replace(/BLOCK|BLCK|BLOK|BLK|BLKK|BLC|BLOC/gi, '');
+      }
+      core = core.replace(/^[\-:#\.\s]+|[\-:#\.\s]+$/g, '').trim();
+      return 'BLOCK ' + (core || 'GENERAL');
+    }
+
+    // 5. Fallback: DO NOT blindly prepend "BLOCK"!
+    const clean = s.replace(/^[\-:#\.\s]+|[\-:#\.\s]+$/g, '').trim();
+    if (!clean) return 'GENERAL BLOCK';
+    if (/^[A-Z0-9]{1,2}$|^[A-Z][\-:]?\d{1,2}$/i.test(clean)) {
+      return 'BLOCK ' + clean;
+    }
+    return clean;
+  }
+
+  function standardizeFlat(fn) {
+    let s = (fn || "").trim().toUpperCase().replace(/[()\[\]{}]/g, '');
+    if (!s) return "FLAT -";
+
+    // 0. Extract & strip any embedded floor mention from flat (e.g. "402 4th floor", "402 4th fl", "402, 4th")
+    s = s.replace(/\b(\d{1,2}(?:ST|ND|RD|TH)\s*(?:FLOOR|FLOO|FLR|FL)?|\d{1,2}\s*(?:FLOOR|FLOO|FLR)|GROUND\s*FLOOR|BASEMENT\s*(?:2\s*)?FLOOR|GF|FF|SF|TERRACE\s*FLOOR)\b/gi, '').trim();
+    s = s.replace(/\b(?:FLOOR|FLOO|FLR)\b/gi, '').trim();
+    s = s.replace(/(?:[\-:\s#,]+)FL\b/gi, '').trim();
+    s = s.replace(/[,:\-\s]+$/, '').trim();
+
+    // 1. Villa (shorthand, typos, prefixes, suffixes)
+    if (/\b(?:VILLA|VIL|VLA|VLLA)\b/i.test(s) || /^V[\-\s#:\.]*\d+/i.test(s) || /\d+\s*(?:VILLA|VIL)\b/i.test(s)) {
+      let core = s.replace(/\b(?:VILLA|VIL|VLA|VLLA|NUMBER|NUM|NO)\b[\.\s:]*/gi, '')
+                  .replace(/^[#:\-\s\.]+|[#:\-\s\.]+$/g, '')
+                  .replace(/^V[\-\s#:\.]*/i, '').trim();
+      return 'VILLA ' + (core || s);
+    }
+
+    // 2. House (shorthand, typos, prefixes, suffixes)
+    if (/\b(?:HOUSE|HSE)\b/i.test(s) || /^H[\.\-]?\s*(?:NUMBER|NUM|NO)?[\.\-\s#:]*\d+/i.test(s) || /\d+\s*(?:HOUSE|HSE)\b/i.test(s)) {
+      let core = s.replace(/\b(?:HOUSE|HSE|NUMBER|NUM|NO)\b[\.\s:]*/gi, '')
+                  .replace(/^[#:\-\s\.]+|[#:\-\s\.]+$/g, '')
+                  .replace(/^H[\.\-]?\s*(?:NUMBER|NUM|NO)?[\.\-\s#:]*/i, '').trim();
+      return 'HOUSE ' + (core || s);
+    }
+
+    // 3. Shop (shorthand, typos, prefixes, suffixes)
+    if (/\b(?:SHOP|SHP|STORE)\b/i.test(s) || /^S[\-\s#:\.]*\d+/i.test(s) || /\d+\s*(?:SHOP|SHP|STORE)\b/i.test(s)) {
+      let core = s.replace(/\b(?:SHOP|SHP|STORE|NUMBER|NUM|NO)\b[\.\s:]*/gi, '')
+                  .replace(/^[#:\-\s\.]+|[#:\-\s\.]+$/g, '')
+                  .replace(/^S[\-\s#:]*/i, '').trim();
+      return 'SHOP ' + (core || s);
+    }
+
+    // 4. Flat / Unit / Apt / Suffix / Typos
+    const suffixM = s.match(/^([A-Z0-9\-]+)\s*(?:FLAT|FLT|FLTT|FLAAT|FLA|UNIT|UNT|APT|APARTMENT|APRT|ROOM|RM)$/i);
+    let core = '';
+    if (suffixM) {
+      core = suffixM[1].trim();
+    } else {
+      core = s.replace(/^(?:(?:FLAT|FLT|FLTT|FLAAT|FLA|UNIT|UNT|APT|APARTMENT|APRT|ROOM|RM)\s*(?:NO\.?|NUMBER|NUM)?\s*[:\-#]?\s*)+/gi, '')
+              .replace(/^(?:NO\.?|NUMBER|NUM|#)\s*[:\-]?\s*/gi, '')
+              .replace(/^(?:FL|F)[\-\s#:\.]*(?=[A-Z0-9])/i, '')
+              .replace(/^[A-Z0-9]{1,3}[\-\s]+(?=\d{3,4})/i, '')
+              .replace(/[\-\s]*(?:FLAT|FLT|FL|FLOOR|FLR)$/i, '')
+              .trim();
+    }
+    core = core.replace(/^[\-:\s#]+|[\-:\s#]+$/g, '').trim();
+    return 'FLAT ' + (core || s);
+  }
+
+  function deriveFloorFromFlat(flatNumber) {
+    if (!flatNumber || /^(?:VILLA|HOUSE|SHOP)/i.test(flatNumber)) return '';
+    const flatM = flatNumber.match(/\b(\d{3,4})\b/);
+    if (flatM) {
+      const flCalc = Math.floor(parseInt(flatM[1]) / 100);
+      if (flCalc >= 1 && flCalc <= 99) {
+        return getOrdinalFloor(flCalc);
+      }
+    }
+    return '';
+  }
+
+  function standardizeFloor(fl) {
+    if (!fl) return '';
+    let s = (fl || '').trim().toUpperCase().replace(/[()\[\]{}]/g, '');
+    if (!s) return '';
+
+    // 1. Basement
+    if (/\b(B\s*2|BASEMENT\s*2|-2)\b/i.test(s)) return 'BASEMENT 2 FLOOR';
+    if (/\b(BASEMENT|BSMT|LOWER\s*GROUND|LG|-1)\b/i.test(s) || ['B', 'B1'].includes(s)) return 'BASEMENT FLOOR';
+
+    // 2. Ground
+    if (/\b(GROUND|GRND|GRD)\b/i.test(s) || ['G', 'GF', '0', 'ZERO'].includes(s)) return 'GROUND FLOOR';
+
+    // 3. Terrace / Penthouse
+    if (/\b(TERRACE|TOP|ROOF|PENTHOUSE|PH)\b/i.test(s)) return 'TERRACE FLOOR';
+
+    // 4. Any numbers inside the string
+    const numM = s.match(/\b(\d{1,3})\b/) || s.match(/(\d+)/);
+    if (numM) {
+      const val = parseInt(numM[1]);
+      if (val === 0) return 'GROUND FLOOR';
+      if (val >= 1 && val <= 150) return getOrdinalFloor(val);
+      return val + ' FLOOR';
+    }
+
+    // 5. Word numbers (English & Hindi)
+    const wordsMap = {
+      'FIRST': 1, '1ST': 1, 'PEHLA': 1, 'FF': 1,
+      'SECOND': 2, '2ND': 2, 'DUSRA': 2, 'SF': 2,
+      'THIRD': 3, '3RD': 3, 'TEESRA': 3, 'TF': 3,
+      'FOURTH': 4, '4TH': 4, 'CHAUTHA': 4,
+      'FIFTH': 5, '5TH': 5, 'PAANCHWA': 5,
+      'SIXTH': 6, '6TH': 6, 'SEVENTH': 7, '7TH': 7,
+      'EIGHTH': 8, '8TH': 8, 'NINTH': 9, '9TH': 9,
+      'TENTH': 10, '10TH': 10, 'NINETEENTH': 19, 'TWENTIETH': 20
+    };
+    for (const [w, n] of Object.entries(wordsMap)) {
+      if (new RegExp('\\b' + w + '\\b', 'i').test(s)) {
+        return getOrdinalFloor(n);
+      }
+    }
+
+    // 6. Fallback clean
+    const cleanCore = s.replace(/\b(?:FLOOR|FLOO|FLR|FLO|FL|LEVEL|LVL)\b|(?:FLOOR|FLOO|FLR|FLO)/gi, '')
+                       .replace(/^[\-:\s]+|[\-:\s]+$/g, '').trim();
+    return cleanCore ? cleanCore + ' FLOOR' : '';
+  }
+
+  function setupAddressAutoFormat() {
+    const blockEl = document.getElementById("addr-block");
+    const floorEl = document.getElementById("addr-floor");
+    const flatEl = document.getElementById("addr-flat");
+
+    [blockEl, floorEl, flatEl].forEach(el => {
+      if (!el) return;
+      el.addEventListener("input", () => {
+        const start = el.selectionStart;
+        const end = el.selectionEnd;
+        el.value = el.value.toUpperCase();
+        if (start !== null && end !== null) {
+          try { el.setSelectionRange(start, end); } catch (_) {}
+        }
+      });
+    });
+
+    if (blockEl) {
+      blockEl.addEventListener("blur", () => {
+        if (blockEl.value.trim()) {
+          blockEl.value = standardizeBlock(blockEl.value.trim());
+        }
+      });
+    }
+
+    if (flatEl) {
+      flatEl.addEventListener("blur", () => {
+        if (flatEl.value.trim()) {
+          flatEl.value = standardizeFlat(flatEl.value.trim());
+        }
+        if (floorEl && flatEl.value.trim()) {
+          if (floorEl.dataset.cleared === "true") return;
+          if (floorEl.dataset.manual === "true" && floorEl.value.trim()) return;
+
+          if (!floorEl.value.trim()) {
+            const derived = deriveFloorFromFlat(flatEl.value.trim());
+            if (derived) {
+              floorEl.value = derived;
+              floorEl.dataset.manual = "false";
+              floorEl.dataset.cleared = "false";
+            }
+          }
+        }
+      });
+    }
+
+    if (floorEl) {
+      floorEl.addEventListener("input", () => {
+        const val = floorEl.value.trim();
+        floorEl.dataset.cleared = val === "" ? "true" : "false";
+        floorEl.dataset.manual = val !== "" ? "true" : "false";
+      });
+      floorEl.addEventListener("blur", () => {
+        if (floorEl.value.trim()) {
+          const clean = standardizeFloor(floorEl.value.trim());
+          if (clean) {
+            floorEl.value = clean;
+            floorEl.dataset.manual = "true";
+            floorEl.dataset.cleared = "false";
+          }
+        } else {
+          floorEl.dataset.manual = "false";
+          floorEl.dataset.cleared = "true";
+        }
+      });
+    }
+  }
+
+  let submitBtn = null;
+  let submitText = null;
+  let submitSpinner = null;
+  let submitIcon = null;
+  let isSubmitting = false;
+
+  function refreshSubmitElements() {
+    submitBtn = document.getElementById("place-order-btn");
+    submitText = document.getElementById("place-order-text");
+    submitSpinner = document.getElementById("place-order-spinner");
+    submitIcon = document.getElementById("place-order-icon");
+  }
+
+  function resetBtn() {
+    isSubmitting = false;
+    refreshSubmitElements();
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.classList.remove("opacity-70", "cursor-not-allowed");
+    }
+    if (submitText) submitText.textContent = "Place Order";
+    if (submitSpinner) submitSpinner.classList.add("hidden");
+    if (submitIcon) submitIcon.classList.remove("hidden");
+  }
+
+  window.fillAddressFromSaved = function(addr) {
+    const blk = document.getElementById("addr-block");
+    const flr = document.getElementById("addr-floor");
+    const flt = document.getElementById("addr-flat");
+    const l1 = document.getElementById("addr-line1");
+    const l2 = document.getElementById("addr-line2");
+    const city = document.getElementById("addr-city");
+    const pin = document.getElementById("addr-pincode");
+    const alt = document.getElementById("alt-phone");
+
+    let blockVal = (addr.block || "").toUpperCase();
+    let flatVal = (addr.flat_no || "").toUpperCase();
+    let floorVal = (addr.floor || "").toUpperCase();
+
+    // Fallback if legacy address only had line1
+    if ((!blockVal || !flatVal) && addr.line1) {
+      const raw = addr.line1.toUpperCase();
+      const flrM = raw.match(/\b(\d+(?:ST|ND|RD|TH)?\s*FLOOR|GROUND\s*FLOOR|FIRST\s*FLOOR|SECOND\s*FLOOR|THIRD\s*FLOOR|BASEMENT\s*FLOOR)\b/i);
+      if (flrM && !floorVal) floorVal = flrM[1];
+
+      const blkM = raw.match(/\b(TOWER\s*[\-:\s]*[A-Z0-9\-]+|WING\s*[\-:\s]*[A-Z0-9\-]+|BLOCK\s*[\-:\s]*[A-Z0-9\-]+)\b/i);
+      if (blkM && !blockVal) blockVal = blkM[1];
+
+      const fltM = raw.match(/\b(?:FLAT|UNIT|HOUSE|VILLA)\s*[\-:\s]*([A-Z0-9\-]+)\b/i);
+      if (fltM && !flatVal) flatVal = 'FLAT ' + fltM[1];
+      else if (!flatVal) {
+        const numM = raw.match(/\b([A-Z]?\d{1,4}[A-Z]?)\b/);
+        if (numM) flatVal = 'FLAT ' + numM[1];
+      }
+      if (!blockVal) blockVal = "GENERAL BLOCK";
+    }
+
+    if (blk) { blk.value = blockVal; highlightField(blk); }
+    if (flt) { flt.value = flatVal; highlightField(flt); }
+    if (flr) { flr.value = floorVal; highlightField(flr); }
+
+    if (l1) { l1.value = addr.line1 || ""; }
+    if (l2) { l2.value = fallbackSociety; }
+    if (city) { city.value = fallbackCity; }
+    if (pin) { pin.value = fallbackPin; }
+    if (alt) { alt.value = (addr.alt_phone || "").replace("+91", ""); }
+
+    showAutoFetchSuccess(addr.label || "Saved Address");
+    const box = document.getElementById("addr-alert");
+    if (box) box.classList.add("hidden");
+  };
+
+  async function handlePlaceOrder(e) {
+    if (e) {
+      try { e.preventDefault(); e.stopPropagation(); } catch (_) {}
+    }
+    if (isSubmitting) return;
+
+    if (selectedPaymentMethod === 'STORE_CREDIT') {
+      if (!khataStatusData || !khataStatusData.is_verified) {
+        openKhataWarningModal();
+        return;
+      }
+    }
+
+    let rawBlock = (document.getElementById("addr-block")?.value || "").trim();
+    let rawFloor = (document.getElementById("addr-floor")?.value || "").trim();
+    let rawFlat = (document.getElementById("addr-flat")?.value || "").trim();
+
+    if (!rawBlock || !rawFlat) {
+      showAlert("Please enter both Tower / Block and Flat Number.");
+      if (!rawBlock) highlightField(document.getElementById("addr-block"));
+      if (!rawFlat) highlightField(document.getElementById("addr-flat"));
+      return;
+    }
+
+    // Alternate phone 10-digit validation
+    const altPhoneRaw = (document.getElementById("alt-phone")?.value || "").trim();
+    const altPhoneDigits = altPhoneRaw.replace(/\D/g, "");
+    if (altPhoneRaw && altPhoneDigits.length !== 10) {
+      showAlert("Please enter a valid 10-digit alternate phone number or leave it blank.");
+      highlightField(document.getElementById("alt-phone"));
+      return;
+    }
+
+    // Standardize components
+    const blockVal = standardizeBlock(rawBlock);
+    const flatVal = standardizeFlat(rawFlat);
+    const floorVal = rawFloor ? standardizeFloor(rawFloor) : '';
+
+    // Update screen inputs so user sees clean standardized values
+    const blockEl = document.getElementById("addr-block");
+    const flatEl = document.getElementById("addr-flat");
+    const floorEl = document.getElementById("addr-floor");
+    if (blockEl) blockEl.value = blockVal;
+    if (flatEl) flatEl.value = flatVal;
+    if (floorEl) floorEl.value = floorVal;
+
+    const combinedLine1 = `${blockVal}, ${flatVal}` + (floorVal ? `, ${floorVal}` : "");
+    const line1El = document.getElementById("addr-line1");
+    if (line1El) line1El.value = combinedLine1;
+
+    const line2Val = (document.getElementById("addr-line2")?.value || fallbackSociety).trim();
+    const cityVal = (document.getElementById("addr-city")?.value || fallbackCity).trim();
+    const pinVal = (document.getElementById("addr-pincode")?.value || fallbackPin).trim();
+    const deliveryPhoneEl = document.getElementById("delivery-phone");
+    const phoneVal = (deliveryPhoneEl?.value || "").trim();
+
+    const address = {
+      phone: phoneVal,
+      alt_phone: altPhoneDigits ? "+91" + altPhoneDigits : null,
+      block: blockVal,
+      floor: floorVal,
+      flat_no: flatVal,
+      line1: combinedLine1,
+      line2: line2Val,
+      city: cityVal,
+      pincode: pinVal,
+      lat: document.getElementById("lat")?.value || 0,
+      lng: document.getElementById("lng")?.value || 0,
+      location_text: document.getElementById("location-line")?.value || ""
+    };
+
+    if (!address.line1 || !address.line2 || !address.city || !address.pincode) {
+      showAlert("Please complete your delivery address.");
+      return;
+    }
+
+    const normPin = (address.pincode || "").toString().trim();
+    const normFallbackPin = (fallbackPin || "").toString().trim();
+    if (normFallbackPin && normPin && normPin !== normFallbackPin) {
+      showAlert(`Delivery is only available in ${fallbackSociety} (PIN: ${normFallbackPin}). Restored society address.`);
+      if (document.getElementById("addr-pincode")) document.getElementById("addr-pincode").value = normFallbackPin;
+      if (document.getElementById("addr-line2")) document.getElementById("addr-line2").value = fallbackSociety;
+      if (document.getElementById("addr-city")) document.getElementById("addr-city").value = fallbackCity;
+      return;
+    }
+
+    let cartData = [];
+    try {
+      cartData = JSON.parse(localStorage.getItem("cart") || "[]");
+    } catch (_) {
+      cartData = [];
+    }
+
+    if (!Array.isArray(cartData) || cartData.length === 0) {
+      showAlert("Your cart is empty! Please add items before placing an order.");
+      return;
+    }
+
+    isSubmitting = true;
+    refreshSubmitElements();
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.classList.add("opacity-70", "cursor-not-allowed");
+    }
+    if (submitText) submitText.textContent = "Processing...";
+    if (submitSpinner) submitSpinner.classList.remove("hidden");
+    if (submitIcon) submitIcon.classList.add("hidden");
+
+    try {
+      const orderNotes = localStorage.getItem("cartOrderNotes") || "";
+      const resp = await fetch("/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cart: cartData,
+          address: address,
+          notes: orderNotes,
+          payment_method: selectedPaymentMethod
+        })
+      });
+      const resData = await resp.json();
+
+      if (resData.order_id) {
+        localStorage.removeItem("cart");
+        localStorage.removeItem("cartOrderNotes");
+        localStorage.removeItem("cartSpecialItems");
+        localStorage.removeItem("cartSpecialRemark");
+        window.dispatchEvent(new Event('cartUpdated'));
+        const targetUrl = `/order-confirmation?order_id=${resData.order_id}`;
+        if (typeof window.jippyNavigate === 'function') {
+          window.jippyNavigate(targetUrl, true);
+        } else {
+          window.location.href = targetUrl;
+        }
+      } else {
+        showAlert(resData.error || "Failed to place order.");
+        resetBtn();
+      }
+    } catch (err) {
+      showAlert("Network error. Please try again.");
+      resetBtn();
+    }
+  }
+
+  window.handlePlaceOrder = handlePlaceOrder;
+
+  function initAddressPage() {
+    refreshSubmitElements();
+    if (submitBtn) {
+      submitBtn.onclick = handlePlaceOrder;
+    }
+
+    const areaInput = document.getElementById("addr-line2");
+    const cityInput = document.getElementById("addr-city");
+    const pinInput = document.getElementById("addr-pincode");
+
+    if (areaInput) areaInput.value = fallbackSociety;
+    if (cityInput) cityInput.value = fallbackCity;
+    if (pinInput) pinInput.value = fallbackPin;
+
+    showAutoFetchSuccess(fallbackSociety);
+    checkKhataVerification();
+    setupAddressAutoFormat();
+    resetBtn();
+  }
+
+  document.addEventListener("turbo:load", () => {
+    if (document.getElementById("addr-line2") || document.getElementById("place-order-btn")) {
+      initAddressPage();
+    }
+  });
+
+  if (document.readyState === 'loading') {
+    document.addEventListener("DOMContentLoaded", initAddressPage);
+  } else {
+    initAddressPage();
+  }
+})();
+</script>
+{% endblock %}
+
+{% block mobile_nav %}{% endblock %}
+{% block footer %}{% endblock %}
