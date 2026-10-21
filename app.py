@@ -60,6 +60,11 @@ def web_manifest():
     response = make_response(send_from_directory('static', 'manifest.json', mimetype='application/manifest+json'))
     return response
 
+# ---------- 📒 Register Society Store Credit (Khata) Blueprint ----------
+from khata import khata_bp, clean_phone_10, standardize_address_components, reverse_order_store_credit, adjust_order_store_credit, recalculate_khata_user_balance, _resolve_order_khata_record
+app.register_blueprint(khata_bp)
+
+
 
 # ---------- Security & admin creds ----------
 bcrypt = Bcrypt(app)
@@ -2321,14 +2326,15 @@ def _get_vendor_context(include_products=False):
                 orders_completed_today.append(o)
             orders_history.append(o)
 
-            # Sales and ledger should strictly reflect delivered orders
-            all_time_sales += vendor_order_total
-            daily_ledger_map[order_day]["total"] += vendor_order_total
+            # Sales and ledger strictly reflect delivered orders (proper full total including all charges)
+            order_full_val = float(o.get("calculated_grand_total") or o.get("total") or o.get("total_amount") or vendor_order_total)
+            all_time_sales += order_full_val
+            daily_ledger_map[order_day]["total"] += order_full_val
             daily_ledger_map[order_day]["orders"] += 1
             daily_ledger_map[order_day]["items_count"] += vendor_order_qty
 
             if order_day == today_date:
-                today_sales += vendor_order_total
+                today_sales += order_full_val
                 today_orders_count += 1
                 today_items_count += vendor_order_qty
         elif vstatus in ["cancelled", "canceled"]:
@@ -2404,6 +2410,23 @@ def _get_vendor_context(include_products=False):
         is_online = True
     store_notice = vendor.get("store_notice", "")
 
+    # Khata (Store Credit) Stats
+    khata_pending_count = 0
+    khata_active_count = 0
+    khata_outstanding_total = 0.0
+    try:
+        khata_col = db["vendor_khata_users"]
+        khata_pending_count = khata_col.count_documents({"vendor_id": vendor_oid, "status": "PENDING"})
+        khata_active_count = khata_col.count_documents({"vendor_id": vendor_oid, "status": "ACTIVE"})
+        agg_res = list(khata_col.aggregate([
+            {"$match": {"vendor_id": vendor_oid, "status": "ACTIVE"}},
+            {"$group": {"_id": None, "total": {"$sum": "$current_balance"}}}
+        ]))
+        if agg_res and "total" in agg_res[0]:
+            khata_outstanding_total = round(float(agg_res[0]["total"]), 2)
+    except Exception:
+        pass
+
     ctx = {
         "vendor": vendor,
         "shop_name": shop_name,
@@ -2438,6 +2461,9 @@ def _get_vendor_context(include_products=False):
         "total_products_count": len(catalog_products),
         "in_stock_count": in_stock_count,
         "oos_count": oos_count,
+        "khata_pending_count": khata_pending_count,
+        "khata_active_count": khata_active_count,
+        "khata_outstanding_total": khata_outstanding_total,
         "categories": categories_list,
         "now_ist": now_ist,
     }
@@ -2708,7 +2734,8 @@ def vendor_ledger_day_orders(date_str):
         created_ist = o.get("created_ist")
         if created_ist and created_ist.strftime("%Y-%m-%d") == date_str:
             day_orders.append(o)
-            day_total += float(o.get("vendor_items_total", 0.0) or 0.0)
+            order_full_val = float(o.get("calculated_grand_total") or o.get("total") or o.get("total_amount") or o.get("vendor_items_total", 0.0) or 0.0)
+            day_total += order_full_val
             day_items_count += int(o.get("vendor_items_count", 0) or 0)
             formatted_date = created_ist.strftime("%d %B %Y")
 
@@ -2878,6 +2905,21 @@ def vendor_api_update_order_status(order_id):
                 update_fields["notes_available"] = bool(curr_note_price > 0)
                 update_fields["notes_finalized_at"] = now_utc
 
+            # 📱 Send Flipkart-style Delivery Confirmation WhatsApp to Customer
+            if not order_cur.get("delivery_whatsapp_sent"):
+                update_fields["delivery_whatsapp_sent"] = True
+                try:
+                    order_delivered_data = dict(order_cur)
+                    order_delivered_data.update(update_fields)
+                    send_order_delivery_whatsapp_async(order_delivered_data)
+                except Exception as _wh_err:
+                    print("[Delivery WhatsApp Dispatch Error]:", _wh_err)
+        elif new_status in ["cancelled", "canceled"]:
+            try:
+                reverse_order_store_credit(db, order_cur, reason="Vendor Cancelled Order")
+            except Exception as _rev_err:
+                print("[Khata Reversal Error]:", _rev_err)
+
         orders.update_one({"order_id": order_id}, {"$set": update_fields})
 
         return jsonify({
@@ -2981,6 +3023,62 @@ def vendor_api_finalize_notes_item(order_id):
         is_available = len(valid_bill_items) > 0
         item_names_str = ", ".join(it["name"] for it in valid_bill_items) if valid_bill_items else ""
 
+        # Check credit limit for Store Credit orders
+        is_khata = str(order.get("payment_method") or "").upper() in ["STORE_CREDIT", "UDHAR", "KHATA", "CREDIT"]
+        khata_rec = None
+        if is_khata:
+            khata_rec, _ = _resolve_order_khata_record(db, order)
+
+        action_mode = str(data.get("action_mode") or "").strip().upper()
+        notes_cod_extra = 0.0
+        credit_billed_cap = None
+
+        if is_khata and khata_rec:
+            credit_limit = float(khata_rec.get("credit_limit") or 0.0)
+            if credit_limit > 0:
+                current_billed = 0.0
+                for e in db["vendor_khata_ledger"].find({"order_id": order_id}):
+                    amt = float(e.get("amount") or 0.0)
+                    if e.get("type") == "DEBIT":
+                        current_billed += amt
+                    elif e.get("type") == "CREDIT":
+                        current_billed -= amt
+                if current_billed == 0.0:
+                    current_billed = float(order.get("total") or 0.0)
+
+                diff = round(grand_total - current_billed, 2)
+                curr_bal = float(khata_rec.get("current_balance") or 0.0)
+                new_bal = round(curr_bal + diff, 2)
+
+                if diff > 0 and new_bal > credit_limit:
+                    exceeded_by = round(new_bal - credit_limit, 2)
+                    available_limit = max(0.0, round(credit_limit - curr_bal, 2))
+
+                    if not action_mode:
+                        cust_name = khata_rec.get("customer_name") or order.get("user_name") or "Resident"
+                        flat_info = khata_rec.get("full_address_display") or ""
+                        return jsonify({
+                            "success": False,
+                            "credit_limit_exceeded": True,
+                            "customer_name": cust_name,
+                            "flat_info": flat_info,
+                            "credit_limit": credit_limit,
+                            "current_balance": curr_bal,
+                            "available_limit": available_limit,
+                            "diff": diff,
+                            "new_balance": new_bal,
+                            "exceeded_by": exceeded_by,
+                            "message": f"Customer credit limit of ₹{credit_limit:,.2f} will be exceeded by ₹{exceeded_by:,.2f}."
+                        }), 200
+
+                    elif action_mode == "SPLIT_COD":
+                        credit_billed_cap = round(current_billed + available_limit, 2)
+                        notes_cod_extra = round(grand_total - credit_billed_cap, 2)
+
+                    elif action_mode == "APPROVE_CREDIT":
+                        notes_cod_extra = 0.0
+                        credit_billed_cap = None
+
         update_fields = {
             "items": current_items,
             "subtotal": round(subtotal, 2),
@@ -2991,10 +3089,39 @@ def vendor_api_finalize_notes_item(order_id):
             "notes_items": all_notes_items,
             "notes_item_name": item_names_str,
             "notes_finalized": True,
-            "notes_finalized_at": datetime.datetime.now(datetime.timezone.utc)
+            "notes_finalized_at": datetime.datetime.now(datetime.timezone.utc),
+            "notes_cod_extra": notes_cod_extra,
+            "notes_credit_billed": credit_billed_cap if credit_billed_cap is not None else grand_total,
+            "notes_action_mode": action_mode or "NORMAL"
         }
 
         orders.update_one({"order_id": order_id}, {"$set": update_fields})
+        order.update(update_fields)
+
+        # Sync store credit ledger if order was placed via Store Credit
+        try:
+            if action_mode == "APPROVE_CREDIT":
+                items_desc = f"Added: {item_names_str} (+₹{total_notes_price:,.2f}) [Credit Limit Override Authorized]"
+            elif action_mode == "SPLIT_COD":
+                items_desc = f"Added: {item_names_str} (+₹{total_notes_price:,.2f}) [Split: ₹{notes_cod_extra:,.2f} COD at Doorstep]"
+            else:
+                items_desc = f"Added: {item_names_str} (+₹{total_notes_price:,.2f})" if valid_bill_items else "Custom Items Removed"
+
+            adjust_order_store_credit(
+                db, order, grand_total, 
+                reason=items_desc, 
+                vendor_oid=vendor_oid,
+                credit_billed_cap=credit_billed_cap
+            )
+        except Exception as _adj_err:
+            print("[Khata Notes Adjustment Error]:", _adj_err)
+
+        # 📱 Notify customer via WhatsApp about added custom items & updated bill
+        if valid_bill_items and total_notes_price > 0:
+            try:
+                send_notes_price_updated_whatsapp_async(order, item_names_str, total_notes_price, grand_total)
+            except Exception as _nt_err:
+                print("[Notes WhatsApp Dispatch Error]:", _nt_err)
 
         # Calculate vendor's specific share
         vendor_total = 0.0
@@ -3004,7 +3131,10 @@ def vendor_api_finalize_notes_item(order_id):
                 vendor_total += (float(it.get("price", 0) or 0) * int(it.get("qty", 1) or 1))
 
         if valid_bill_items:
-            msg = f"{len(valid_bill_items)} item(s) added to bill (Total: ₹{total_notes_price:.2f})"
+            if notes_cod_extra > 0:
+                msg = f"{len(valid_bill_items)} item(s) added (₹{credit_billed_cap:,.2f} on Khata + ₹{notes_cod_extra:,.2f} Cash at Doorstep)"
+            else:
+                msg = f"{len(valid_bill_items)} item(s) added to bill (Total: ₹{total_notes_price:.2f})"
         else:
             msg = "Extra item charges set to ₹0"
 
@@ -3018,6 +3148,8 @@ def vendor_api_finalize_notes_item(order_id):
             "grand_total": round(grand_total, 2),
             "vendor_total": round(vendor_total, 2),
             "items_count": len(current_items),
+            "notes_cod_extra": notes_cod_extra,
+            "notes_credit_billed": credit_billed_cap if credit_billed_cap is not None else grand_total,
             "message": msg
         })
     except Exception as e:
@@ -3077,9 +3209,15 @@ def vendor_api_live_poll():
 
             if c_ist.date() == today_date and vstatus_check == "delivered":
                 today_orders_count += 1
-                v_total = sum(float(it.get("price", 0) or 0) * int(it.get("qty", 1) or 1) for it in o.get("items", [])
-                              if (it.get("vendor_id") and str(it.get("vendor_id")) == str(vendor_oid)) or (not it.get("vendor_id") and str(o.get("vendor_id")) == str(vendor_oid)))
-                today_sales += v_total
+                delivery_fee_val = float(o.get("delivery_fee") or 0.0)
+                handling_fee_val = float(o.get("handling_fee") or 0.0)
+                platform_fee_val = float(o.get("platform_fee") or 0.0)
+                surge_val = float(o.get("surge_charge") or 0.0)
+                disc_val = float(o.get("discount") or 0.0)
+                v_items_tot = sum(float(it.get("price", 0) or 0) * int(it.get("qty", 1) or 1) for it in o.get("items", [])
+                                  if (it.get("vendor_id") and str(it.get("vendor_id")) == str(vendor_oid)) or (not it.get("vendor_id") and str(o.get("vendor_id")) == str(vendor_oid)))
+                order_grand = float(o.get("total") or o.get("total_amount") or max(0.0, v_items_tot + delivery_fee_val + handling_fee_val + platform_fee_val + surge_val - disc_val))
+                today_sales += order_grand
 
         serialized_orders = []
         for o in recent_orders_raw:
@@ -3504,15 +3642,24 @@ def format_whatsapp_order_bill(order, is_admin=False):
     # Address
     addr = order.get("address", {}) or {}
     if isinstance(addr, dict):
+        block = addr.get("block", "")
+        flat = addr.get("flat_no", "")
         line1 = addr.get("line1", "")
         line2 = addr.get("line2", "")
         city = addr.get("city", "")
         pincode = addr.get("pincode", "")
         alt_phone = addr.get("alt_phone")
-        addr_parts = [p for p in [line1, line2] if p]
+        
+        addr_parts = []
+        if block or flat:
+            addr_parts.append(f"{block} - {flat}".strip(" -"))
+        elif line1:
+            addr_parts.append(line1)
+        if line2:
+            addr_parts.append(line2)
         if city or pincode:
             addr_parts.append(f"{city} - {pincode}".strip(" -"))
-        address_text = "\n".join(addr_parts) if addr_parts else "Address on record"
+        address_text = "\n".join(addr_parts) if addr_parts else "Doorstep Address"
     else:
         address_text = str(addr)
         alt_phone = None
@@ -3522,12 +3669,12 @@ def format_whatsapp_order_bill(order, is_admin=False):
     notes_block = ""
     if notes:
         notes_block = (
-            f"\n\n📝 *SPECIAL REQUEST / NOTES:*\n"
+            f"\n\n📝 *SPECIAL REQUEST / CUSTOM ITEMS:*\n"
             f"_{notes}_\n"
-            f"*(Unlisted items will be settled at doorstep)*"
+            f"*(Custom items will be verified and priced before delivery)*"
         )
 
-    base_url = (os.getenv("BASE_URL") or "https://freshkart-jade.vercel.app").rstrip("/")
+    base_url = (os.getenv("BASE_URL") or "https://jippy.store").rstrip("/")
     track_url = f"{base_url}/order-confirmation?order_id={order_id}"
 
     if is_admin:
@@ -3541,36 +3688,39 @@ def format_whatsapp_order_bill(order, is_admin=False):
     else:
         header_title = "🛍️ *ORDER CONFIRMED | JIPPY STORE* 🛍️"
         header_intro = (
-            f"Hi *{user_name}*,\n"
-            f"Thank you for ordering with Jippy! Your order has been placed successfully and is being packed. ⚡ *Delivery in 10-15 mins*"
+            f"Dear *{user_name}*,\n"
+            f"Thank you for shopping with Jippy Store! Your grocery order *#{short_id}* has been confirmed and is now being packed. ⚡ *Estimated Delivery: 10–15 mins*"
         )
-        footer_link = f"🔗 *Track Order Status:* {track_url}"
+        footer_link = f"🔗 *Track Live Order Status:* {track_url}"
+
+    pay_mode_label = "Society Store Credit" if order.get("payment_method") == "STORE_CREDIT" else "Cash on Delivery (COD)"
+    total_label = "TOTAL BILLED TO STORE CREDIT" if order.get("payment_method") == "STORE_CREDIT" else "TOTAL AMOUNT PAYABLE"
 
     msg = (
         f"{header_title}\n"
-        f"═══════════════════════\n"
+        f"═════════════════════════════\n"
         f"{header_intro}\n\n"
-        f"📋 *ORDER DETAILS:*\n"
+        f"📋 *ORDER SUMMARY:*\n"
         f"• *Order ID:* #{short_id}\n"
         f"• *Date & Time:* {time_str}\n"
-        f"• *Payment Mode:* Cash on Delivery (COD)\n"
-        f"═══════════════════════\n"
+        f"• *Payment Method:* {pay_mode_label}\n"
+        f"═════════════════════════════\n"
         f"🛒 *ITEMS ORDERED ({len(items)}):*\n"
         f"{items_block}\n"
-        f"═══════════════════════\n"
+        f"═════════════════════════════\n"
         f"🧾 *PRICE BREAKDOWN:*\n"
         f"{fees_block}\n"
-        f"───────────────────────\n"
-        f"💵 *TOTAL PAYABLE: ₹{grand_total:,.2f}*\n"
-        f"═══════════════════════\n"
+        f"─────────────────────────────\n"
+        f"💵 *{total_label}: ₹{grand_total:,.2f}*\n"
+        f"═════════════════════════════\n"
         f"📍 *DELIVERY ADDRESS:*\n"
         f"{address_text}"
         f"{notes_block}\n"
-        f"═══════════════════════\n"
+        f"═════════════════════════════\n"
         f"🛡️ *100% Safe & Contactless Delivery*\n"
         f"{footer_link}\n"
-        f"═══════════════════════\n"
-        f"Need help? Contact support or reply to this message."
+        f"═════════════════════════════\n"
+        f"Need assistance? Reply directly to this WhatsApp message."
     )
     return msg
 
@@ -3616,6 +3766,215 @@ def send_order_whatsapp_notifications_async(order):
     threading.Thread(target=send_order_whatsapp_notifications, args=(order,), daemon=True).start()
 
 
+def format_whatsapp_delivery_message(order):
+    """
+    Professional English WhatsApp Order Delivery notification sent to customer upon fulfillment.
+    """
+    user_name = order.get("user_name") or "Valued Customer"
+    order_id = str(order.get("order_id", ""))
+    short_id = order_id[-8:].upper() if len(order_id) >= 8 else order_id
+
+    # Delivered at in IST
+    delivered_at = order.get("delivered_at")
+    if delivered_at:
+        if delivered_at.tzinfo is None:
+            delivered_at = pytz.utc.localize(delivered_at)
+        time_str = delivered_at.astimezone(IST).strftime("%d %b %Y, %I:%M %p")
+    else:
+        time_str = datetime.datetime.now(IST).strftime("%d %b %Y, %I:%M %p")
+
+    # Items listing
+    items = order.get("items", []) or []
+    items_lines = []
+    for idx, it in enumerate(items, 1):
+        name = it.get("name", "Item")
+        unit_str = f" ({it.get('unit')})" if it.get("unit") else ""
+        qty = int(it.get("qty", 1) or 1)
+        price = float(it.get("price", 0) or 0)
+        item_total = int(price * qty)
+        items_lines.append(f"{idx}. *{name}*{unit_str} × {qty} = *₹{item_total:,}*")
+
+    items_block = "\n".join(items_lines) if items_lines else "Grocery Items"
+
+    # Customized / Notes Items if any
+    notes_price = float(order.get("notes_price") or 0.0)
+    notes_line = ""
+    if notes_price > 0:
+        notes_line = f"\n• *Custom Requested Items:* ₹{notes_price:,.2f}"
+
+    grand_total = float(order.get("total", 0) or 0)
+    is_khata = str(order.get("payment_method") or "").upper() in ["STORE_CREDIT", "UDHAR", "KHATA"]
+    cod_extra = float(order.get("notes_cod_extra") or 0.0)
+
+    if is_khata and cod_extra > 0:
+        credit_portion = float(order.get("notes_credit_billed") or (grand_total - cod_extra))
+        pay_info = (
+            f"• *Payment Method:* Society Store Credit + Cash on Delivery\n"
+            f"• *Store Credit Account:* ₹{credit_portion:,.2f} billed to monthly passbook\n"
+            f"• *Cash Collected at Doorstep:* ₹{cod_extra:,.2f}\n"
+            f"• *View Passbook:* https://jippy.store/my-khata"
+        )
+    elif is_khata:
+        pay_info = (
+            f"• *Payment Method:* Society Store Credit\n"
+            f"• *Account Status:* Billed to your monthly Store Credit passbook\n"
+            f"• *View Passbook:* https://jippy.store/my-khata"
+        )
+    else:
+        pay_info = (
+            f"• *Payment Method:* Cash on Delivery (COD)\n"
+            f"• *Payment Status:* Collected at Doorstep (Cash / UPI)"
+        )
+
+    # Address
+    addr = order.get("address", {}) or {}
+    if isinstance(addr, dict):
+        block = addr.get("block", "")
+        flat = addr.get("flat_no", "")
+        line1 = addr.get("line1", "")
+        line2 = addr.get("line2", "")
+        
+        addr_parts = []
+        if block or flat:
+            addr_parts.append(f"{block} - {flat}".strip(" -"))
+        elif line1:
+            addr_parts.append(line1)
+        if line2:
+            addr_parts.append(line2)
+        address_text = "\n".join(addr_parts) if addr_parts else "Doorstep Address"
+    else:
+        address_text = str(addr)
+
+    base_url = (os.getenv("BASE_URL") or "https://jippy.store").rstrip("/")
+    invoice_url = f"{base_url}/order-confirmation?order_id={order_id}"
+
+    msg = (
+        f"🎉 *ORDER DELIVERED | JIPPY STORE* 📦\n"
+        f"═════════════════════════════\n"
+        f"Dear *{user_name}*,\n\n"
+        f"Your grocery order *#{short_id}* has been successfully delivered to your doorstep. We hope everything reached you fresh and in perfect condition!\n\n"
+        f"📋 *DELIVERY SUMMARY:*\n"
+        f"• *Order ID:* #{short_id}\n"
+        f"• *Delivery Timestamp:* {time_str}\n"
+        f"{pay_info}\n"
+        f"═════════════════════════════\n"
+        f"🛒 *DELIVERED ITEMS ({len(items)}):*\n"
+        f"{items_block}"
+        f"{notes_line}\n"
+        f"─────────────────────────────\n"
+        f"💵 *FINAL ORDER TOTAL: ₹{grand_total:,.2f}*\n"
+        f"═════════════════════════════\n"
+        f"📍 *DELIVERED TO:*\n"
+        f"*{address_text}*\n"
+        f"═════════════════════════════\n"
+        f"⭐ *DIGITAL INVOICE & FEEDBACK:*\n"
+        f"View your itemized receipt and rate your experience:\n"
+        f"🔗 {invoice_url}\n"
+        f"═════════════════════════════\n"
+        f"Need assistance? Reply directly to this WhatsApp message.\n\n"
+        f"Thank you for shopping with *Jippy Store*! "
+    )
+    return msg
+
+
+def send_order_delivery_whatsapp(order):
+    """
+    Sends professional Delivery Confirmation WhatsApp notification to customer.
+    """
+    try:
+        customer_phone = order.get("user_phone")
+        if not customer_phone or customer_phone == "guest":
+            customer_phone = order.get("address", {}).get("alt_phone")
+            
+        if customer_phone and customer_phone != "guest":
+            customer_msg = format_whatsapp_delivery_message(order)
+            res = send_green_api_message(customer_phone, customer_msg)
+            print(f"[Delivery WhatsApp sent to {customer_phone}]: {res}")
+            return res
+    except Exception as e:
+        print("[Delivery WhatsApp Error]:", e)
+        return False
+
+
+def send_order_delivery_whatsapp_async(order):
+    """
+    Dispatches delivery WhatsApp message in background thread.
+    """
+    threading.Thread(target=send_order_delivery_whatsapp, args=(order,), daemon=True).start()
+
+
+def send_notes_price_updated_whatsapp(order, added_items_text, added_amount, new_grand_total):
+    """
+    Sends WhatsApp update to customer when vendor prices custom requested items in professional English.
+    """
+    try:
+        customer_phone = order.get("user_phone")
+        if not customer_phone or customer_phone == "guest":
+            customer_phone = order.get("address", {}).get("alt_phone")
+        if not customer_phone or customer_phone == "guest":
+            return False
+
+        user_name = order.get("user_name") or "Valued Customer"
+        order_id = str(order.get("order_id", ""))
+        short_id = order_id[-8:].upper() if len(order_id) >= 8 else order_id
+        is_khata = str(order.get("payment_method") or "").upper() in ["STORE_CREDIT", "UDHAR", "KHATA"]
+        cod_extra = float(order.get("notes_cod_extra") or 0.0)
+        credit_billed = float(order.get("notes_credit_billed") or (new_grand_total - cod_extra))
+
+        if is_khata:
+            if cod_extra > 0:
+                pay_text = (
+                    f"• *Payment Method:* Society Store Credit + Cash on Delivery\n"
+                    f"• *Store Credit Account:* ₹{credit_billed:,.2f} billed (up to credit limit)\n"
+                    f"• *Cash Payable at Doorstep:* ₹{cod_extra:,.2f} (for items exceeding credit limit)\n"
+                    f"• *View Passbook:* https://jippy.store/my-khata"
+                )
+            else:
+                pay_text = (
+                    f"• *Payment Method:* Society Store Credit\n"
+                    f"• *Account Status:* +₹{added_amount:,.2f} debited to your Store Credit passbook\n"
+                    f"• *View Passbook:* https://jippy.store/my-khata"
+                )
+        else:
+            pay_text = (
+                f"• *Payment Method:* Cash on Delivery (COD)\n"
+                f"• *Payable at Doorstep:* ₹{new_grand_total:,.2f}"
+            )
+
+        base_url = (os.getenv("BASE_URL") or "https://jippy.store").rstrip("/")
+        invoice_url = f"{base_url}/order-confirmation?order_id={order_id}"
+
+        msg = (
+            f"📝 *ORDER BILL UPDATED | JIPPY STORE* 🛍️\n"
+            f"═════════════════════════════\n"
+            f"Dear *{user_name}*,\n\n"
+            f"The custom item requested in your order *#{short_id}* has been verified and added to your bill by the store manager:\n\n"
+            f"🛒 *CUSTOM ITEM DETAILS:*\n"
+            f"• *{added_items_text}* (+₹{added_amount:,.2f})\n\n"
+            f"🧾 *UPDATED BILL SUMMARY:*\n"
+            f"• *New Order Total: ₹{new_grand_total:,.2f}*\n"
+            f"{pay_text}\n"
+            f"═════════════════════════════\n"
+            f"🔗 *View Updated Itemized Invoice:*\n"
+            f"{invoice_url}\n"
+            f"═════════════════════════════\n"
+            f"For any queries or modifications, please reply directly to this WhatsApp message.\n\n"
+            f"Thank you for shopping with *Jippy Store*!"
+        )
+        return send_green_api_message(customer_phone, msg)
+    except Exception as e:
+        print("[Notes Update WhatsApp Error]:", e)
+        return False
+
+
+def send_notes_price_updated_whatsapp_async(order, added_items_text, added_amount, new_grand_total):
+    threading.Thread(
+        target=send_notes_price_updated_whatsapp,
+        args=(order, added_items_text, added_amount, new_grand_total),
+        daemon=True
+    ).start()
+
+
 def send_admin_push_notifications(order):
     """
     Dispatches FCM & Cloud Web Push Notifications to all registered Admin devices.
@@ -3624,13 +3983,21 @@ def send_admin_push_notifications(order):
     try:
         short_id = str(order.get("order_id", ""))[-8:].upper()
         user_name = order.get("user_name", "Resident")
-        grand_total = order.get("total", 0)
+        grand_total = float(order.get("total", 0) or 0)
         items = order.get("items", [])
         item_count = len(items)
         order_id = str(order.get("order_id", ""))
 
-        title = f"🛒 New Order: ₹{grand_total:,.0f}"
-        body = f"Order #{short_id} by {user_name} ({item_count} items). Delivered to Flat."
+        addr = order.get("address", {}) or {}
+        if isinstance(addr, dict) and (addr.get("block") or addr.get("flat_no")):
+            dest = f"{addr.get('block', '')} - {addr.get('flat_no', '')}".strip(" -")
+        elif isinstance(addr, dict) and addr.get("line1"):
+            dest = addr.get("line1")
+        else:
+            dest = "Doorstep"
+
+        title = f"🛒 New Order: ₹{grand_total:,.0f} | #{short_id}"
+        body = f"{user_name} placed an order with {item_count} items. Delivery to {dest}."
 
         # Fetch all active registered admin device tokens
         subscriptions = list(admin_push_subscriptions.find({"active": {"$ne": False}}))
@@ -3701,7 +4068,13 @@ def send_whatsapp_otp():
     session['whatsapp_phone'] = phone
     session['whatsapp_otp_expiry'] = (datetime.datetime.now() + datetime.timedelta(minutes=5)).timestamp()
     
-    msg = f"Welcome to Jippy Store!\n\nYour verification code is: *{otp_code}*\n\nPlease do not share this code with anyone."
+    msg = (
+        f"🔐 *VERIFICATION CODE | JIPPY STORE*\n\n"
+        f"Your one-time login verification code is: *{otp_code}*\n"
+        f"(Valid for 5 minutes)\n\n"
+        f"Please do not share this code with anyone for your account security.\n\n"
+        f"Thank you for choosing Jippy Store! "
+    )
     success = send_green_api_message(phone, msg)
     
     if success:
@@ -3831,6 +4204,18 @@ def checkout():
     if not address:
         return jsonify({"error": "Address is required"}), 400
 
+    # ---- Standardize Address Components (BLOCK, FLAT, FLOOR, Uppercase) ----
+    std_addr = standardize_address_components(
+        raw_block=address.get("block", ""),
+        raw_floor=address.get("floor", ""),
+        raw_flat=address.get("flat_no", ""),
+        raw_line1=address.get("line1", "")
+    )
+    address["block"] = std_addr["block"]
+    address["floor"] = std_addr["floor"]
+    address["flat_no"] = std_addr["flat_no"]
+    address["line1"] = std_addr["line1"]
+
     # ---- Society Address Validation: Check delivery address is for active society ----
     current_society_id = session.get("current_society_id")
     soc_doc = None
@@ -3882,6 +4267,9 @@ def checkout():
                 updates = {
                     f"addresses.{idx}.alt_phone": address.get("alt_phone"),
                     f"addresses.{idx}.location_text": address.get("location_text", ""),
+                    f"addresses.{idx}.block": address.get("block", ""),
+                    f"addresses.{idx}.floor": address.get("floor", ""),
+                    f"addresses.{idx}.flat_no": address.get("flat_no", ""),
                 }
                 if lat is not None and lng is not None:
                     updates[f"addresses.{idx}.coords"] = {"lat": lat, "lng": lng}
@@ -3893,6 +4281,9 @@ def checkout():
                     "alt_phone": address.get("alt_phone"),
                     "line1": address.get("line1", ""),
                     "line2": address.get("line2", ""),
+                    "block": address.get("block", ""),
+                    "floor": address.get("floor", ""),
+                    "flat_no": address.get("flat_no", ""),
                     "city": address.get("city", ""),
                     "pincode": address.get("pincode", ""),
                     "location_text": address.get("location_text", ""),
@@ -3947,6 +4338,49 @@ def checkout():
 
     notes = str(data.get("notes") or data.get("order_notes") or "").strip()[:500]
 
+    # ---- 📒 Society Store Credit (Khata) Verification & Validation ----
+    raw_pm = str(data.get("payment_method") or "COD").strip().upper()
+    payment_method = "STORE_CREDIT" if raw_pm in ["UDHAR", "STORE_CREDIT", "KHATA"] else "COD"
+    khata_user = None
+    curr_bal = 0.0
+
+    if payment_method == "STORE_CREDIT":
+        clean_p = clean_phone_10(user_phone)
+        khata_user = db["vendor_khata_users"].find_one({
+            "vendor_id": vendor_id,
+            "$or": [
+                {"customer_phone": clean_p},
+                {"user_id": ObjectId(user_id) if user_id else None}
+            ],
+            "is_verified": True,
+            "status": "ACTIVE"
+        })
+        if not khata_user:
+            return jsonify({
+                "error": "Your Store Credit (Khata) account is not verified for this store. Please choose Cash on Delivery or request store approval."
+            }), 400
+
+        credit_limit = float(khata_user.get("credit_limit") or 0.0)
+        curr_bal = recalculate_khata_user_balance(db, khata_user["_id"])
+        if credit_limit > 0 and (curr_bal + grand_total) > credit_limit:
+            available_limit = max(0.0, credit_limit - curr_bal)
+            if curr_bal < 0:
+                err_msg = (
+                    f"Order total (₹{grand_total:,.2f}) exceeds your available Store Credit limit of ₹{available_limit:,.2f} "
+                    f"(Credit limit: ₹{credit_limit:,.0f} + Advance deposit: ₹{abs(curr_bal):,.2f}). Please pay via Pay on Delivery (COD)."
+                )
+            elif curr_bal > 0:
+                err_msg = (
+                    f"Order total (₹{grand_total:,.2f}) exceeds your available Store Credit limit of ₹{available_limit:,.2f} "
+                    f"(Current due: ₹{curr_bal:,.2f} of ₹{credit_limit:,.0f} limit). Please pay via COD or settle your dues."
+                )
+            else:
+                err_msg = (
+                    f"Order total (₹{grand_total:,.2f}) exceeds your Store Credit limit of ₹{credit_limit:,.0f}. "
+                    f"Please pay via Pay on Delivery (COD)."
+                )
+            return jsonify({"error": err_msg}), 400
+
     # ---- STEP 3: Order object creation ----
     order = {
         "user_id": user_id,
@@ -3963,11 +4397,14 @@ def checkout():
         "surge_charge": surge_charge, # Saved in order
         "total": grand_total,
         "status": "pending",
-        "payment_method": "COD",
+        "payment_method": payment_method,
         "address": {
             "alt_phone": address.get("alt_phone"),
             "line1": address.get("line1", ""),
             "line2": address.get("line2", ""),
+            "block": address.get("block", ""),
+            "floor": address.get("floor", ""),
+            "flat_no": address.get("flat_no", ""),
             "city": address.get("city", ""),
             "pincode": address.get("pincode", ""),
             "location_text": address.get("location_text", ""),
@@ -3977,6 +4414,38 @@ def checkout():
     }
 
     orders.insert_one(order)
+
+    # 📒 Society Store Credit Ledger Debit Update
+    if payment_method == "STORE_CREDIT" and khata_user:
+        try:
+            new_bal = curr_bal + grand_total
+            db["vendor_khata_ledger"].insert_one({
+                "khata_user_id": khata_user["_id"],
+                "vendor_id": vendor_id,
+                "user_id": ObjectId(user_id) if user_id else None,
+                "customer_name": user_name,
+                "customer_phone": clean_phone_10(user_phone),
+                "order_id": order_id,
+                "type": "DEBIT",
+                "amount": round(grand_total, 2),
+                "balance_before": round(curr_bal, 2),
+                "balance_after": round(new_bal, 2),
+                "payment_mode": "STORE_CREDIT",
+                "created_at": datetime.datetime.now(datetime.timezone.utc),
+            })
+            # Recalculate true running balance from entire ledger history
+            recalculate_khata_user_balance(db, khata_user["_id"])
+            db["vendor_khata_users"].update_one(
+                {"_id": khata_user["_id"]},
+                {
+                    "$set": {
+                        "last_order_at": datetime.datetime.now(datetime.timezone.utc),
+                        "updated_at": datetime.datetime.now(datetime.timezone.utc),
+                    }
+                }
+            )
+        except Exception as _khata_err:
+            print("[Khata Order Debit Error]:", _khata_err)
 
     # 📱 WhatsApp Notification: Send Flipkart-style Bill to User & Both Admins
     try:
@@ -4135,6 +4604,9 @@ def address_page():
     user_doc = users.find_one({"_id": ObjectId(user_id), "role": "customer"})
     saved_addresses = user_doc.get("addresses", []) if user_doc else []
 
+    if user_doc and not session.get("user_phone"):
+        session["user_phone"] = user_doc.get("phone", "")
+
     society = None
     current_society_id = session.get("current_society_id")
     if current_society_id:
@@ -4145,7 +4617,7 @@ def address_page():
     if not society:
         society = societies.find_one()
 
-    return render_template("address.html", saved_addresses=saved_addresses, society=society)
+    return render_template("address.html", saved_addresses=saved_addresses, society=society, user=user_doc)
 
 
 @app.route("/my-orders")
@@ -4602,12 +5074,27 @@ def admin_update_status(order_id):
         if new_status == "DELIVERED":
             update["delivered_at"] = datetime.datetime.now(datetime.timezone.utc)
             update["delivery_status"] = "delivered"
+            try:
+                curr_order = orders.find_one({"order_id": order_id})
+                if curr_order and not curr_order.get("delivery_whatsapp_sent"):
+                    update["delivery_whatsapp_sent"] = True
+                    order_delivered_data = dict(curr_order)
+                    order_delivered_data.update(update)
+                    send_order_delivery_whatsapp_async(order_delivered_data)
+            except Exception as _wh_err:
+                print("[Admin Delivery WhatsApp Dispatch Error]:", _wh_err)
         elif new_status == "OUT_FOR_DELIVERY":
             update["delivery_status"] = "out_for_delivery"
         elif new_status == "CANCELLED":
             cancel_reason = request.form.get("cancel_reason", "Cancelled by Admin").strip()
             update["cancel_reason"] = cancel_reason
             update["delivery_status"] = "cancelled"
+            try:
+                curr_order = orders.find_one({"order_id": order_id})
+                if curr_order:
+                    reverse_order_store_credit(db, curr_order, reason=f"Admin Cancelled ({cancel_reason})")
+            except Exception as _rev_err:
+                print("[Khata Admin Reversal Error]:", _rev_err)
 
         orders.update_one(
             {"order_id": order_id},
@@ -4633,6 +5120,13 @@ def admin_delete_order(order_id):
         if request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.form.get("is_ajax") == "1":
             return jsonify({"success": False, "message": "Unauthorized"}), 401
         return redirect(url_for("admin_login"))
+
+    try:
+        del_order = orders.find_one({"order_id": order_id})
+        if del_order:
+            reverse_order_store_credit(db, del_order, reason="Admin Order Deleted")
+    except Exception as _del_err:
+        print("[Khata Delete Reversal Error]:", _del_err)
 
     orders.delete_one({"order_id": order_id})
 
@@ -4724,6 +5218,15 @@ def portal_update_vendor_status(order_id):
         update_fields = {"vendor_status": new_status, "status": new_status}
         if new_status == "delivered":
             update_fields["delivered_at"] = datetime.datetime.now(datetime.timezone.utc)
+            try:
+                curr_order = orders.find_one({"order_id": order_id})
+                if curr_order and not curr_order.get("delivery_whatsapp_sent"):
+                    update_fields["delivery_whatsapp_sent"] = True
+                    order_delivered_data = dict(curr_order)
+                    order_delivered_data.update(update_fields)
+                    send_order_delivery_whatsapp_async(order_delivered_data)
+            except Exception as _wh_err:
+                print("[Vendor Delivery WhatsApp Dispatch Error]:", _wh_err)
             
         orders.update_one(
             {"order_id": order_id},
@@ -4748,12 +5251,24 @@ def portal_update_delivery_status(order_id):
     allowed = {"accepted", "picked", "out_for_delivery", "delivered"}
 
     if new_status in allowed:
+        update_doc = {"delivery_status": new_status, "status": new_status}
+        if new_status == "delivered":
+            update_doc["delivered_at"] = datetime.datetime.now(datetime.timezone.utc)
+            try:
+                curr_order = orders.find_one({"order_id": order_id})
+                if curr_order and not curr_order.get("delivery_whatsapp_sent"):
+                    update_doc["delivery_whatsapp_sent"] = True
+                    order_delivered_data = dict(curr_order)
+                    order_delivered_data.update(update_doc)
+                    send_order_delivery_whatsapp_async(order_delivered_data)
+            except Exception as _wh_err:
+                print("[Logistics Delivery WhatsApp Dispatch Error]:", _wh_err)
         orders.update_one(
             {
                 "order_id": order_id,
                 "delivery_id": ObjectId(portal_user_id),
             },
-            {"$set": {"delivery_status": new_status, "status": new_status}},
+            {"$set": update_doc},
         )
 
     return redirect(url_for("logistics_dashboard"))
@@ -5367,6 +5882,127 @@ def download_invoice(order_id):
         print(f"❌ Invoice Error: {e}")
         return "Internal Server Error", 500
 
+# ─── INVOICE PDF DOWNLOAD BRIDGE (For Android WebViews & Mobile Browsers) ───
+import uuid
+import base64
+import time
+from io import BytesIO
+from flask import send_file
+
+_invoice_pdf_cache = {}
+
+@app.route('/api/upload-invoice-pdf/<order_id>', methods=['POST'])
+def api_upload_invoice_pdf(order_id):
+    """Client-side generated PDF ko accept karke temporary direct download link generate karta hai (Android WebView compatible)."""
+    try:
+        data = request.get_json(silent=True) or {}
+        pdf_b64 = data.get('pdf_base64', '')
+        if not pdf_b64:
+            return jsonify({'success': False, 'message': 'No PDF data received'}), 400
+        
+        if ',' in pdf_b64:
+            pdf_b64 = pdf_b64.split(',', 1)[1]
+            
+        pdf_bytes = base64.b64decode(pdf_b64)
+        
+        token = str(uuid.uuid4())[:16]
+        if len(_invoice_pdf_cache) > 50:
+            oldest_key = next(iter(_invoice_pdf_cache))
+            _invoice_pdf_cache.pop(oldest_key, None)
+            
+        short_oid = str(order_id)[-8:].upper()
+        filename = f"Jippy_Invoice_{short_oid}.pdf"
+        
+        _invoice_pdf_cache[token] = {
+            'bytes': pdf_bytes,
+            'filename': filename,
+            'created_at': time.time()
+        }
+        
+        return jsonify({
+            'success': True,
+            'download_url': f"/api/get-invoice-pdf/{token}",
+            'filename': filename
+        })
+    except Exception as e:
+        print(f"❌ Error uploading invoice PDF: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/api/get-invoice-pdf/<token>')
+def api_get_invoice_pdf(token):
+    """Direct HTTP attachment download jo Android WebView ke DownloadManager mein 100% download hota hai."""
+    entry = _invoice_pdf_cache.get(token)
+    if not entry:
+        return "Invoice download link expired or not found. Please click 'Download PDF' again.", 404
+        
+    return send_file(
+        BytesIO(entry['bytes']),
+        mimetype='application/pdf',
+        as_attachment=True,
+        download_name=entry.get('filename', 'Jippy_Invoice.pdf')
+    )
+
+# ─── SEO SEARCH ENGINE INFRASTRUCTURE (Robots.txt & Sitemap.xml) ───
+@app.route('/robots.txt')
+def serve_robots_txt():
+    """🤖 Search Engine Crawl Directives"""
+    from flask import send_from_directory
+    import os
+    return send_from_directory(os.path.join(app.root_path, 'static'), 'robots.txt', mimetype='text/plain')
+
+@app.route('/sitemap.xml')
+def serve_sitemap_xml():
+    """🗺️ Dynamic XML Sitemap for Google, Bing and Search Engine Indexing"""
+    from flask import Response
+    import datetime
+    import urllib.parse
+
+    base_url = "https://jippy.store"
+    now_str = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d")
+
+    urls = [
+        {"loc": f"{base_url}/", "changefreq": "daily", "priority": "1.0"},
+        {"loc": f"{base_url}/shops", "changefreq": "daily", "priority": "0.9"},
+        {"loc": f"{base_url}/societies", "changefreq": "weekly", "priority": "0.8"},
+        {"loc": f"{base_url}/login", "changefreq": "monthly", "priority": "0.5"},
+        {"loc": f"{base_url}/privacy", "changefreq": "monthly", "priority": "0.4"},
+    ]
+
+    try:
+        cat_list = get_cached_categories() if callable(get_cached_categories) else []
+        for cat in cat_list:
+            encoded_cat = urllib.parse.quote_plus(str(cat))
+            urls.append({
+                "loc": f"{base_url}/?category={encoded_cat}",
+                "changefreq": "daily",
+                "priority": "0.8"
+            })
+    except Exception as e:
+        print("Sitemap categories error:", e)
+
+    xml_lines = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"',
+        '        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">'
+    ]
+
+    for u in urls:
+        xml_lines.append('  <url>')
+        xml_lines.append(f'    <loc>{u["loc"]}</loc>')
+        xml_lines.append(f'    <lastmod>{now_str}</lastmod>')
+        xml_lines.append(f'    <changefreq>{u["changefreq"]}</changefreq>')
+        xml_lines.append(f'    <priority>{u["priority"]}</priority>')
+        if u["loc"] == f"{base_url}/":
+            xml_lines.append('    <image:image>')
+            xml_lines.append(f'      <image:loc>{base_url}/static/logo.png</image:loc>')
+            xml_lines.append('      <image:title>Jippy Store - 10-15 Mins Hyperlocal Grocery Delivery</image:title>')
+            xml_lines.append('    </image:image>')
+        xml_lines.append('  </url>')
+
+    xml_lines.append('</urlset>')
+
+    return Response("\n".join(xml_lines), mimetype="application/xml")
+
 @app.route("/admin/all-users")
 def admin_all_users():
     if not session.get("admin_logged_in"):
@@ -5646,6 +6282,62 @@ def search_societies():
         })
         
     return jsonify({"societies": results})
+
+
+@app.route("/robots.txt")
+def robots_txt():
+    """Serves robots.txt with proper text/plain mimetype for search engine crawlers."""
+    return send_from_directory(os.path.join(app.root_path, "static"), "robots.txt", mimetype="text/plain")
+
+
+@app.route("/sitemap.xml")
+def sitemap_xml():
+    """Generates dynamic sitemap.xml listing all categories and public storefront URLs."""
+    try:
+        import urllib.parse
+        base_url = request.url_root.rstrip('/')
+        today = datetime.datetime.now().strftime("%Y-%m-%d")
+        
+        # Base and core public URLs
+        urls = [
+            {"loc": f"{base_url}/", "priority": "1.0", "changefreq": "daily"},
+            {"loc": f"{base_url}/category/all", "priority": "0.9", "changefreq": "daily"},
+        ]
+        
+        # Dynamic product categories
+        cats = get_cached_categories() or []
+        for c in cats:
+            c_name = c.get("name") if isinstance(c, dict) else str(c)
+            if c_name:
+                clean_name = urllib.parse.quote(c_name.strip())
+                urls.append({
+                    "loc": f"{base_url}/category/{clean_name}",
+                    "priority": "0.8",
+                    "changefreq": "daily"
+                })
+        
+        xml_entries = []
+        for u in urls:
+            xml_entries.append(
+                f"  <url>\n"
+                f"    <loc>{u['loc']}</loc>\n"
+                f"    <lastmod>{today}</lastmod>\n"
+                f"    <changefreq>{u['changefreq']}</changefreq>\n"
+                f"    <priority>{u['priority']}</priority>\n"
+                f"  </url>"
+            )
+            
+        xml_body = "\n".join(xml_entries)
+        xml_content = f"""<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+{xml_body}
+</urlset>"""
+        response = make_response(xml_content, 200)
+        response.headers["Content-Type"] = "application/xml"
+        return response
+    except Exception as e:
+        return make_response(f"<!-- Sitemap Error: {str(e)} -->", 500, {"Content-Type": "application/xml"})
+
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 3001))
