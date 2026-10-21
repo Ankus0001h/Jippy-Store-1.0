@@ -6284,61 +6284,6 @@ def search_societies():
     return jsonify({"societies": results})
 
 
-@app.route("/robots.txt")
-def robots_txt():
-    """Serves robots.txt with proper text/plain mimetype for search engine crawlers."""
-    return send_from_directory(os.path.join(app.root_path, "static"), "robots.txt", mimetype="text/plain")
-
-
-@app.route("/sitemap.xml")
-def sitemap_xml():
-    """Generates dynamic sitemap.xml listing all categories and public storefront URLs."""
-    try:
-        import urllib.parse
-        base_url = request.url_root.rstrip('/')
-        today = datetime.datetime.now().strftime("%Y-%m-%d")
-        
-        # Base and core public URLs
-        urls = [
-            {"loc": f"{base_url}/", "priority": "1.0", "changefreq": "daily"},
-            {"loc": f"{base_url}/category/all", "priority": "0.9", "changefreq": "daily"},
-        ]
-        
-        # Dynamic product categories
-        cats = get_cached_categories() or []
-        for c in cats:
-            c_name = c.get("name") if isinstance(c, dict) else str(c)
-            if c_name:
-                clean_name = urllib.parse.quote(c_name.strip())
-                urls.append({
-                    "loc": f"{base_url}/category/{clean_name}",
-                    "priority": "0.8",
-                    "changefreq": "daily"
-                })
-        
-        xml_entries = []
-        for u in urls:
-            xml_entries.append(
-                f"  <url>\n"
-                f"    <loc>{u['loc']}</loc>\n"
-                f"    <lastmod>{today}</lastmod>\n"
-                f"    <changefreq>{u['changefreq']}</changefreq>\n"
-                f"    <priority>{u['priority']}</priority>\n"
-                f"  </url>"
-            )
-            
-        xml_body = "\n".join(xml_entries)
-        xml_content = f"""<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-{xml_body}
-</urlset>"""
-        response = make_response(xml_content, 200)
-        response.headers["Content-Type"] = "application/xml"
-        return response
-    except Exception as e:
-        return make_response(f"<!-- Sitemap Error: {str(e)} -->", 500, {"Content-Type": "application/xml"})
-
-
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 3001))
     app.run(host="0.0.0.0", port=port, debug=True)
