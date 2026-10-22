@@ -120,8 +120,11 @@ BASE_URL = os.getenv("BASE_URL", "")
 # ---------- MongoDB ----------
 try:
     import dns.resolver
-    dns.resolver.default_resolver = dns.resolver.Resolver(configure=False)
-    dns.resolver.default_resolver.nameservers = ['8.8.8.8', '1.1.1.1', '8.8.4.4']
+    _res = dns.resolver.Resolver(configure=True)
+    _res.timeout = 2.0
+    _res.lifetime = 2.0
+    _res.nameservers = ['1.1.1.1', '8.8.8.8', '8.8.4.4']
+    dns.resolver.default_resolver = _res
 except Exception:
     pass
 
@@ -131,12 +134,12 @@ MONGO_URI = os.getenv("MONGO_URI")
 mongo_client = MongoClient(
     MONGO_URI,
     tlsCAFile=certifi.where(),
-    maxPoolSize=50,
-    minPoolSize=0,
-    maxIdleTimeMS=45000,
-    connectTimeoutMS=30000,
-    socketTimeoutMS=45000,
-    serverSelectionTimeoutMS=20000,
+    maxPoolSize=100,
+    minPoolSize=5,
+    maxIdleTimeMS=60000,
+    connectTimeoutMS=10000,
+    socketTimeoutMS=20000,
+    serverSelectionTimeoutMS=10000,
     retryWrites=True,
     retryReads=True,
 )
@@ -187,8 +190,19 @@ admin_push_subscriptions = db["admin_push_subscriptions"]
 
 # High concurrency background indexing
 try:
+    # ⚡ Critical Catalog Query Indexes (Eliminate Collection Scans)
+    products.create_index([("category", 1), ("out_of_stock", 1)], background=True)
     products.create_index([("category", 1), ("is_active", 1)], background=True)
     products.create_index([("is_active", 1)], background=True)
+    products.create_index([("name", 1)], background=True)
+    products.create_index([("slug", 1)], background=True)
+
+    # ⚡ User & Auth Indexes
+    users.create_index([("phone", 1), ("role", 1)], background=True)
+    users.create_index([("role", 1)], background=True)
+    users.create_index([("phone", 1)], background=True)
+
+    # ⚡ Order Indexes
     orders.create_index([("order_id", 1)], background=True)
     orders.create_index([("vendor_id", 1), ("created_at", -1)], background=True)
     orders.create_index([("items.vendor_id", 1), ("created_at", -1)], background=True)
@@ -196,7 +210,8 @@ try:
     orders.create_index([("created_at", -1)], background=True)
     orders.create_index([("user_id", 1), ("created_at", -1)], background=True)
     orders.create_index([("status", 1)], background=True)
-    users.create_index([("phone", 1)], background=True)
+
+    # ⚡ Location & Category Indexes
     societies.create_index([("name", 1)], background=True)
     categories_col.create_index([("normalized_name", 1)], unique=True, background=True)
 except Exception as _idx_err:
@@ -567,6 +582,31 @@ def group_and_sort_products(items):
     random.shuffle(in_stock)
     return in_stock + out_of_stock
 
+@cache.memoize(timeout=60)
+def get_cached_shop_by_id(shop_id):
+    if not shop_id:
+        return None
+    try:
+        return users.find_one({"_id": ObjectId(shop_id), "role": "vendor"})
+    except Exception:
+        return None
+
+@cache.memoize(timeout=60)
+def get_cached_shop_by_society(society_id):
+    if not society_id:
+        return None
+    try:
+        return users.find_one({"role": "vendor", "serviceable_societies": str(society_id)})
+    except Exception:
+        return None
+
+@cache.memoize(timeout=60)
+def get_cached_default_vendor():
+    try:
+        return users.find_one({"role": "vendor"})
+    except Exception:
+        return None
+
 sort_available_first = group_and_sort_products
 
 @app.route("/category/<path:name>")
@@ -578,24 +618,18 @@ def category_page(name):
         # Categories fetch (Cached)
         categories = get_cached_categories()
         
-        # Fetch Shop with society/default fallback
+        # Fetch Shop with society/default fallback (Cached)
         shop = None
         shop_id = session.get("current_shop_id")
         if shop_id:
-            try:
-                shop = users.find_one({"_id": ObjectId(shop_id), "role": "vendor"})
-            except Exception:
-                shop = None
+            shop = get_cached_shop_by_id(shop_id)
 
         if not shop:
             current_society_id = session.get("current_society_id")
             if current_society_id:
-                try:
-                    shop = users.find_one({"role": "vendor", "serviceable_societies": str(current_society_id)})
-                except Exception:
-                    shop = None
+                shop = get_cached_shop_by_society(current_society_id)
             if not shop:
-                shop = users.find_one({"role": "vendor"})
+                shop = get_cached_default_vendor()
 
         if shop and not session.get("current_shop_id"):
             session["current_shop_id"] = str(shop.get("_id"))
