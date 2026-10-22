@@ -3,7 +3,7 @@ module.exports = {
     {
       name: "jippy-store-flask",
       script: "./.venv/bin/gunicorn",
-      args: "-w 3 --threads 2 --worker-class gthread -b 0.0.0.0:3001 --keep-alive 5 --timeout 120 app:app",
+      args: "-w 4 --threads 4 --worker-class gthread -b 0.0.0.0:3001 --keep-alive 65 --timeout 120 --backlog 2048 --max-requests 2500 --max-requests-jitter 250 app:app",
       interpreter: "none",
       autorestart: true,
       watch: false,
