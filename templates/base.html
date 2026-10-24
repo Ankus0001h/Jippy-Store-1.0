@@ -117,6 +117,8 @@
 
   <!-- 🚀 Hotwired Turbo Drive (Instant zero-reload navigation) -->
   <script src="{{ url_for('static', filename='js/turbo.min.js') }}"></script>
+  <!-- 🛡️ Prevent double reload: do not render outdated snapshot previews -->
+  <meta name="turbo-cache-control" content="no-preview">
   {% block extra_head %}{% endblock %}
 
   <style>
@@ -127,12 +129,12 @@
       background-color: #f1f3f6;
     }
 
-    /* ⚡ Sleek Flipkart Blue / Emerald Turbo Progress Bar */
+    /* ⚡ Disable lagging top progress bar: Shimmer Skeleton screen handles loading seamlessly */
     .turbo-progress-bar {
-      height: 2.5px !important;
-      background: linear-gradient(90deg, #2874f0, #00c853) !important;
-      box-shadow: 0 0 10px rgba(40, 116, 240, 0.8) !important;
-      z-index: 999999 !important;
+      display: none !important;
+      opacity: 0 !important;
+      height: 0 !important;
+      visibility: hidden !important;
     }
 
     .page-fade-in {
@@ -183,16 +185,204 @@
       transform-origin: 50% 0%;
       animation: hangingSignSway 5s ease-in-out infinite;
     }
+
+    /* 🌊 Modern App Shimmer Skeleton (Blinkit / Swiggy / Zepto Style) */
+    @keyframes jippyShimmerWave {
+      0% {
+        transform: translateX(-100%);
+      }
+      100% {
+        transform: translateX(100%);
+      }
+    }
+
+    .shimmer-box {
+      position: relative;
+      overflow: hidden;
+      background-color: #e5e7eb;
+    }
+
+    .shimmer-box::after {
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      transform: translateX(-100%);
+      background-image: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.45) 30%,
+        rgba(255, 255, 255, 0.85) 50%,
+        rgba(255, 255, 255, 0.45) 70%,
+        rgba(255, 255, 255, 0) 100%
+      );
+      animation: jippyShimmerWave 1.25s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+      content: '';
+    }
+
+    /* 〰️ Horizontal Animated Loading Lines */
+    .shimmer-line {
+      position: relative;
+      overflow: hidden;
+      background-color: #e2e8f0;
+      border-radius: 4px;
+    }
+
+    .shimmer-line::after {
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      transform: translateX(-100%);
+      background-image: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.75) 50%,
+        rgba(255, 255, 255, 0) 100%
+      );
+      animation: jippyShimmerWave 1.25s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+      content: '';
+    }
   </style>
 </head>
 
 <body
   class="relative min-h-screen flex flex-col text-[#212121] bg-[#f1f3f6] selection:bg-blue-100 selection:text-blue-900 overflow-x-hidden">
 
-  <!-- ⚡ Single Pure Blue Spinner (Zero text, as strictly required) -->
+  <!-- ⚡ Single Pure Blue Spinner (Zero text, for admin/vendor routes) -->
   <div id="turbo-page-loader" data-turbo-permanent
     style="position:fixed;inset:0;z-index:999998;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.25);opacity:0;transition:opacity 0.15s ease;pointer-events:none;">
     <div style="width:40px;height:40px;border:4px solid #bfdbfe;border-top-color:#2874f0;border-radius:50%;animation:jippySpin 0.75s linear infinite;"></div>
+  </div>
+
+  <!-- 📱 White Native App Skeleton Shimmer Loader (Horizontal Loading Lines & Product Cards) -->
+  <div id="customer-app-skeleton" data-turbo-permanent
+    style="position:fixed;inset:0;z-index:999997;display:none;background:#f8fafc;opacity:0;transition:opacity 0.16s ease-out;overflow-y:auto;pointer-events:none;-webkit-overflow-scrolling:touch;">
+    
+    <!-- Skeleton Header (White App Bar with Horizontal Lines) -->
+    <div class="bg-white border-b border-slate-200/90 px-3 sm:px-6 py-2.5 sticky top-0 z-20 flex items-center justify-between shadow-2xs">
+      <div class="flex items-center gap-2.5 flex-1 min-w-0">
+        <div class="w-8 h-8 rounded-full shimmer-box shrink-0"></div>
+        <div class="space-y-1.5 flex-1 max-w-[220px]">
+          <div class="h-3.5 w-4/5 rounded-xs shimmer-line"></div>
+          <div class="h-2.5 w-1/2 rounded-xs shimmer-line"></div>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <div class="w-16 h-6 rounded-xs shimmer-box shrink-0"></div>
+        <div class="w-8 h-8 rounded-full shimmer-box shrink-0 hidden sm:block"></div>
+      </div>
+    </div>
+
+    <!-- Skeleton Search Bar Container -->
+    <div class="max-w-6xl mx-auto px-2.5 sm:px-4 pt-3 pb-1">
+      <div class="h-11 w-full rounded-sm shimmer-box bg-white border border-slate-200 shadow-2xs flex items-center px-3.5 gap-2.5">
+        <div class="w-4 h-4 rounded-full shimmer-box shrink-0"></div>
+        <div class="h-3 w-1/2 rounded-xs shimmer-line"></div>
+      </div>
+    </div>
+
+    <!-- Skeleton Horizontal Category Capsules (Wave line effect) -->
+    <div class="max-w-6xl mx-auto px-2.5 sm:px-4 py-2 flex items-center gap-2 overflow-hidden">
+      <div class="w-16 h-8 rounded-sm shimmer-box shrink-0"></div>
+      <div class="w-24 h-8 rounded-sm shimmer-box shrink-0"></div>
+      <div class="w-28 h-8 rounded-sm shimmer-box shrink-0"></div>
+      <div class="w-24 h-8 rounded-sm shimmer-box shrink-0"></div>
+      <div class="w-20 h-8 rounded-sm shimmer-box shrink-0"></div>
+      <div class="w-28 h-8 rounded-sm shimmer-box shrink-0 hidden sm:block"></div>
+      <div class="w-24 h-8 rounded-sm shimmer-box shrink-0 hidden sm:block"></div>
+    </div>
+
+    <!-- Skeleton Promo Banner Card -->
+    <div class="max-w-6xl mx-auto px-2.5 sm:px-4 py-1.5">
+      <div class="w-full h-28 sm:h-36 rounded-sm shimmer-box shadow-2xs border border-slate-200/80"></div>
+    </div>
+
+    <!-- Skeleton Subheading & Counter -->
+    <div class="max-w-6xl mx-auto px-2.5 sm:px-4 pt-2 pb-1 flex items-center justify-between">
+      <div class="h-4 w-32 rounded-xs shimmer-line"></div>
+      <div class="h-4 w-16 rounded-xs shimmer-line"></div>
+    </div>
+
+    <!-- Skeleton Product / Store Cards Grid -->
+    <div class="max-w-6xl mx-auto px-2.5 sm:px-4 py-2">
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3">
+        <!-- 6 Modern Cards with Horizontal Shimmer Lines -->
+        <div class="bg-white rounded-sm p-2 sm:p-3 border border-slate-200/90 shadow-2xs flex flex-col justify-between space-y-2">
+          <div class="aspect-[4/3] w-full rounded-xs shimmer-box"></div>
+          <div class="space-y-1.5 pt-1">
+            <div class="h-3 w-4/5 rounded-xs shimmer-line"></div>
+            <div class="h-2.5 w-1/2 rounded-xs shimmer-line"></div>
+          </div>
+          <div class="flex items-center justify-between pt-2">
+            <div class="h-4 w-10 rounded-xs shimmer-line"></div>
+            <div class="h-6 w-14 rounded-xs shimmer-box"></div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-sm p-2 sm:p-3 border border-slate-200/90 shadow-2xs flex flex-col justify-between space-y-2">
+          <div class="aspect-[4/3] w-full rounded-xs shimmer-box"></div>
+          <div class="space-y-1.5 pt-1">
+            <div class="h-3 w-3/4 rounded-xs shimmer-line"></div>
+            <div class="h-2.5 w-2/5 rounded-xs shimmer-line"></div>
+          </div>
+          <div class="flex items-center justify-between pt-2">
+            <div class="h-4 w-12 rounded-xs shimmer-line"></div>
+            <div class="h-6 w-14 rounded-xs shimmer-box"></div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-sm p-2 sm:p-3 border border-slate-200/90 shadow-2xs flex flex-col justify-between space-y-2">
+          <div class="aspect-[4/3] w-full rounded-xs shimmer-box"></div>
+          <div class="space-y-1.5 pt-1">
+            <div class="h-3 w-5/6 rounded-xs shimmer-line"></div>
+            <div class="h-2.5 w-1/3 rounded-xs shimmer-line"></div>
+          </div>
+          <div class="flex items-center justify-between pt-2">
+            <div class="h-4 w-11 rounded-xs shimmer-line"></div>
+            <div class="h-6 w-14 rounded-xs shimmer-box"></div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-sm p-2 sm:p-3 border border-slate-200/90 shadow-2xs flex flex-col justify-between space-y-2">
+          <div class="aspect-[4/3] w-full rounded-xs shimmer-box"></div>
+          <div class="space-y-1.5 pt-1">
+            <div class="h-3 w-4/5 rounded-xs shimmer-line"></div>
+            <div class="h-2.5 w-1/2 rounded-xs shimmer-line"></div>
+          </div>
+          <div class="flex items-center justify-between pt-2">
+            <div class="h-4 w-10 rounded-xs shimmer-line"></div>
+            <div class="h-6 w-14 rounded-xs shimmer-box"></div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-sm p-2 sm:p-3 border border-slate-200/90 shadow-2xs flex flex-col justify-between space-y-2 hidden sm:flex">
+          <div class="aspect-[4/3] w-full rounded-xs shimmer-box"></div>
+          <div class="space-y-1.5 pt-1">
+            <div class="h-3 w-3/4 rounded-xs shimmer-line"></div>
+            <div class="h-2.5 w-1/2 rounded-xs shimmer-line"></div>
+          </div>
+          <div class="flex items-center justify-between pt-2">
+            <div class="h-4 w-12 rounded-xs shimmer-line"></div>
+            <div class="h-6 w-14 rounded-xs shimmer-box"></div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-sm p-2 sm:p-3 border border-slate-200/90 shadow-2xs flex flex-col justify-between space-y-2 hidden sm:flex">
+          <div class="aspect-[4/3] w-full rounded-xs shimmer-box"></div>
+          <div class="space-y-1.5 pt-1">
+            <div class="h-3 w-4/5 rounded-xs shimmer-line"></div>
+            <div class="h-2.5 w-2/5 rounded-xs shimmer-line"></div>
+          </div>
+          <div class="flex items-center justify-between pt-2">
+            <div class="h-4 w-11 rounded-xs shimmer-line"></div>
+            <div class="h-6 w-14 rounded-xs shimmer-box"></div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div id="app-body" class="flex-1 flex flex-col min-h-screen">
@@ -447,35 +637,81 @@
       }
     };
 
-    // Configure Turbo on start
+    // Configure Turbo on start: disable lagging top progress bar (Shimmer Skeleton handles it)
     if (window.Turbo) {
-      // Show top progress bar quickly on slow connections (60ms)
       if (typeof window.Turbo.setProgressBarDelay === 'function') {
-        window.Turbo.setProgressBarDelay(60);
+        window.Turbo.setProgressBarDelay(999999);
       }
     }
 
-    // ⚡ Sleek Center Screen Blue Loader (smoothly covers network delay > 120ms)
+    function isCustomerRoute(urlPath) {
+      if (!urlPath) return true;
+      try {
+        const u = new URL(urlPath, window.location.origin);
+        const p = u.pathname;
+        if (p.startsWith('/admin') ||
+            p.startsWith('/portal') ||
+            p.startsWith('/vendor') ||
+            p.startsWith('/logistics') ||
+            p.startsWith('/download-invoice') ||
+            p.startsWith('/logout') ||
+            p.startsWith('/login') ||
+            p.startsWith('/register')) {
+          return false;
+        }
+        return true;
+      } catch (e) {
+        return true;
+      }
+    }
+
+    let _nextVisitUrl = '';
     let loaderTimer = null;
+
+    // ⚡ Instant Native App Shimmer Skeleton for customer flow (shops, products, cart, address, societies)
     function showPageLoader() {
       clearTimeout(loaderTimer);
+      const isCust = isCustomerRoute(_nextVisitUrl || window.location.pathname);
+      
+      // For customer shopping routes, trigger white shimmer skeleton with horizontal lines very fast (~25ms)
+      const delay = isCust ? 25 : 120;
       loaderTimer = setTimeout(() => {
-        const loader = document.getElementById('turbo-page-loader');
-        if (loader) {
-          loader.style.display = 'flex';
-          requestAnimationFrame(() => { loader.style.opacity = '1'; });
+        if (isCust) {
+          const skel = document.getElementById('customer-app-skeleton');
+          if (skel) {
+            skel.style.display = 'block';
+            requestAnimationFrame(() => { skel.style.opacity = '1'; });
+          }
+        } else {
+          const loader = document.getElementById('turbo-page-loader');
+          if (loader) {
+            loader.style.display = 'flex';
+            requestAnimationFrame(() => { loader.style.opacity = '1'; });
+          }
         }
-      }, 120);
+      }, delay);
     }
 
     function hidePageLoader() {
       clearTimeout(loaderTimer);
+      _nextVisitUrl = '';
+
+      // Fade out skeleton smoothly
+      const skel = document.getElementById('customer-app-skeleton');
+      if (skel) {
+        skel.style.opacity = '0';
+        setTimeout(() => {
+          skel.style.display = 'none';
+        }, 140);
+      }
+
+      // Hide admin spinner
       const loader = document.getElementById('turbo-page-loader');
       if (loader) {
         loader.style.opacity = '0';
         setTimeout(() => {
           loader.style.display = 'none';
-        }, 160);
+        }, 120);
       }
     }
 
@@ -485,19 +721,27 @@
     document.addEventListener("turbo:load", hidePageLoader);
     document.addEventListener("turbo:request-end", hidePageLoader);
 
+    // Clean up skeleton before Turbo takes any snapshot
+    document.addEventListener("turbo:before-cache", function () {
+      const skel = document.getElementById('customer-app-skeleton');
+      if (skel) {
+        skel.style.opacity = '0';
+        skel.style.display = 'none';
+      }
+      const loader = document.getElementById('turbo-page-loader');
+      if (loader) {
+        loader.style.opacity = '0';
+        loader.style.display = 'none';
+      }
+    });
+
     // Intercept navigation for non-SPA routes (admin, vendor, portal, download, auth)
     document.addEventListener("turbo:before-visit", function (event) {
+      _nextVisitUrl = event.detail.url;
       try {
         const url = new URL(event.detail.url);
         const p = url.pathname;
-        if (p.startsWith('/admin') ||
-            p.startsWith('/portal') ||
-            p.startsWith('/vendor') ||
-            p.startsWith('/logistics') ||
-            p.startsWith('/download-invoice') ||
-            p.startsWith('/logout') ||
-            p.startsWith('/login') ||
-            p.startsWith('/register')) {
+        if (!isCustomerRoute(p)) {
           event.preventDefault();
           window.location.href = event.detail.url;
         }
