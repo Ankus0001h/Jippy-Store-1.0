@@ -372,13 +372,32 @@
       });
   });
 
+  function checkAndAutoSubmitLoginOtp() {
+    let code = "";
+    for (let i = 1; i <= 6; i++) {
+      const el = document.getElementById(`code${i}`);
+      if (el) code += el.value;
+    }
+    if (code.length === 6) {
+      const form = document.getElementById('login-otp-form');
+      if (form) {
+        if (typeof form.requestSubmit === 'function') {
+          form.requestSubmit();
+        } else {
+          form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+        }
+      }
+    }
+  }
+
   document.getElementById('login-otp-form').addEventListener('submit', function (e) {
     e.preventDefault();
     hideAlert();
 
     let code = "";
     for (let i = 1; i <= 6; i++) {
-      code += document.getElementById(`code${i}`).value;
+      const el = document.getElementById(`code${i}`);
+      code += el ? el.value : "";
     }
 
     if (code.length < 6) {
@@ -392,7 +411,8 @@
       btn.innerHTML = `<i class="fas fa-circle-notch fa-spin mr-2"></i> VERIFYING...`;
     }
 
-    const phone = document.getElementById('login-phone').value.trim();
+    const rawPhone = document.getElementById('phone') ? document.getElementById('phone').value : "";
+    const phone = rawPhone.replace(/\D/g, "");
 
     fetch('/api/verify-whatsapp-otp', {
       method: 'POST',
@@ -402,18 +422,39 @@
       .then(res => res.json())
       .then(data => {
         if (data.success) {
-          window.location.href = data.redirect;
+          if (btn) {
+            btn.innerHTML = `<i class="fas fa-check mr-2"></i> VERIFIED! REDIRECTING...`;
+            btn.style.backgroundColor = '#16a34a';
+          }
+          if (typeof window.jippyNavigate === 'function') {
+            window.jippyNavigate(data.redirect || '/');
+          } else if (window.Turbo && typeof window.Turbo.visit === 'function') {
+            window.Turbo.visit(data.redirect || '/');
+          } else {
+            window.location.replace(data.redirect || '/');
+          }
         } else {
           showAlert(data.error || "Invalid OTP.");
-          btn.disabled = false;
-          btn.innerHTML = `VERIFY &amp; LOGIN`;
+          if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = `VERIFY &amp; LOGIN`;
+          }
+          // Clear OTP boxes and refocus on error
+          for (let i = 1; i <= 6; i++) {
+            const el = document.getElementById(`code${i}`);
+            if (el) el.value = "";
+          }
+          const first = document.getElementById('code1');
+          if (first) first.focus();
         }
       })
       .catch((error) => {
         console.error("Verification Error:", error);
         showAlert(error.message || "Invalid OTP. Please try again.");
-        btn.disabled = false;
-        btn.innerHTML = `VERIFY &amp; LOGIN`;
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = `VERIFY &amp; LOGIN`;
+        }
       });
   });
 
@@ -434,7 +475,7 @@
     clearInterval(countdown);
   }
 
-  // OTP Auto-focus & Paste handling
+  // OTP Auto-focus & Paste handling with Instant Auto-Submit
   const otpInputs = document.querySelectorAll('.otp-input');
   otpInputs.forEach((input, idx) => {
     input.addEventListener("input", (e) => {
@@ -443,6 +484,7 @@
       if (e.target.value && idx < otpInputs.length - 1) {
         otpInputs[idx + 1].focus();
       }
+      checkAndAutoSubmitLoginOtp();
     });
 
     input.addEventListener("keydown", (e) => {
@@ -462,6 +504,7 @@
       });
       const nextFocus = Math.min(pasteText.length, otpInputs.length - 1);
       otpInputs[nextFocus].focus();
+      checkAndAutoSubmitLoginOtp();
     });
   });
 </script>
