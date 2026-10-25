@@ -264,7 +264,7 @@
 
   <!-- 📱 White Native App Skeleton Shimmer Loader (NO top line) -->
   <div id="customer-app-skeleton" data-turbo-permanent
-    style="position:fixed;inset:0;z-index:999997;display:none;background:#f8fafc;opacity:0;transition:opacity 0.16s ease-out;overflow-y:auto;pointer-events:none;-webkit-overflow-scrolling:touch;">
+    style="position:fixed;inset:0;z-index:999997;display:none;background:#f8fafc;opacity:1;overflow-y:auto;pointer-events:none;-webkit-overflow-scrolling:touch;">
     
     <!-- Skeleton Header -->
     <div class="bg-white border-b border-slate-200/90 px-3 sm:px-6 py-2.5 sticky top-0 z-20 flex items-center justify-between shadow-2xs">
@@ -936,50 +936,57 @@
     }
   </script>
 
-  <!-- 🌊 App Shimmer Skeleton Transition (Top Progress Line Permanently Disabled) -->
+  <!-- 🌊 App Shimmer Skeleton Transition (Instant 0ms Activation) -->
   <script>
     (function() {
-      let skeletonTimer = null;
       const skeleton = document.getElementById('customer-app-skeleton');
 
-      function startShimmerTransition(e) {
-        const url = (e && e.detail && e.detail.url) ? e.detail.url : window.location.href;
+      function showInstantShimmer(url) {
+        url = url || window.location.href;
         const isPortalRoute = url.includes('/admin') || url.includes('/vendor') || url.includes('/portal') || url.includes('/logistics');
-
         if (!isPortalRoute && skeleton) {
-          if (skeletonTimer) clearTimeout(skeletonTimer);
-          skeletonTimer = setTimeout(() => {
-            skeleton.style.display = 'block';
-            skeleton.style.opacity = '1';
-            skeleton.style.pointerEvents = 'auto';
-          }, 35);
+          skeleton.style.display = 'block';
+          skeleton.style.pointerEvents = 'auto';
         }
       }
 
-      function stopShimmerTransition() {
-        if (skeletonTimer) clearTimeout(skeletonTimer);
+      function hideInstantShimmer() {
         if (skeleton) {
-          skeleton.style.opacity = '0';
+          skeleton.style.display = 'none';
           skeleton.style.pointerEvents = 'none';
-          setTimeout(() => {
-            skeleton.style.display = 'none';
-          }, 180);
         }
       }
 
-      document.addEventListener('turbo:visit', startShimmerTransition);
-      document.addEventListener('turbo:before-visit', startShimmerTransition);
-      document.addEventListener('turbo:before-fetch-request', startShimmerTransition);
-      document.addEventListener('turbo:load', stopShimmerTransition);
-      document.addEventListener('turbo:render', stopShimmerTransition);
+      // ⚡ INSTANT reaction: The exact frame the user taps any link or card
+      document.addEventListener('click', function(e) {
+        const a = e.target.closest('a');
+        if (a && a.href && !a.href.startsWith('javascript:') && !a.href.startsWith('#') && !a.target && a.origin === window.location.origin) {
+          showInstantShimmer(a.href);
+        }
+      }, true);
+
+      document.addEventListener('turbo:visit', function(e) {
+        const url = (e && e.detail && e.detail.url) ? e.detail.url : '';
+        showInstantShimmer(url);
+      });
+      document.addEventListener('turbo:before-visit', function(e) {
+        const url = (e && e.detail && e.detail.url) ? e.detail.url : '';
+        showInstantShimmer(url);
+      });
+      document.addEventListener('turbo:before-fetch-request', function() {
+        showInstantShimmer();
+      });
+
+      document.addEventListener('turbo:load', hideInstantShimmer);
+      document.addEventListener('turbo:render', hideInstantShimmer);
       if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', stopShimmerTransition);
+        document.addEventListener('DOMContentLoaded', hideInstantShimmer);
       } else {
-        stopShimmerTransition();
+        hideInstantShimmer();
       }
 
-      window.showGlobalShimmer = startShimmerTransition;
-      window.hideGlobalShimmer = stopShimmerTransition;
+      window.showGlobalShimmer = showInstantShimmer;
+      window.hideGlobalShimmer = hideInstantShimmer;
     })();
   </script>
 </body>
