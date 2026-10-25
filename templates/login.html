@@ -387,13 +387,17 @@
     }
 
     const btn = document.getElementById('login-verify-btn');
-    btn.disabled = true;
-    btn.innerHTML = `<i class="fas fa-circle-notch fa-spin mr-2"></i> VERIFYING...`;
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = `<i class="fas fa-circle-notch fa-spin mr-2"></i> VERIFYING...`;
+    }
+
+    const phone = document.getElementById('login-phone').value.trim();
 
     fetch('/api/verify-whatsapp-otp', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code: code, action: 'login' })
+      body: JSON.stringify({ code: code, phone: phone, action: 'login' })
     })
       .then(res => res.json())
       .then(data => {
