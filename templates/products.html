@@ -68,7 +68,7 @@
 
   <!-- 🔍 Search Bar (Shown on products listing page) -->
   {% if page_type != "categories" %}
-  <div class="sticky top-[56px] sm:top-[60px] z-40 bg-[#f1f3f6]/95 backdrop-blur-md pb-1.5 pt-1.5">
+  <div class="sticky top-[56px] sm:top-[60px] z-40 bg-[#f1f3f6]/95 backdrop-blur-md pb-1.5 pt-1.5 overflow-visible">
   <div class="relative w-full px-2 sm:px-0">
     <div
       class="relative flex items-center bg-white rounded-sm border border-[#e0e0e0] shadow-2xs focus-within:border-[#2874f0] focus-within:ring-2 focus-within:ring-blue-100 transition-all">
@@ -83,7 +83,7 @@
       </button>
     </div>
     <div id="product-suggestions"
-      class="absolute left-2 right-2 sm:left-0 sm:right-0 mt-1.5 bg-white rounded-sm shadow-xl border border-[#e0e0e0] max-h-[70vh] overflow-y-auto hidden z-[100]">
+      class="absolute left-2 right-2 sm:left-0 sm:right-0 mt-1.5 bg-white rounded-sm shadow-2xl border border-[#e0e0e0] max-h-[70vh] overflow-y-auto hidden z-[99999]" style="-webkit-overflow-scrolling: touch;">
     </div>
   </div>
   </div>
@@ -194,7 +194,7 @@
 
 
     <!-- 2. Search Bar (Same to Same as Product Page) -->
-    <div class="sticky top-[56px] sm:top-[60px] z-40 bg-[#f1f3f6]/95 backdrop-blur-md -mx-2 sm:-mx-0 px-2 sm:px-0 pb-1.5 pt-1.5">
+    <div class="sticky top-[56px] sm:top-[60px] z-40 bg-[#f1f3f6]/95 backdrop-blur-md -mx-2 sm:-mx-0 px-2 sm:px-0 pb-1.5 pt-1.5 overflow-visible">
     <div class="relative w-full">
       <div
         class="relative flex items-center bg-white rounded-sm border border-[#e0e0e0] shadow-2xs focus-within:border-[#2874f0] focus-within:ring-2 focus-within:ring-blue-100 transition-all">
@@ -209,7 +209,7 @@
         </button>
       </div>
       <div id="product-suggestions"
-        class="absolute left-0 right-0 mt-1.5 bg-white rounded-sm shadow-xl border border-[#e0e0e0] max-h-[70vh] overflow-y-auto hidden z-[100]">
+        class="absolute left-0 right-0 mt-1.5 bg-white rounded-sm shadow-2xl border border-[#e0e0e0] max-h-[70vh] overflow-y-auto hidden z-[99999]" style="-webkit-overflow-scrolling: touch;">
       </div>
     </div>
     </div>
@@ -710,12 +710,12 @@
         html += `<div class="px-3.5 py-2 bg-[#fafafa] border-b border-[#f0f0f0]">
           <div class="flex items-center justify-between">
             <span class="text-[10px] font-bold uppercase tracking-wider text-[#878787]"><i class="fas fa-clock-rotate-left text-[9px] mr-1.5"></i>Recent Searches</span>
-            <button onmousedown="event.preventDefault()" ontouchstart="event.preventDefault()" onclick="localStorage.removeItem('recentSearches');document.getElementById('product-suggestions').classList.add('hidden')" class="text-[10px] text-rose-500 font-bold hover:text-rose-700 transition-colors">Clear</button>
+            <button onclick="localStorage.removeItem('recentSearches');document.getElementById('product-suggestions').classList.add('hidden')" class="text-[10px] text-rose-500 font-bold hover:text-rose-700 transition-colors">Clear</button>
           </div>
         </div>`;
         recents.forEach(s => {
           const safe = s.replace(/'/g, "\\'");
-          html += `<div onmousedown="event.preventDefault()" ontouchstart="event.preventDefault()" onclick="window.executeSearch('${safe}')" class="px-3.5 py-2.5 hover:bg-blue-50/80 cursor-pointer border-b border-[#f0f0f0] flex items-center gap-2.5 group transition-colors">
+          html += `<div onclick="window.executeSearch('${safe}')" class="px-3.5 py-2.5 hover:bg-blue-50/80 cursor-pointer border-b border-[#f0f0f0] flex items-center gap-2.5 group transition-colors">
             <i class="fas fa-clock-rotate-left text-[#c2c2c2] text-xs group-hover:text-[#2874f0] shrink-0"></i>
             <span class="text-[13px] font-medium text-[#212121] capitalize truncate">${s}</span>
             <i class="fas fa-arrow-up-left text-[#c2c2c2] text-[10px] ml-auto group-hover:text-[#2874f0] shrink-0"></i>
@@ -730,7 +730,7 @@
       <div class="flex flex-wrap gap-1.5 px-3.5 py-2.5">`;
       trending.forEach(t => {
         const safe = t.replace(/'/g, "\\'");
-        html += `<button onmousedown="event.preventDefault()" ontouchstart="event.preventDefault()" onclick="window.executeSearch('${safe}')" class="inline-flex items-center gap-1 px-2.5 py-1.5 bg-[#f1f3f6] hover:bg-blue-50 border border-[#e0e0e0] hover:border-[#2874f0] rounded-sm text-[11.5px] font-semibold text-[#212121] hover:text-[#2874f0] transition-all active:scale-95">
+        html += `<button type="button" onclick="window.executeSearch('${safe}')" class="inline-flex items-center gap-1 px-2.5 py-1.5 bg-[#f1f3f6] hover:bg-blue-50 border border-[#e0e0e0] hover:border-[#2874f0] rounded-sm text-[11.5px] font-semibold text-[#212121] hover:text-[#2874f0] transition-all active:scale-95">
           <i class="fas fa-arrow-trend-up text-[8px] text-orange-400"></i>${t}
         </button>`;
       });
@@ -787,7 +787,7 @@
         categories.forEach(c => {
           const safeName = (c.name || '').replace(/'/g, "\\'");
           const safeUrl = (c.url || '').replace(/'/g, "\\'");
-          html += `<div onmousedown="event.preventDefault()" ontouchstart="event.preventDefault()" onclick="window.handleSuggestionClick('${safeName}', 'category', '${safeUrl}')"
+          html += `<div onclick="window.handleSuggestionClick('${safeName}', 'category', '${safeUrl}')"
             class="px-3.5 py-2.5 hover:bg-blue-50/80 cursor-pointer border-b border-[#f0f0f0] last:border-0 flex items-center justify-between group transition-colors">
             <div class="flex items-center gap-2.5 min-w-0">
               <div class="w-7 h-7 rounded-sm bg-emerald-50 border border-emerald-200 flex items-center justify-center shrink-0">
@@ -817,7 +817,7 @@
             : `<div class="w-9 h-9 rounded-sm bg-[#f1f3f6] flex items-center justify-center shrink-0"><i class="fas fa-box text-[#c2c2c2] text-xs"></i></div>`;
           const oosTag = p.out_of_stock ? `<span class="text-[8px] font-bold text-rose-600 bg-rose-50 border border-rose-200 px-1.5 py-0.5 rounded-xs uppercase">Out of Stock</span>` : '';
 
-          html += `<div onmousedown="event.preventDefault()" ontouchstart="event.preventDefault()" onclick="window.handleSuggestionClick('${safeName}', 'product', '${safeUrl}')"
+          html += `<div onclick="window.handleSuggestionClick('${safeName}', 'product', '${safeUrl}')"
             class="px-3.5 py-2 hover:bg-blue-50/80 cursor-pointer border-b border-[#f0f0f0] last:border-0 flex items-center gap-3 group transition-colors ${p.out_of_stock ? 'opacity-60' : ''}">
             <div class="shrink-0">${imgHtml}</div>
             <div class="flex-1 min-w-0">
@@ -843,7 +843,7 @@
         trendingItems.forEach(t => {
           const safe = (t.name || '').replace(/'/g, "\\'");
           const safeUrl = (t.url || '').replace(/'/g, "\\'");
-          html += `<div onmousedown="event.preventDefault()" ontouchstart="event.preventDefault()" onclick="window.handleSuggestionClick('${safe}', 'trending', '${safeUrl}')"
+          html += `<div onclick="window.handleSuggestionClick('${safe}', 'trending', '${safeUrl}')"
             class="px-3.5 py-2.5 hover:bg-blue-50/80 cursor-pointer border-b border-[#f0f0f0] last:border-0 flex items-center gap-2.5 group transition-colors">
             <i class="fas fa-arrow-trend-up text-orange-400 text-xs shrink-0"></i>
             <span class="text-[13px] font-medium text-[#212121] capitalize truncate">${t.name}</span>
@@ -1361,21 +1361,26 @@
       setTimeout(window._prefetchCatalog, 800);
     }
 
-    // Dismiss suggestions on outside click (WebView-safe with delay)
+    // Dismiss suggestions on outside click (WebView-safe)
     document.addEventListener("click", (e) => {
       const searchInput = document.getElementById("product-search");
       const suggestBox = document.getElementById("product-suggestions");
       const clearBtn = document.getElementById("clear-search");
-      if (!searchInput?.contains(e.target) && !suggestBox?.contains(e.target) && !clearBtn?.contains(e.target)) {
-        // Small delay to let any suggestion onclick fire first in WebView
-        setTimeout(() => {
-          const sb = document.getElementById("product-suggestions");
-          if (sb && !sb.contains(document.activeElement)) {
-            sb.classList.add("hidden");
-          }
-        }, 100);
-      }
+      if (document.activeElement === searchInput) return;
+      const searchWrapper = searchInput?.closest('.sticky') || searchInput?.parentElement;
+      if (searchWrapper?.contains(e.target) || suggestBox?.contains(e.target) || clearBtn?.contains(e.target)) return;
+      suggestBox?.classList.add("hidden");
     });
+
+    document.addEventListener("touchstart", (e) => {
+      const searchInput = document.getElementById("product-search");
+      const suggestBox = document.getElementById("product-suggestions");
+      if (!searchInput || !suggestBox || suggestBox.classList.contains("hidden")) return;
+      if (document.activeElement === searchInput) return;
+      const searchWrapper = searchInput?.closest('.sticky') || searchInput?.parentElement;
+      if (searchWrapper?.contains(e.target) || suggestBox?.contains(e.target)) return;
+      suggestBox.classList.add("hidden");
+    }, { passive: true });
 
     // WebView fix: prevent suggestion box from stealing focus and causing input blur
     document.addEventListener("mousedown", (e) => {
