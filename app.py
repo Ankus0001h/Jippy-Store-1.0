@@ -223,6 +223,7 @@ try:
     db["vendor_khata_users"].create_index([("canonical_flat_key", 1)], background=True)
     db["vendor_khata_ledger"].create_index([("khata_user_id", 1), ("created_at", -1)], background=True)
     db["vendor_khata_otps"].create_index([("khata_id", 1), ("family_phone", 1)], background=True)
+    db["otp_verifications"].create_index([("phone", 1)], background=True)
 except Exception as _idx_err:
     print("MongoDB index init warning:", _idx_err)
 
@@ -4261,11 +4262,11 @@ def verify_whatsapp_otp():
     if code != stored_otp:
         return jsonify({"success": False, "error": "Invalid OTP. Please try again."}), 400
         
-    # Clear OTP
+    # Clear OTP asynchronously without blocking response
     session.pop('whatsapp_otp', None)
     session.pop('whatsapp_otp_expiry', None)
     try:
-        db.otp_verifications.delete_one({"phone": stored_phone})
+        threading.Thread(target=lambda: db.otp_verifications.delete_one({"phone": stored_phone}), daemon=True).start()
     except Exception:
         pass
 
@@ -4293,7 +4294,12 @@ def verify_whatsapp_otp():
             return jsonify({"success": True, "redirect": url_for("index")})
 
         elif action == "login":
-            doc = users.find_one({"phone": phone, "role": "customer"})
+            # Fast indexed lookup with small projection for instant sub-millisecond response
+            clean_10 = phone.replace("+91", "").strip()
+            doc = users.find_one(
+                {"$or": [{"phone": phone}, {"phone": clean_10}], "role": "customer"},
+                {"_id": 1, "name": 1, "phone": 1}
+            )
             if not doc:
                 return jsonify({"success": False, "error": "User not found."}), 400
             
