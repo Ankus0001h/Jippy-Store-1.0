@@ -633,8 +633,10 @@
     /* ═══════════════════════════════════════════════════════════════════
        ⚡ HOTWIRED TURBO DRIVE INTEGRATION (Zero Tab Reload, High-Performance)
        ═══════════════════════════════════════════════════════════════════ */
-    // Backward-compatible navigation helper used across templates
     window.jippyNavigate = function (url) {
+      if (typeof window.showGlobalShimmer === 'function') {
+        window.showGlobalShimmer(url);
+      }
       if (window.Turbo && typeof window.Turbo.visit === 'function') {
         window.Turbo.visit(url);
       } else {
