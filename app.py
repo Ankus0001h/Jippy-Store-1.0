@@ -214,6 +214,14 @@ try:
     # ⚡ Location & Category Indexes
     societies.create_index([("name", 1)], background=True)
     categories_col.create_index([("normalized_name", 1)], unique=True, background=True)
+
+    # ⚡ Khata & Store Credit Indexes (Instant lookups & sub-millisecond live sync)
+    db["vendor_khata_users"].create_index([("vendor_id", 1), ("status", 1)], background=True)
+    db["vendor_khata_users"].create_index([("customer_phone", 1)], background=True)
+    db["vendor_khata_users"].create_index([("family_phones", 1)], background=True)
+    db["vendor_khata_users"].create_index([("canonical_flat_key", 1)], background=True)
+    db["vendor_khata_ledger"].create_index([("khata_user_id", 1), ("created_at", -1)], background=True)
+    db["vendor_khata_otps"].create_index([("khata_id", 1), ("family_phone", 1)], background=True)
 except Exception as _idx_err:
     print("MongoDB index init warning:", _idx_err)
 
@@ -2580,6 +2588,27 @@ def _parse_note_items(raw_note):
     return items
 
 
+def _deduplicate_order_items(items):
+    """Ensure custom note items are never duplicated in order items list."""
+    if not items or not isinstance(items, list):
+        return []
+    seen_custom_names = set()
+    cleaned = []
+    # Reverse iterate so latest finalized note item (is_note_item: True) is preserved
+    for it in reversed(items):
+        name_clean = str(it.get("name") or "").strip().lower()
+        is_custom = bool(it.get("is_note_item") or str(it.get("unit") or "").strip().lower() == "custom item")
+        if is_custom:
+            if name_clean in seen_custom_names:
+                continue
+            seen_custom_names.add(name_clean)
+            it["is_note_item"] = True
+            it["unit"] = "Custom Item"
+        cleaned.append(it)
+    cleaned.reverse()
+    return cleaned
+
+
 @app.route("/vendor/order/<order_id>")
 def vendor_order_detail(order_id):
     role = session.get("user_role")
@@ -2615,11 +2644,16 @@ def vendor_order_detail(order_id):
     except Exception:
         pending_count = 0
 
+    raw_order_items = _deduplicate_order_items(order.get("items", []))
+    if len(raw_order_items) != len(order.get("items", [])):
+        orders.update_one({"_id": order["_id"]}, {"$set": {"items": raw_order_items}})
+        order["items"] = raw_order_items
+
     vendor_items = []
     vendor_total = 0.0
     items_mrp_total = 0.0
     total_qty = 0
-    for it in order.get("items", []):
+    for it in raw_order_items:
         it_name = str(it.get("name") or "").strip()
         if _is_noise_note_text(it_name):
             continue
@@ -3030,7 +3064,14 @@ def vendor_api_finalize_notes_item(order_id):
                     all_notes_items.append({"name": n, "price": 0.0, "available": False})
 
         # Strip any previous custom note items OR noise rows from order items
-        current_items = [it for it in order.get("items", []) if not it.get("is_note_item") and not _is_noise_note_text(it.get("name"))]
+        bill_names_lower = {it["name"].strip().lower() for it in valid_bill_items}
+        current_items = [
+            it for it in order.get("items", []) 
+            if not it.get("is_note_item") 
+            and str(it.get("unit") or "").strip().lower() != "custom item"
+            and not _is_noise_note_text(it.get("name"))
+            and str(it.get("name") or "").strip().lower() not in bill_names_lower
+        ]
 
         # Add all valid note items into order items
         for it in valid_bill_items:
@@ -3044,6 +3085,7 @@ def vendor_api_finalize_notes_item(order_id):
                 "vendor_id": vendor_oid,
                 "image": ""
             })
+        current_items = _deduplicate_order_items(current_items)
 
         # Recalculate subtotal
         subtotal = sum(float(it.get("price", 0) or 0) * int(it.get("qty", 1) or 1) for it in current_items)
@@ -3731,29 +3773,22 @@ def format_whatsapp_order_bill(order, is_admin=False):
     total_label = "TOTAL BILLED TO STORE CREDIT" if order.get("payment_method") == "STORE_CREDIT" else "TOTAL AMOUNT PAYABLE"
 
     msg = (
-        f"{header_title}\n"
-        f"═════════════════════════════\n"
+        f"{header_title}\n\n"
         f"{header_intro}\n\n"
         f"📋 *ORDER SUMMARY:*\n"
         f"• *Order ID:* #{short_id}\n"
         f"• *Date & Time:* {time_str}\n"
-        f"• *Payment Method:* {pay_mode_label}\n"
-        f"═════════════════════════════\n"
+        f"• *Payment Method:* {pay_mode_label}\n\n"
         f"🛒 *ITEMS ORDERED ({len(items)}):*\n"
-        f"{items_block}\n"
-        f"═════════════════════════════\n"
+        f"{items_block}\n\n"
         f"🧾 *PRICE BREAKDOWN:*\n"
-        f"{fees_block}\n"
-        f"─────────────────────────────\n"
-        f"💵 *{total_label}: ₹{grand_total:,.2f}*\n"
-        f"═════════════════════════════\n"
+        f"{fees_block}\n\n"
+        f"💵 *{total_label}: ₹{grand_total:,.2f}*\n\n"
         f"📍 *DELIVERY ADDRESS:*\n"
         f"{address_text}"
-        f"{notes_block}\n"
-        f"═════════════════════════════\n"
+        f"{notes_block}\n\n"
         f"🛡️ *100% Safe & Contactless Delivery*\n"
-        f"{footer_link}\n"
-        f"═════════════════════════════\n"
+        f"{footer_link}\n\n"
         f"Need assistance? Reply directly to this WhatsApp message."
     )
     return msg
@@ -3787,6 +3822,42 @@ def send_order_whatsapp_notifications(order):
             admin_msg2 = format_whatsapp_order_bill(order, is_admin=True)
             res2 = send_green_api_message(admin2, admin_msg2)
             print(f"Admin 2 WhatsApp sent to {admin2}: {res2}")
+
+        # 4. If Store Credit order placed by a family member, notify Primary Mukhiya as well
+        if order.get("payment_method") == "STORE_CREDIT":
+            try:
+                cust_clean = clean_phone_10(customer_phone)
+                khata_rec = db["vendor_khata_users"].find_one({
+                    "$or": [
+                        {"customer_phone": cust_clean},
+                        {"family_phones": cust_clean}
+                    ]
+                })
+                if khata_rec:
+                    primary_phone = clean_phone_10(khata_rec.get("customer_phone"))
+                    if primary_phone and primary_phone != cust_clean:
+                        short_id = str(order.get("order_id", ""))[-8:].upper()
+                        ordering_name = order.get("user_name") or "Family Member"
+                        items_count = len(order.get("items") or [])
+                        grand_tot = float(order.get("total") or 0.0)
+                        addr_disp = khata_rec.get("full_address_display") or f"{khata_rec.get('block')} - {khata_rec.get('flat_no')}"
+                        curr_due = recalculate_khata_user_balance(db, khata_rec["_id"])
+                        mukhiya_alert = (
+                            f"🧾 *HOUSEHOLD STORE CREDIT ORDER | JIPPY STORE* 🛍️\n\n"
+                            f"Dear *{khata_rec.get('customer_name', 'Account Owner')}*,\n\n"
+                            f"Family member *{ordering_name}* (+91 {cust_clean}) has placed an order using your Flat Store Credit account (*{addr_disp}*).\n\n"
+                            f"📋 *ORDER DETAILS:*\n"
+                            f"• *Order ID:* #{short_id}\n"
+                            f"• *Items Ordered:* {items_count} items\n"
+                            f"• *Amount Billed to Khata:* ₹{grand_tot:,.2f}\n"
+                            f"• *Current Flat Outstanding Dues:* ₹{curr_due:,.2f}\n\n"
+                            f"⚡ *Estimated Delivery: 10–15 mins*\n"
+                            f"🔗 *View Household Passbook:* https://jippy.store/my-khata\n\n"
+                            f"Jippy Store - Fast Doorstep Grocery Delivery 🛍️"
+                        )
+                        send_green_api_message(primary_phone, mukhiya_alert)
+            except Exception as _fe:
+                print("Khata primary WhatsApp notification error:", _fe)
 
     except Exception as e:
         print("Error sending WhatsApp notifications:", e)
@@ -3883,30 +3954,24 @@ def format_whatsapp_delivery_message(order):
     invoice_url = f"{base_url}/order-confirmation?order_id={order_id}"
 
     msg = (
-        f"🎉 *ORDER DELIVERED | JIPPY STORE* 📦\n"
-        f"═════════════════════════════\n"
+        f"🎉 *ORDER DELIVERED | JIPPY STORE* 📦\n\n"
         f"Dear *{user_name}*,\n\n"
         f"Your grocery order *#{short_id}* has been successfully delivered to your doorstep. We hope everything reached you fresh and in perfect condition!\n\n"
         f"📋 *DELIVERY SUMMARY:*\n"
         f"• *Order ID:* #{short_id}\n"
         f"• *Delivery Timestamp:* {time_str}\n"
-        f"{pay_info}\n"
-        f"═════════════════════════════\n"
+        f"{pay_info}\n\n"
         f"🛒 *DELIVERED ITEMS ({len(items)}):*\n"
         f"{items_block}"
-        f"{notes_line}\n"
-        f"─────────────────────────────\n"
-        f"💵 *FINAL ORDER TOTAL: ₹{grand_total:,.2f}*\n"
-        f"═════════════════════════════\n"
+        f"{notes_line}\n\n"
+        f"💵 *FINAL ORDER TOTAL: ₹{grand_total:,.2f}*\n\n"
         f"📍 *DELIVERED TO:*\n"
-        f"*{address_text}*\n"
-        f"═════════════════════════════\n"
+        f"*{address_text}*\n\n"
         f"⭐ *DIGITAL INVOICE & FEEDBACK:*\n"
         f"View your itemized receipt and rate your experience:\n"
-        f"🔗 {invoice_url}\n"
-        f"═════════════════════════════\n"
+        f"🔗 {invoice_url}\n\n"
         f"Need assistance? Reply directly to this WhatsApp message.\n\n"
-        f"Thank you for shopping with *Jippy Store*! "
+        f"Thank you for shopping with *Jippy Store*! 🛍️"
     )
     return msg
 
@@ -3924,6 +3989,39 @@ def send_order_delivery_whatsapp(order):
             customer_msg = format_whatsapp_delivery_message(order)
             res = send_green_api_message(customer_phone, customer_msg)
             print(f"[Delivery WhatsApp sent to {customer_phone}]: {res}")
+
+            # If Store Credit order placed by family member, also send delivery notification to Primary Mukhiya
+            if order.get("payment_method") == "STORE_CREDIT":
+                try:
+                    cust_clean = clean_phone_10(customer_phone)
+                    khata_rec = db["vendor_khata_users"].find_one({
+                        "$or": [
+                            {"customer_phone": cust_clean},
+                            {"family_phones": cust_clean}
+                        ]
+                    })
+                    if khata_rec:
+                        primary_phone = clean_phone_10(khata_rec.get("customer_phone"))
+                        if primary_phone and primary_phone != cust_clean:
+                            short_id = str(order.get("order_id", ""))[-8:].upper()
+                            ordering_name = order.get("user_name") or "Family Member"
+                            grand_tot = float(order.get("total") or 0.0)
+                            addr_disp = khata_rec.get("full_address_display") or f"{khata_rec.get('block')} - {khata_rec.get('flat_no')}"
+                            curr_due = recalculate_khata_user_balance(db, khata_rec["_id"])
+                            deliv_mukhiya_msg = (
+                                f"🎉 *ORDER DELIVERED TO FLAT | JIPPY STORE* 📦\n\n"
+                                f"Dear *{khata_rec.get('customer_name', 'Account Owner')}*,\n\n"
+                                f"Order *#{short_id}* placed by *{ordering_name}* (+91 {cust_clean}) has been successfully delivered to your doorstep (*{addr_disp}*).\n\n"
+                                f"📋 *ACCOUNT STATUS:*\n"
+                                f"• *Amount Billed to Khata:* ₹{grand_tot:,.2f}\n"
+                                f"• *Current Flat Outstanding Dues:* ₹{curr_due:,.2f}\n\n"
+                                f"🔗 *Passbook & Invoice:* https://jippy.store/my-khata\n\n"
+                                f"Thank you for choosing Jippy Store! 🛍️"
+                            )
+                            send_green_api_message(primary_phone, deliv_mukhiya_msg)
+                except Exception as _fde:
+                    print("Khata delivery Mukhiya notification error:", _fde)
+
             return res
     except Exception as e:
         print("[Delivery WhatsApp Error]:", e)
@@ -3979,19 +4077,16 @@ def send_notes_price_updated_whatsapp(order, added_items_text, added_amount, new
         invoice_url = f"{base_url}/order-confirmation?order_id={order_id}"
 
         msg = (
-            f"📝 *ORDER BILL UPDATED | JIPPY STORE* 🛍️\n"
-            f"═════════════════════════════\n"
+            f"📝 *ORDER BILL UPDATED | JIPPY STORE* 🛍️\n\n"
             f"Dear *{user_name}*,\n\n"
             f"The custom item requested in your order *#{short_id}* has been verified and added to your bill by the store manager:\n\n"
             f"🛒 *CUSTOM ITEM DETAILS:*\n"
             f"• *{added_items_text}* (+₹{added_amount:,.2f})\n\n"
             f"🧾 *UPDATED BILL SUMMARY:*\n"
             f"• *New Order Total: ₹{new_grand_total:,.2f}*\n"
-            f"{pay_text}\n"
-            f"═════════════════════════════\n"
+            f"{pay_text}\n\n"
             f"🔗 *View Updated Itemized Invoice:*\n"
-            f"{invoice_url}\n"
-            f"═════════════════════════════\n"
+            f"{invoice_url}\n\n"
             f"For any queries or modifications, please reply directly to this WhatsApp message.\n\n"
             f"Thank you for shopping with *Jippy Store*!"
         )
@@ -4103,11 +4198,11 @@ def send_whatsapp_otp():
     session['whatsapp_otp_expiry'] = (datetime.datetime.now() + datetime.timedelta(minutes=5)).timestamp()
     
     msg = (
-        f"🔐 *VERIFICATION CODE | JIPPY STORE*\n\n"
-        f"Your one-time login verification code is: *{otp_code}*\n"
+        f"🔐 *VERIFICATION CODE | JIPPY STORE* 🛍️\n\n"
+        f"Your one-time login verification code is: 👉 *{otp_code}*\n"
         f"(Valid for 5 minutes)\n\n"
         f"Please do not share this code with anyone for your account security.\n\n"
-        f"Thank you for choosing Jippy Store! "
+        f"Thank you for choosing Jippy Store!"
     )
     success = send_green_api_message(phone, msg)
     
@@ -4384,6 +4479,7 @@ def checkout():
             "vendor_id": vendor_id,
             "$or": [
                 {"customer_phone": clean_p},
+                {"family_phones": clean_p},
                 {"user_id": ObjectId(user_id) if user_id else None}
             ],
             "is_verified": True,
@@ -4688,6 +4784,14 @@ def order_detail(order_id):
     if not order:
         return redirect(url_for("my_orders"))
 
+    # Deduplicate custom note items if duplicated
+    raw_order_items = _deduplicate_order_items(order.get("items", []))
+    if len(raw_order_items) != len(order.get("items", [])):
+        orders.update_one({"_id": order["_id"]}, {"$set": {"items": raw_order_items}})
+        order["items"] = raw_order_items
+    else:
+        order["items"] = raw_order_items
+
     # Status logic: only 2 statuses (RECEIVED and DELIVERED, plus CANCELLED)
     raw = (order.get("status") or "pending").lower()
     if raw in ["delivered"]:
@@ -4722,6 +4826,11 @@ def customer_api_order_poll(order_id):
     if not order:
         return jsonify({"success": False, "message": "Order not found"}), 404
 
+    deduped_items = _deduplicate_order_items(order.get("items", []))
+    if len(deduped_items) != len(order.get("items", [])):
+        orders.update_one({"_id": order["_id"]}, {"$set": {"items": deduped_items}})
+        order["items"] = deduped_items
+
     subtotal = float(order.get("subtotal") or 0.0)
     total = float(order.get("total") or order.get("total_amount") or 0.0)
     raw_status = (order.get("status") or "pending").lower()
@@ -4745,10 +4854,10 @@ def customer_api_order_poll(order_id):
                 "qty": it.get("qty", 1),
                 "price": float(it.get("price", 0)),
                 "unit": it.get("unit", ""),
-                "is_note_item": bool(it.get("is_note_item")),
+                "is_note_item": bool(it.get("is_note_item") or str(it.get("unit") or "").strip().lower() == "custom item"),
                 "image": it.get("image", "")
             }
-            for it in order.get("items", [])
+            for it in (deduped_items or order.get("items", []))
             if not _is_noise_note_text(it.get("name"))
         ]
     })
@@ -4770,6 +4879,13 @@ def order_confirmation():
     order = orders.find_one({"order_id": order_id})
     if not order:
         return redirect(url_for("index"))
+
+    raw_items = _deduplicate_order_items(order.get("items", []))
+    if len(raw_items) != len(order.get("items", [])):
+        orders.update_one({"_id": order["_id"]}, {"$set": {"items": raw_items}})
+        order["items"] = raw_items
+    else:
+        order["items"] = raw_items
 
     return render_template("order_confirmation.html", order=order)
 
