@@ -31,6 +31,7 @@ IST = pytz.timezone("Asia/Kolkata")
 import qrcode
 from io import BytesIO
 import base64
+import urllib.parse
 from urllib.parse import quote
 load_dotenv()
 
