@@ -447,13 +447,32 @@
     });
   });
 
+  function checkAndAutoSubmitRegisterOtp() {
+    let code = "";
+    for (let i = 1; i <= 6; i++) {
+      const el = document.getElementById(`code${i}`);
+      if (el) code += el.value;
+    }
+    if (code.length === 6) {
+      const form = document.getElementById('otp-form');
+      if (form) {
+        if (typeof form.requestSubmit === 'function') {
+          form.requestSubmit();
+        } else {
+          form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+        }
+      }
+    }
+  }
+
   document.getElementById('otp-form').addEventListener('submit', function (e) {
     e.preventDefault();
     hideAlert();
     
     let code = "";
     for (let i = 1; i <= 6; i++) {
-      code += document.getElementById(`code${i}`).value;
+      const el = document.getElementById(`code${i}`);
+      code += el ? el.value : "";
     }
 
     if (code.length < 6) {
@@ -462,8 +481,10 @@
     }
 
     const btn = document.getElementById('reg-verify-btn');
-    btn.disabled = true;
-    btn.innerHTML = `<i class="fas fa-circle-notch fa-spin mr-2"></i> <span>VERIFYING...</span>`;
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = `<i class="fas fa-circle-notch fa-spin mr-2"></i> <span>VERIFYING...</span>`;
+    }
 
     const name = document.getElementById('name').value;
     const email = document.getElementById('email').value;
@@ -483,18 +504,38 @@
     .then(res => res.json())
     .then(data => {
       if (data.success) {
-        window.location.href = data.redirect;
+        if (btn) {
+          btn.innerHTML = `<i class="fas fa-check mr-2"></i> <span>VERIFIED! REDIRECTING...</span>`;
+          btn.style.backgroundColor = '#16a34a';
+        }
+        if (typeof window.jippyNavigate === 'function') {
+          window.jippyNavigate(data.redirect || '/');
+        } else if (window.Turbo && typeof window.Turbo.visit === 'function') {
+          window.Turbo.visit(data.redirect || '/');
+        } else {
+          window.location.replace(data.redirect || '/');
+        }
       } else {
         showAlert(data.error || "Registration failed. Invalid OTP.");
-        btn.disabled = false;
-        btn.innerHTML = `<i class="fas fa-lock text-xs"></i> <span>COMPLETE REGISTRATION</span>`;
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = `<i class="fas fa-lock text-xs"></i> <span>COMPLETE REGISTRATION</span>`;
+        }
+        for (let i = 1; i <= 6; i++) {
+          const el = document.getElementById(`code${i}`);
+          if (el) el.value = "";
+        }
+        const first = document.getElementById('code1');
+        if (first) first.focus();
       }
     })
     .catch((error) => {
       console.error("Verification Error:", error);
       showAlert(error.message || "Invalid OTP. Please try again.");
-      btn.disabled = false;
-      btn.innerHTML = `<i class="fas fa-lock text-xs"></i> <span>COMPLETE REGISTRATION</span>`;
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = `<i class="fas fa-lock text-xs"></i> <span>COMPLETE REGISTRATION</span>`;
+      }
     });
   });
 
@@ -517,7 +558,7 @@
     clearInterval(countdown);
   }
 
-  // Enhanced OTP Auto-focus & Paste handling
+  // Enhanced OTP Auto-focus & Paste handling with Instant Auto-Submit
   const otpInputs = document.querySelectorAll('.otp-input');
   otpInputs.forEach((input, idx) => {
     input.addEventListener("input", (e) => {
@@ -526,6 +567,7 @@
       if (e.target.value && idx < otpInputs.length - 1) {
         otpInputs[idx + 1].focus();
       }
+      checkAndAutoSubmitRegisterOtp();
     });
 
     input.addEventListener("keydown", (e) => {
@@ -545,6 +587,7 @@
       });
       const nextFocus = Math.min(pasteText.length, otpInputs.length - 1);
       otpInputs[nextFocus].focus();
+      checkAndAutoSubmitRegisterOtp();
     });
   });
 </script>
