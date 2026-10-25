@@ -102,6 +102,22 @@ def clean_phone_10(phone):
         return clean[1:]
     return clean[-10:] if len(clean) >= 10 else clean
 
+def is_datetime_expired(expiry_dt) -> bool:
+    """
+    Safely checks if an expiry datetime is in the past.
+    Handles both timezone-naive (from MongoDB UTC) and timezone-aware datetimes.
+    """
+    if not expiry_dt:
+        return True
+    try:
+        if isinstance(expiry_dt, datetime.datetime):
+            if expiry_dt.tzinfo is None:
+                expiry_dt = pytz.utc.localize(expiry_dt)
+            return datetime.datetime.now(pytz.utc) > expiry_dt
+        return False
+    except Exception:
+        return True
+
 # ---------- 🧠 100% Robust Indian Society Address Parser & Auto-Prefixer ----------
 def format_ordinal_floor(n) -> str:
     try:
@@ -340,14 +356,14 @@ def standardize_address_components(raw_block="", raw_floor="", raw_flat="", raw_
                 core = re.sub(r'(?:TOWER|TOWR|TOWUR|TOWRE|TOWERR|TWR|TAWAR|TAWER|TOUWER|TOW)', '', core, flags=re.IGNORECASE)
             core = re.sub(r'^[\-:#\.\s]+|[\-:#\.\s]+$', '', core).strip()
             b = f"TOWER {core or 'GENERAL'}"
-        # Block (keywords, typos e.g. BLCK/BLOK/BLK, reverse order e.g. A BLOCK)
-        elif re.search(r'\b(?:BLOCK|BLCK|BLOK|BLK|BLKK|BLC|BLOC)\b|(?:BLOCK|BLCK|BLOK|BLK)', b_clean, re.IGNORECASE) or re.match(r'^[A-Z0-9]+\s*(?:BLOCK|BLCK|BLOK|BLK)$', b_clean, re.IGNORECASE):
-            rev_m = re.match(r'^([A-Z0-9]+)\s*(?:BLOCK|BLCK|BLOK|BLK|BLKK|BLC|BLOC)$', b_clean, re.IGNORECASE)
+        # Block (keywords, typos e.g. BLCK/BLOK/BLK/BLOCE, reverse order e.g. A BLOCK)
+        elif re.search(r'\b(?:BLOKK|BLCKK|BLOKE|BLOCE|BLOCK|BLCK|BLOK|BLOC|BLKK|BOCK|BLK|BLC)\b', b_clean, re.IGNORECASE) or re.match(r'^[A-Z0-9]+\s*(?:BLOKK|BLCKK|BLOKE|BLOCE|BLOCK|BLCK|BLOK|BLOC|BLKK|BOCK|BLK|BLC)$', b_clean, re.IGNORECASE):
+            rev_m = re.match(r'^([A-Z0-9]+)\s*(?:BLOKK|BLCKK|BLOKE|BLOCE|BLOCK|BLCK|BLOK|BLOC|BLKK|BOCK|BLK|BLC)$', b_clean, re.IGNORECASE)
             if rev_m:
                 core = rev_m.group(1).strip()
             else:
-                core = re.sub(r'^(?:BLOCK|BLCK|BLOK|BLK|BLKK|BLC|BLOC)\s*(?:NO\.?|NUMBER|NUM)?\s*[:\-#]?\s*', '', b_clean, flags=re.IGNORECASE)
-                core = re.sub(r'(?:BLOCK|BLCK|BLOK|BLK|BLKK|BLC|BLOC)', '', core, flags=re.IGNORECASE)
+                core = re.sub(r'^(?:BLOKK|BLCKK|BLOKE|BLOCE|BLOCK|BLCK|BLOK|BLOC|BLKK|BOCK|BLK|BLC)\b\s*(?:NO\.?|NUMBER|NUM)?\s*[:\-#]?\s*', '', b_clean, flags=re.IGNORECASE)
+                core = re.sub(r'\b(?:BLOKK|BLCKK|BLOKE|BLOCE|BLOCK|BLCK|BLOK|BLOC|BLKK|BOCK|BLK|BLC)\b', '', core, flags=re.IGNORECASE)
             core = re.sub(r'^[\-:#\.\s]+|[\-:#\.\s]+$', '', core).strip()
             b = f"BLOCK {core or 'GENERAL'}"
         else:
@@ -433,6 +449,168 @@ def _get_current_vendor(cols):
         return None, redirect(url_for("vendor_login"))
 
 
+def make_canonical_flat_key(vendor_id, society_id, block, flat_no):
+    std = standardize_address_components(raw_block=block, raw_flat=flat_no)
+    b = re.sub(r'[^A-Z0-9]', '', std.get('block', '').upper())
+    f = re.sub(r'[^A-Z0-9]', '', std.get('flat_no', '').upper())
+    v = str(vendor_id or '')
+    s = str(society_id or '')
+    return f"{v}:{s}:{b}:{f}"
+
+
+def merge_duplicate_flat_khatas(cols, vendor_id):
+    """
+    1 Flat = 1 Master Khata Auto-Healer:
+    Identifies multiple khata records for the same (vendor_id, block, flat_no)
+    and merges them safely:
+    1. Selects the primary master document.
+    2. Consolidates family phones into family_members and family_phones.
+    3. Re-points all ledger entries to master document.
+    4. Safely removes redundant duplicate documents.
+    5. Recalculates master running balance.
+    """
+    try:
+        records = list(cols["khata_users"].find({"vendor_id": vendor_id}))
+        from collections import defaultdict
+        groups = defaultdict(list)
+        for r in records:
+            # 🛑 CRITICAL: Do NOT merge PENDING requests or INDEPENDENT / BACHELOR accounts!
+            # Independent accounts belong to separate residents in the same flat and must NEVER be merged!
+            is_ind = bool(r.get("is_independent") or r.get("account_type") == "INDEPENDENT" or r.get("resident_type") == "INDEPENDENT")
+            if r.get("status") in ("PENDING", "REJECTED") or is_ind:
+                continue
+
+            b_std = r.get("block") or ""
+            f_std = r.get("flat_no") or ""
+            std = standardize_address_components(raw_block=b_std, raw_flat=f_std)
+            b_clean = re.sub(r'[^A-Z0-9]', '', std.get('block', '').upper())
+            f_clean = re.sub(r'[^A-Z0-9]', '', std.get('flat_no', '').upper())
+            if not f_clean:
+                continue
+            key = f"{b_clean}:{f_clean}"
+            groups[key].append(r)
+
+        for key, rec_list in groups.items():
+            if len(rec_list) <= 1:
+                # Ensure primary phone is in family_phones and canonical_flat_key is set (only update if missing)
+                rec = rec_list[0]
+                p_phone = clean_phone_10(rec.get("customer_phone", ""))
+                fam_phones = rec.get("family_phones") or []
+                fam_members = rec.get("family_members") or []
+                canonical = f"{str(vendor_id)}:{key}"
+
+                needs_update = False
+                update_set = {}
+                # De-duplicate fam_members by phone
+                dedup_m = []
+                seen_mp = set()
+                has_fam_dups = False
+                for fm in fam_members:
+                    mp = clean_phone_10(fm.get("phone", ""))
+                    if not mp or mp in seen_mp:
+                        has_fam_dups = True
+                        continue
+                    seen_mp.add(mp)
+                    fm["phone"] = mp
+                    dedup_m.append(fm)
+
+                if has_fam_dups or (p_phone and p_phone not in seen_mp):
+                    if p_phone and p_phone not in seen_mp:
+                        dedup_m.insert(0, {
+                            "name": rec.get("customer_name") or "Primary Resident",
+                            "phone": p_phone,
+                            "is_primary": True,
+                            "added_at": rec.get("created_at") or datetime.datetime.now(datetime.timezone.utc)
+                        })
+                        seen_mp.add(p_phone)
+                    fam_members = dedup_m
+                    fam_phones = list(seen_mp)
+                    update_set["family_members"] = fam_members
+                    update_set["family_phones"] = fam_phones
+                    needs_update = True
+                elif p_phone and p_phone not in fam_phones:
+                    fam_phones = list(set(fam_phones + [p_phone]))
+                    update_set["family_phones"] = fam_phones
+                    needs_update = True
+
+                if rec.get("canonical_flat_key") != canonical:
+                    update_set["canonical_flat_key"] = canonical
+                    needs_update = True
+
+                if needs_update:
+                    cols["khata_users"].update_one(
+                        {"_id": rec["_id"]},
+                        {"$set": update_set}
+                    )
+                continue
+
+            # Pick master record: prefer ACTIVE status, then one with existing non-zero balance, then oldest created
+            def sort_score(x):
+                status_score = 10 if x.get("status") == "ACTIVE" and x.get("is_verified") else 0
+                bal_score = 5 if abs(float(x.get("current_balance") or 0.0)) > 0 else 0
+                return (status_score + bal_score)
+
+            rec_list.sort(key=sort_score, reverse=True)
+            master = rec_list[0]
+            master_id = master["_id"]
+            master_phone = clean_phone_10(master.get("customer_phone", ""))
+
+            all_family_members = master.get("family_members") or []
+            if not all_family_members and master_phone:
+                all_family_members.append({
+                    "name": master.get("customer_name") or "Primary Resident",
+                    "phone": master_phone,
+                    "is_primary": True,
+                    "added_at": master.get("created_at") or datetime.datetime.now(datetime.timezone.utc)
+                })
+
+            all_family_phones = set(master.get("family_phones") or [])
+            if master_phone:
+                all_family_phones.add(master_phone)
+
+            # Process all other duplicate records for this flat
+            for dup in rec_list[1:]:
+                # Double safety guard: Never delete independent or pending accounts
+                if dup.get("status") in ("PENDING", "REJECTED") or dup.get("is_independent") or dup.get("account_type") == "INDEPENDENT":
+                    continue
+                dup_id = dup["_id"]
+                dup_phone = clean_phone_10(dup.get("customer_phone", ""))
+                dup_name = dup.get("customer_name") or "Family Member"
+
+                if dup_phone and dup_phone not in all_family_phones:
+                    all_family_phones.add(dup_phone)
+                    all_family_members.append({
+                        "name": dup_name,
+                        "phone": dup_phone,
+                        "is_primary": False,
+                        "added_at": dup.get("created_at") or datetime.datetime.now(datetime.timezone.utc)
+                    })
+
+                # Re-point all ledger entries of duplicate to master
+                cols["khata_ledger"].update_many(
+                    {"$or": [{"khata_user_id": dup_id}, {"khata_user_id": str(dup_id)}]},
+                    {"$set": {"khata_user_id": master_id}}
+                )
+
+                # Remove duplicate document
+                cols["khata_users"].delete_one({"_id": dup_id})
+
+            # Update master record with consolidated family info
+            cols["khata_users"].update_one(
+                {"_id": master_id},
+                {"$set": {
+                    "family_phones": list(all_family_phones),
+                    "family_members": all_family_members,
+                    "canonical_flat_key": f"{str(vendor_id)}:{key}",
+                    "updated_at": datetime.datetime.now(datetime.timezone.utc)
+                }}
+            )
+            # Recompute accurate balance from combined ledger
+            recalculate_khata_user_balance(cols, master_id)
+    except Exception as e:
+        print("[merge_duplicate_flat_khatas Error]:", e)
+
+
 @khata_bp.route("/vendor/khata", methods=["GET"])
 def vendor_khata_dashboard():
     cols = get_collections()
@@ -442,6 +620,9 @@ def vendor_khata_dashboard():
 
     vendor_oid = vendor["_id"]
     shop_name = vendor.get("shop_name") or vendor.get("name") or "Jippy Partner Store"
+
+    # Auto-heal: Merge any duplicate flats into unified 1-Flat=1-Khata household accounts
+    merge_duplicate_flat_khatas(cols, vendor_oid)
 
     # Serviceable societies names
     soc_ids = vendor.get("serviceable_societies", []) or []
@@ -468,8 +649,11 @@ def vendor_khata_dashboard():
         except Exception:
             pass
 
+    # Auto-heal: Merge any duplicate flats into unified 1-Flat=1-Khata household accounts
+    merge_duplicate_flat_khatas(cols, vendor_oid)
+
     # Query all khata records for this vendor
-    khata_records = list(cols["khata_users"].find({"vendor_id": vendor_oid}).sort("updated_at", -1))
+    khata_records = list(cols["khata_users"].find({"vendor_id": vendor_oid}))
 
     total_outstanding = 0.0
     active_count = 0
@@ -479,7 +663,12 @@ def vendor_khata_dashboard():
     blocks_set = set()
 
     for r in khata_records:
-        bal = recalculate_khata_user_balance(cols, r["_id"])
+        # High Performance: Read pre-aggregated current_balance directly, only recalculate if missing
+        if "current_balance" in r and r["current_balance"] is not None:
+            bal = float(r["current_balance"])
+        else:
+            bal = recalculate_khata_user_balance(cols, r["_id"])
+
         if bal > 0:
             total_outstanding += bal
         r["current_balance"] = round(bal, 2)
@@ -499,11 +688,6 @@ def vendor_khata_dashboard():
         fn_std = std_addr["flat_no"]
         full_disp = std_addr["full_display"]
 
-        r["block"] = b_std
-        r["floor"] = fl_std
-        r["flat_no"] = fn_std
-        r["full_address_display"] = full_disp
-
         # Auto-heal MongoDB document if previously saved with unstandardized values
         if (r.get("full_address_display") != full_disp or 
             r.get("block") != b_std or 
@@ -522,6 +706,11 @@ def vendor_khata_dashboard():
             except Exception:
                 pass
 
+        r["block"] = b_std
+        r["floor"] = fl_std
+        r["flat_no"] = fn_std
+        r["full_address_display"] = full_disp
+
         if status == "PENDING":
             pending_count += 1
         elif status == "ACTIVE":
@@ -532,6 +721,9 @@ def vendor_khata_dashboard():
             rejected_count += 1
 
         blocks_set.add(b_std)
+
+    # Deterministic stable sorting (PENDING first, then highest dues, then flat number)
+    khata_records = sort_khata_records_stably(khata_records)
 
     # Sorted blocks list
     blocks_list = sorted(list(blocks_set))
@@ -566,8 +758,11 @@ def vendor_khata_live_sync():
 
     vendor_oid = vendor["_id"]
 
+    # Auto-heal: Merge any duplicate flats into unified 1-Flat=1-Khata household accounts
+    merge_duplicate_flat_khatas(cols, vendor_oid)
+
     # Query all khata records for this vendor
-    khata_records = list(cols["khata_users"].find({"vendor_id": vendor_oid}).sort("updated_at", -1))
+    khata_records = list(cols["khata_users"].find({"vendor_id": vendor_oid}))
 
     total_outstanding = 0.0
     active_count = 0
@@ -578,7 +773,12 @@ def vendor_khata_live_sync():
     cleaned_records = []
 
     for r in khata_records:
-        bal = recalculate_khata_user_balance(cols, r["_id"])
+        # High Performance: Read pre-aggregated current_balance directly, only recalculate if missing
+        if "current_balance" in r and r["current_balance"] is not None:
+            bal = float(r["current_balance"])
+        else:
+            bal = recalculate_khata_user_balance(cols, r["_id"])
+
         if bal > 0:
             total_outstanding += bal
         r_bal = round(bal, 2)
@@ -636,20 +836,29 @@ def vendor_khata_live_sync():
         else:
             updated_str = ""
 
+        fam_list = r.get("family_members") or []
+        is_ind = bool(r.get("is_independent") or r.get("account_type") == "INDEPENDENT" or r.get("resident_type") == "INDEPENDENT")
         cleaned_records.append({
             "id": str(r["_id"]),
             "customer_name": r.get("customer_name") or "Resident",
             "customer_phone": r.get("customer_phone") or "",
+            "family_members": fam_list,
+            "family_count": len(fam_list),
             "block": b_std,
             "flat_no": fn_std,
             "floor": fl_std,
             "full_address_display": full_disp,
             "status": status,
             "is_verified": bool(r.get("is_verified")),
+            "is_independent": is_ind,
+            "account_type": r.get("account_type", "INDEPENDENT" if is_ind else "FLAT_MASTER"),
             "current_balance": r_bal,
             "credit_limit": r_limit,
             "updated_at_str": updated_str
         })
+
+    # Deterministic stable sorting (PENDING first, then highest dues, then flat number)
+    cleaned_records = sort_khata_records_stably(cleaned_records)
 
     blocks_list = sorted(list(blocks_set))
 
@@ -765,6 +974,48 @@ def vendor_send_khata_otp():
     flat_no = std_addr["flat_no"]
     full_disp = std_addr["full_display"]
 
+    # 1. Strict Check: Is this mobile number ALREADY enrolled in this vendor's Khata?
+    phone_variants = [phone, f"+91{phone}"]
+    existing_phone_user = cols["khata_users"].find_one({
+        "vendor_id": vendor["_id"],
+        "$or": [
+            {"customer_phone": {"$in": phone_variants}},
+            {"family_phones": {"$in": phone_variants}}
+        ]
+    })
+    if existing_phone_user:
+        curr_status = str(existing_phone_user.get("status", "")).upper()
+        ex_flat = existing_phone_user.get("full_address_display") or f"{existing_phone_user.get('block')} - {existing_phone_user.get('flat_no')}"
+        ex_name = existing_phone_user.get("customer_name") or "Resident"
+        if curr_status == "ACTIVE" and existing_phone_user.get("is_verified"):
+            return jsonify({
+                "success": False,
+                "error": f"Mobile +91 {phone} is ALREADY enrolled in {ex_flat} (Owner: {ex_name}). Duplicate enrollment is not allowed."
+            }), 400
+        elif curr_status == "PENDING":
+            return jsonify({
+                "success": False,
+                "error": f"Mobile +91 {phone} already has a pending Store Credit request for {ex_flat}. Please approve it directly from the Khata Hub."
+            }), 400
+
+    # 2. Strict Check: Is this exact Flat ALREADY enrolled in this vendor's Khata?
+    existing_flat = cols["khata_users"].find_one({
+        "vendor_id": vendor["_id"],
+        "block": block,
+        "flat_no": flat_no,
+        "status": "ACTIVE",
+        "is_verified": True
+    })
+    if existing_flat:
+        primary_name = existing_flat.get("customer_name") or "Primary Resident"
+        primary_p = clean_phone_10(existing_flat.get("customer_phone") or "")
+        fam_phones = set(clean_phone_10(p) for p in (existing_flat.get("family_phones") or []))
+        if phone == primary_p or phone in fam_phones:
+            return jsonify({
+                "success": False,
+                "error": f"{full_disp} is already actively enrolled under +91 {phone} ({primary_name})."
+            }), 400
+
     otp_code = str(random.randint(100000, 999999))
     expiry = datetime.datetime.now(IST) + datetime.timedelta(minutes=5)
 
@@ -789,12 +1040,13 @@ def vendor_send_khata_otp():
     # Professional English WhatsApp OTP Template
     msg = (
         f"🔐 *VERIFICATION CODE | JIPPY STORE*\n\n"
-        f"Dear {customer_name},\n\n"
-        f"{shop_name} is requesting to link your society residence (*{full_disp}*) for Society Store Credit.\n\n"
-        f"Your 6-Digit Verification Code is: *{otp_code}*\n"
-        f"(Valid for 5 minutes)\n\n"
+        f"Dear *{customer_name}*,\n\n"
+        f"*{shop_name}* is requesting to link your society residence (*{full_disp}*) for Society Store Credit.\n\n"
+        f"🔑 *Your 6-Digit Verification Code is:*\n"
+        f"👉 *{otp_code}*\n"
+        f"_(Valid for 5 minutes)_\n\n"
         f"Please share this code with your store vendor to confirm your account activation and consent to monthly billing.\n\n"
-        f"Thank you for choosing Jippy Store! 🥑"
+        f"🛍️ *Thank you for choosing Jippy Store!*"
     )
 
     success = send_green_api_message(phone, msg)
@@ -836,7 +1088,7 @@ def vendor_verify_otp_and_add():
     if not otp_doc:
         return jsonify({"success": False, "error": "No pending OTP request found for this mobile number."}), 400
 
-    if datetime.datetime.now(IST) > otp_doc.get("expiry", datetime.datetime.min.replace(tzinfo=IST)):
+    if is_datetime_expired(otp_doc.get("expiry")):
         return jsonify({"success": False, "error": "OTP has expired. Please send a new OTP."}), 400
 
     if otp_doc.get("otp") != otp_input:
@@ -867,52 +1119,112 @@ def vendor_verify_otp_and_add():
     flat_no = std_addr["flat_no"]
     full_disp = std_addr["full_display"]
 
-    # Upsert into vendor_khata_users
-    cols["khata_users"].update_one(
-        {"vendor_id": vendor["_id"], "customer_phone": phone},
-        {
-            "$set": {
-                "vendor_id": vendor["_id"],
-                "user_id": user_id,
-                "customer_name": customer_name.upper(),
-                "customer_phone": phone,
-                "society_id": society_id,
-                "society_name": soc_name,
-                "block": block,
-                "flat_no": flat_no,
-                "floor": floor,
-                "full_address_display": full_disp,
-                "is_verified": True,
-                "status": "ACTIVE",
-                "credit_limit": credit_limit,
-                "updated_at": datetime.datetime.now(datetime.timezone.utc),
-            },
-            "$setOnInsert": {
-                "current_balance": 0.0,
-                "created_at": datetime.datetime.now(datetime.timezone.utc),
+    # Check if a khata already exists for this exact flat under this vendor
+    existing_flat = cols["khata_users"].find_one({
+        "vendor_id": vendor["_id"],
+        "block": block,
+        "flat_no": flat_no
+    })
+
+    fam_phones = [phone]
+    fam_members = [{
+        "name": customer_name.upper(),
+        "phone": phone,
+        "is_primary": True,
+        "added_at": datetime.datetime.now(datetime.timezone.utc)
+    }]
+
+    if existing_flat and existing_flat.get("status") == "ACTIVE" and existing_flat.get("is_verified"):
+        primary_p = clean_phone_10(existing_flat.get("customer_phone") or "")
+        all_fams = existing_flat.get("family_members") or []
+        all_phones = set(clean_phone_10(p) for p in (existing_flat.get("family_phones") or []))
+        all_phones.add(phone)
+        if primary_p:
+            all_phones.add(primary_p)
+
+        existing_fm_phones = {clean_phone_10(fm.get("phone")) for fm in all_fams}
+        if phone not in existing_fm_phones:
+            all_fams.append({
+                "name": customer_name.title(),
+                "phone": phone,
+                "is_primary": False,
+                "added_at": datetime.datetime.now(datetime.timezone.utc)
+            })
+
+        update_fields = {
+            "family_phones": list(all_phones),
+            "family_members": all_fams,
+            "updated_at": datetime.datetime.now(datetime.timezone.utc)
+        }
+        if credit_limit > 0 and credit_limit > float(existing_flat.get("credit_limit") or 0.0):
+            update_fields["credit_limit"] = credit_limit
+
+        cols["khata_users"].update_one(
+            {"_id": existing_flat["_id"]},
+            {"$set": update_fields}
+        )
+    elif existing_flat:
+        cols["khata_users"].update_one(
+            {"_id": existing_flat["_id"]},
+            {
+                "$set": {
+                    "customer_name": customer_name.upper(),
+                    "customer_phone": phone,
+                    "family_phones": list(set(fam_phones)),
+                    "family_members": fam_members,
+                    "society_id": society_id,
+                    "society_name": soc_name,
+                    "block": block,
+                    "flat_no": flat_no,
+                    "floor": floor,
+                    "full_address_display": full_disp,
+                    "is_verified": True,
+                    "status": "ACTIVE",
+                    "credit_limit": credit_limit,
+                    "updated_at": datetime.datetime.now(datetime.timezone.utc),
+                }
             }
-        },
-        upsert=True
-    )
+        )
+    else:
+        canonical_key = f"{str(vendor['_id'])}:{re.sub(r'[^A-Z0-9]', '', block.upper())}:{re.sub(r'[^A-Z0-9]', '', flat_no.upper())}"
+        cols["khata_users"].insert_one({
+            "vendor_id": vendor["_id"],
+            "user_id": user_id,
+            "customer_name": customer_name.upper(),
+            "customer_phone": phone,
+            "family_phones": list(set(fam_phones)),
+            "family_members": fam_members,
+            "canonical_flat_key": canonical_key,
+            "society_id": society_id,
+            "society_name": soc_name,
+            "block": block,
+            "flat_no": flat_no,
+            "floor": floor,
+            "full_address_display": full_disp,
+            "is_verified": True,
+            "status": "ACTIVE",
+            "credit_limit": credit_limit,
+            "current_balance": 0.0,
+            "created_at": datetime.datetime.now(datetime.timezone.utc),
+            "updated_at": datetime.datetime.now(datetime.timezone.utc),
+        })
 
     shop_name = vendor.get("shop_name") or vendor.get("name") or "Society Store"
 
     # English WhatsApp Confirmation to Customer
     limit_text = f"₹{credit_limit:,.2f}" if credit_limit > 0 else "Unlimited"
     welcome_msg = (
-        f"🎉 *STORE CREDIT ACTIVATED | JIPPY STORE* 🛍️\n"
-        f"═════════════════════════════\n"
+        f"🎉 *STORE CREDIT ACTIVATED | JIPPY STORE* 🛍️\n\n"
         f"Dear *{customer_name}*,\n\n"
         f"Congratulations! Your Society Store Credit account has been successfully verified & activated.\n\n"
         f"📋 *ACCOUNT DETAILS:*\n"
         f"• *Store:* {shop_name}\n"
         f"• *Unit / Flat:* {full_disp}\n"
         f"• *Monthly Credit Limit:* {limit_text}\n"
-        f"• *Account Status:* Active & Verified\n"
-        f"═════════════════════════════\n"
+        f"• *Account Status:* Active & Verified ✅\n\n"
         f"You can now select *\"Society Store Credit\"* at checkout on Jippy Store and enjoy seamless monthly billing.\n\n"
         f"🔗 *Start Shopping:* https://jippy.store\n\n"
-        f"Thank you for choosing Jippy Store! 🥑"
+        f"🛍️ *Thank you for choosing Jippy Store!*"
     )
     send_whatsapp_async(phone, welcome_msg)
 
@@ -941,6 +1253,73 @@ def vendor_approve_request():
     if not rec:
         return jsonify({"success": False, "error": "Khata account not found"}), 404
 
+    # Check if another ACTIVE record already exists for this exact flat!
+    std_addr = standardize_address_components(raw_block=rec.get("block"), raw_floor=rec.get("floor"), raw_flat=rec.get("flat_no"))
+    b_std = std_addr["block"]
+    fn_std = std_addr["flat_no"]
+    full_disp = std_addr["full_display"]
+
+    is_rec_independent = bool(rec.get("is_independent") or rec.get("account_type") == "INDEPENDENT" or rec.get("resident_type") == "INDEPENDENT")
+
+    existing_active = None
+    if not is_rec_independent:
+        existing_active = cols["khata_users"].find_one({
+            "_id": {"$ne": rec["_id"]},
+            "vendor_id": vendor["_id"],
+            "block": b_std,
+            "flat_no": fn_std,
+            "status": "ACTIVE",
+            "is_verified": True,
+            "is_independent": {"$ne": True},
+            "account_type": {"$ne": "INDEPENDENT"}
+        })
+
+    if existing_active and not is_rec_independent:
+        # Auto-merge: Absorb this member into the existing active flat
+        cust_name = rec.get("customer_name", "Resident")
+        phone = clean_phone_10(rec.get("customer_phone", ""))
+        all_fams = existing_active.get("family_members") or []
+        all_phones = set(existing_active.get("family_phones") or [])
+        if phone:
+            all_phones.add(phone)
+            all_fams.append({
+                "name": cust_name.title(),
+                "phone": phone,
+                "is_primary": False,
+                "added_at": datetime.datetime.now(datetime.timezone.utc)
+            })
+        cols["khata_users"].update_one(
+            {"_id": existing_active["_id"]},
+            {
+                "$set": {
+                    "family_phones": list(all_phones),
+                    "family_members": all_fams,
+                    "updated_at": datetime.datetime.now(datetime.timezone.utc)
+                }
+            }
+        )
+        # Delete redundant pending record
+        cols["khata_users"].delete_one({"_id": rec["_id"]})
+
+        primary_name = existing_active.get("customer_name") or "Primary Resident"
+        shop_name = vendor.get("shop_name") or vendor.get("name") or "Society Store"
+        msg_member = (
+            f"🎉 *STORE CREDIT LINKED | JIPPY STORE* 🛍️\n\n"
+            f"Dear *{cust_name.title()}*,\n\n"
+            f"Your request has been approved! You have been linked to the Store Credit passbook for *{full_disp}* (Account Owner: *{primary_name}*).\n\n"
+            f"You can now place 1-click orders on Jippy Store billed directly to your flat's monthly passbook.\n\n"
+            f"🔗 *Start Shopping:* https://jippy.store\n\n"
+            f"🛍️ *Thank you for choosing Jippy Store!*"
+        )
+        send_whatsapp_async(phone, msg_member)
+
+        return jsonify({
+            "success": True,
+            "message": f"{cust_name.title()} (+91 {phone}) linked to {full_disp} (Owner: {primary_name}) successfully!"
+        })
+
+    # Activate independent account or master account directly
+    phone = clean_phone_10(rec.get("customer_phone", ""))
     cols["khata_users"].update_one(
         {"_id": rec["_id"]},
         {
@@ -948,10 +1327,32 @@ def vendor_approve_request():
                 "is_verified": True,
                 "status": "ACTIVE",
                 "credit_limit": round(credit_limit, 2),
+                "is_independent": True if is_rec_independent else False,
+                "account_type": "INDEPENDENT" if is_rec_independent else "FLAT_MASTER",
+                "resident_type": "INDEPENDENT" if is_rec_independent else "PRIMARY_OWNER",
                 "updated_at": datetime.datetime.now(datetime.timezone.utc),
             }
         }
     )
+
+    # If independent, ensure their phone is detached from any shared household passbook
+    if is_rec_independent and phone:
+        cols["khata_users"].update_many(
+            {
+                "vendor_id": vendor["_id"],
+                "_id": {"$ne": rec["_id"]},
+                "$or": [
+                    {"family_phones": phone},
+                    {"family_members.phone": phone}
+                ]
+            },
+            {
+                "$pull": {
+                    "family_phones": phone,
+                    "family_members": {"phone": phone}
+                }
+            }
+        )
 
     shop_name = vendor.get("shop_name") or vendor.get("name") or "Society Store"
     cust_name = rec.get("customer_name", "Resident")
@@ -963,18 +1364,16 @@ def vendor_approve_request():
 
     limit_text = f"₹{credit_limit:,.2f}" if credit_limit > 0 else "Unlimited"
     approval_msg = (
-        f"🎉 *STORE CREDIT APPROVED | JIPPY STORE* 🛍️\n"
-        f"═════════════════════════════\n"
+        f"🎉 *STORE CREDIT APPROVED | JIPPY STORE* 🛍️\n\n"
         f"Dear *{cust_name}*,\n\n"
         f"Great news! Your Store Credit account has been approved and activated by *{shop_name}*.\n\n"
         f"📋 *ACCOUNT DETAILS:*\n"
         f"• *Unit / Flat:* {full_disp}\n"
-        f"• *Account Status:* Active & Verified\n"
-        f"• *Credit Limit:* {limit_text}\n"
-        f"═════════════════════════════\n"
+        f"• *Account Status:* Active & Verified ✅\n"
+        f"• *Credit Limit:* {limit_text}\n\n"
         f"You can now place your grocery orders using *\"Society Store Credit\"* at checkout.\n\n"
         f"🔗 *Start Shopping:* https://jippy.store\n\n"
-        f"Thank you for choosing Jippy Store! 🥑"
+        f"🛍️ *Thank you for choosing Jippy Store!*"
     )
     send_whatsapp_async(phone, approval_msg)
 
@@ -1073,19 +1472,46 @@ def recalculate_khata_user_balance(cols_or_db, khata_user_id):
             running_bal += amt
         else:
             running_bal -= amt
-        ledger_col.update_one(
-            {"_id": e["_id"]},
-            {"$set": {"balance_after": round(running_bal, 2)}}
-        )
+        bal_round = round(running_bal, 2)
+        if e.get("balance_after") != bal_round:
+            ledger_col.update_one(
+                {"_id": e["_id"]},
+                {"$set": {"balance_after": bal_round}}
+            )
     net_bal = round(running_bal, 2)
-    users_col.update_one(
-        {"_id": oid},
-        {"$set": {
-            "current_balance": net_bal,
-            "updated_at": datetime.datetime.now(datetime.timezone.utc)
-        }}
-    )
+    # Only update MongoDB if the balance actually changed, avoiding updated_at churn during polling
+    curr_doc = users_col.find_one({"_id": oid}, {"current_balance": 1})
+    if not curr_doc or curr_doc.get("current_balance") != net_bal:
+        users_col.update_one(
+            {"_id": oid},
+            {"$set": {"current_balance": net_bal}}
+        )
     return net_bal
+
+def sort_khata_records_stably(records):
+    """
+    Deterministic & Stable Sorting for Vendor Khatabook cards:
+    1. PENDING requests first (priority for store approval/rejection)
+    2. Outstanding dues highest to lowest (bal > 0)
+    3. Block (alphabetical)
+    4. Flat number (numerical e.g. 101, 102, 1903)
+    5. Stable tie-breaker (_id)
+    Never flips back and forth during live polling!
+    """
+    def _flat_num(r):
+        nums = re.findall(r'\d+', str(r.get("flat_no", "")))
+        return int(nums[0]) if nums else 0
+
+    def _sort_tuple(r):
+        status = str(r.get("status", "")).upper()
+        status_rank = 0 if status == "PENDING" else (1 if status == "ACTIVE" else 2)
+        bal = float(r.get("current_balance") or 0.0)
+        block = str(r.get("block") or "")
+        flat_n = _flat_num(r)
+        rid = str(r.get("_id") or r.get("id") or "")
+        return (status_rank, -bal, block, flat_n, rid)
+
+    return sorted(records, key=_sort_tuple)
 
 
 # ---------- API: Record Payment Received (Settlement) ----------
@@ -1157,8 +1583,7 @@ def vendor_record_payment():
 
     # Payment Acknowledgment WhatsApp
     receipt_msg = (
-        f"🧾 *PAYMENT RECEIVED | JIPPY STORE* 💳\n"
-        f"═════════════════════════════\n"
+        f"🧾 *PAYMENT RECEIVED | JIPPY STORE* 💳\n\n"
         f"Dear *{cust_name}*,\n\n"
         f"We have successfully received your payment of *₹{amount:,.2f}* for *{shop_name}*.\n\n"
         f"📋 *PAYMENT DETAILS:*\n"
@@ -1166,11 +1591,10 @@ def vendor_record_payment():
         f"• *Payment Method:* {mode}\n"
         + rem_due_line
         + (f"• *Unit / Flat:* {full_disp}\n" if full_disp else "")
-        + f"• *Date & Time:* {date_str}\n"
-        f"═════════════════════════════\n"
+        + f"• *Date & Time:* {date_str}\n\n"
         f"Your Store Credit passbook has been updated.\n"
         f"🔗 *View Passbook:* https://jippy.store/my-khata\n\n"
-        f"Thank you for your prompt settlement! 🥑"
+        f"✨ *Thank you for your prompt settlement!*"
     )
     send_whatsapp_async(phone, receipt_msg)
 
@@ -1358,6 +1782,7 @@ def _resolve_order_khata_record(db, order):
     q_or = []
     if user_phone:
         q_or.append({"customer_phone": user_phone})
+        q_or.append({"family_phones": user_phone})
     if user_id:
         try:
             q_or.append({"user_id": ObjectId(user_id)})
@@ -1604,17 +2029,72 @@ def customer_khata():
     total_ledger_count = 0
     has_more = False
 
+    is_primary = False
     if vendor and clean_p:
-        # Match by phone or user_id
+        # Match by phone, family_phones or user_id
+        phone_variants = [clean_p, f"+91{clean_p}"]
+        q_or = [
+            {"customer_phone": {"$in": phone_variants}},
+            {"family_phones": {"$in": phone_variants}},
+        ]
+        if user_id:
+            try:
+                q_or.append({"user_id": ObjectId(user_id)})
+            except Exception:
+                pass
+
         khata_user = cols["khata_users"].find_one({
             "vendor_id": vendor["_id"],
-            "$or": [
-                {"customer_phone": clean_p},
-                {"user_id": ObjectId(user_id) if user_id else None}
-            ]
+            "$or": q_or
         })
 
+        # Fallback without vendor_id in case of session shop mismatch
+        if not khata_user:
+            khata_user = cols["khata_users"].find_one({
+                "$or": q_or,
+                "status": "ACTIVE"
+            })
+
         if khata_user:
+            primary_phone = clean_phone_10(khata_user.get("customer_phone", ""))
+            is_primary = (clean_p == primary_phone)
+
+            # Ensure family_members has at least the primary resident and auto-deduplicate by clean phone
+            existing_fams = khata_user.get("family_members") or []
+            dedup_fams = []
+            seen_fam_phones = set()
+            has_dups = False
+            for m in existing_fams:
+                m_p = clean_phone_10(m.get("phone", ""))
+                if not m_p or m_p in seen_fam_phones:
+                    has_dups = True
+                    continue
+                seen_fam_phones.add(m_p)
+                m["phone"] = m_p
+                dedup_fams.append(m)
+
+            if primary_phone and primary_phone not in seen_fam_phones:
+                dedup_fams.insert(0, {
+                    "name": khata_user.get("customer_name") or "Primary Resident",
+                    "phone": primary_phone,
+                    "is_primary": True,
+                    "added_at": khata_user.get("created_at") or datetime.datetime.now(datetime.timezone.utc)
+                })
+                seen_fam_phones.add(primary_phone)
+                has_dups = True
+
+            if has_dups or len(dedup_fams) != len(existing_fams):
+                cols["khata_users"].update_one(
+                    {"_id": khata_user["_id"]},
+                    {"$set": {
+                        "family_members": dedup_fams,
+                        "family_phones": list(seen_fam_phones),
+                        "updated_at": datetime.datetime.now(datetime.timezone.utc)
+                    }}
+                )
+                khata_user["family_members"] = dedup_fams
+                khata_user["family_phones"] = list(seen_fam_phones)
+
             # Self-healing sync for any pending notes items adjustments
             sync_khata_user_recent_orders(get_db(), khata_user)
             recalculate_khata_user_balance(cols, khata_user["_id"])
@@ -1641,10 +2121,12 @@ def customer_khata():
         vendor=vendor,
         shop_name=shop_name,
         khata_user=khata_user,
+        is_primary=is_primary,
         ledger_entries=ledger_entries,
         total_ledger_count=total_ledger_count,
         has_more=has_more,
         user_phone=user_phone,
+        clean_user_phone=clean_p,
         now_ist=datetime.datetime.now(IST)
     )
 
@@ -1693,6 +2175,7 @@ def customer_get_ledger():
         "vendor_id": vendor["_id"],
         "$or": [
             {"customer_phone": clean_p},
+            {"family_phones": clean_p},
             {"user_id": ObjectId(user_id) if user_id else None}
         ]
     })
@@ -1738,6 +2221,344 @@ def customer_get_ledger():
         "limit": limit,
         "total_count": total_count,
         "has_more": (skip + len(out)) < total_count
+    })
+
+
+# ---------- Helper: Primary Mukhiya Owner Resolution ----------
+def _get_customer_khata_owner(cols):
+    user_id = session.get("user_id")
+    user_phone = session.get("user_phone", "") or session.get("phone", "")
+    clean_p = clean_phone_10(user_phone)
+    if not clean_p and user_id:
+        try:
+            u_doc = cols["users"].find_one({"_id": ObjectId(user_id)})
+            if u_doc:
+                clean_p = clean_phone_10(u_doc.get("phone", ""))
+        except Exception:
+            pass
+
+    if not clean_p and not user_id:
+        return None, None, (jsonify({"success": False, "error": "Please login to manage your household Khata."}), 401)
+
+    or_clauses = []
+    if clean_p:
+        or_clauses.append({"customer_phone": {"$in": [clean_p, f"+91{clean_p}"]}})
+    if user_id:
+        try:
+            or_clauses.append({"user_id": ObjectId(user_id)})
+        except Exception:
+            pass
+
+    if not or_clauses:
+        return None, None, (jsonify({"success": False, "error": "Please login to manage your household Khata."}), 401)
+
+    khata_user = cols["khata_users"].find_one({
+        "status": "ACTIVE",
+        "$or": or_clauses
+    })
+
+    if not khata_user:
+        if clean_p:
+            fam_doc = cols["khata_users"].find_one({"status": "ACTIVE", "family_phones": clean_p})
+            if fam_doc:
+                return None, clean_p, (jsonify({"success": False, "error": "Only the primary household owner can manage family members."}), 403)
+        return None, clean_p, (jsonify({"success": False, "error": "No active Store Credit account found."}), 404)
+
+    master_phone = clean_phone_10(khata_user.get("customer_phone", ""))
+    if clean_p and master_phone and clean_p != master_phone:
+        return None, clean_p, (jsonify({"success": False, "error": "Only the primary household owner can manage family members."}), 403)
+
+    return khata_user, (clean_p or master_phone), None
+
+
+# ---------- 📱 Page: Add Household Member (Dedicated App-Like Flow) ----------
+@khata_bp.route("/my-khata/add-member", methods=["GET"])
+def customer_add_member_page():
+    cols = get_collections()
+    khata_user, clean_p, err = _get_customer_khata_owner(cols)
+    if err or not khata_user:
+        return redirect(url_for("khata.customer_khata"))
+
+    # Ensure master owner is present in family_members if empty
+    master_phone = clean_phone_10(khata_user.get("customer_phone", ""))
+    master_name = khata_user.get("customer_name") or "Primary Resident"
+    if not khata_user.get("family_members"):
+        initial_members = [{
+            "name": master_name,
+            "phone": master_phone,
+            "is_primary": True,
+            "added_at": khata_user.get("created_at") or datetime.datetime.now(datetime.timezone.utc)
+        }]
+        cols["khata_users"].update_one(
+            {"_id": khata_user["_id"]},
+            {"$set": {"family_members": initial_members, "family_phones": [master_phone]}}
+        )
+        khata_user["family_members"] = initial_members
+        khata_user["family_phones"] = [master_phone]
+
+    vendor_id = khata_user.get("vendor_id")
+    vendor = None
+    shop_name = "Jippy Store"
+    if vendor_id:
+        try:
+            vendor = cols["users"].find_one({"_id": vendor_id})
+            if vendor:
+                shop_name = vendor.get("shop_name") or vendor.get("name") or "Jippy Store"
+        except Exception:
+            pass
+
+    return render_template(
+        "khata/customer_add_member.html",
+        khata_user=khata_user,
+        vendor=vendor,
+        shop_name=shop_name,
+        clean_user_phone=clean_p
+    )
+
+
+# ---------- 👨‍👩‍👧‍👦 API: Primary Mukhiya Sends 6-Digit WhatsApp OTP to Family Member ----------
+@khata_bp.route("/api/my-khata/family/send-otp", methods=["POST"])
+def customer_family_send_otp():
+    cols = get_collections()
+    khata_user, clean_p, err = _get_customer_khata_owner(cols)
+    if err:
+        return err
+
+    data = request.get_json() or {}
+    member_name = (data.get("name") or "").strip()
+    member_phone = clean_phone_10(data.get("phone") or "")
+
+    if not member_name:
+        return jsonify({"success": False, "error": "Family member name is required."}), 400
+    if not member_phone or len(member_phone) < 10:
+        return jsonify({"success": False, "error": "Valid 10-digit mobile number is required."}), 400
+
+    if member_phone == clean_p:
+        return jsonify({"success": False, "error": "You cannot add your own primary mobile number as a family member."}), 400
+
+    existing_phones = khata_user.get("family_phones") or []
+    if member_phone in existing_phones:
+        return jsonify({"success": False, "error": f"Mobile +91 {member_phone} is already linked to this flat's Khata."}), 400
+
+    otp_code = str(random.randint(100000, 999999))
+    expiry = datetime.datetime.now(IST) + datetime.timedelta(minutes=5)
+
+    cols["khata_otps"].update_one(
+        {"khata_id": khata_user["_id"], "family_phone": member_phone},
+        {
+            "$set": {
+                "otp": otp_code,
+                "expiry": expiry,
+                "family_name": member_name.title(),
+                "family_phone": member_phone,
+                "primary_name": khata_user.get("customer_name") or "Primary Resident",
+                "primary_phone": clean_p,
+                "khata_id": khata_user["_id"],
+                "created_at": datetime.datetime.now(IST)
+            }
+        },
+        upsert=True
+    )
+
+    full_addr = khata_user.get("full_address_display") or f"{khata_user.get('block')} - {khata_user.get('flat_no')}"
+    primary_name = khata_user.get("customer_name") or "Household Owner"
+
+    # 100% Professional English WhatsApp Template dispatched to family member's phone
+    msg = (
+        f"🔐 *STORE CREDIT INVITATION | JIPPY STORE*\n\n"
+        f"Dear *{member_name.title()}*,\n\n"
+        f"*{primary_name}* has invited you to share the Society Store Credit (Khata) account for *{full_addr}*.\n\n"
+        f"🔑 *Your 6-Digit Verification Code is:*\n"
+        f"👉 *{otp_code}*\n"
+        f"_(Valid for 5 minutes)_\n\n"
+        f"Please share this verification code with *{primary_name}* to confirm your mobile linking.\n\n"
+        f"Once linked, you can place instant 1-click grocery orders on Jippy Store billed directly to your flat's monthly passbook.\n\n"
+        f"🛍️ *Thank you for choosing Jippy Store!*"
+    )
+
+    send_whatsapp_async(member_phone, msg)
+    return jsonify({
+        "success": True,
+        "message": f"Verification code sent via WhatsApp to +91 {member_phone}.",
+        "phone": member_phone,
+        "name": member_name.title()
+    })
+
+
+# ---------- 👨‍👩‍👧‍👦 API: Primary Mukhiya Verifies OTP & Activates Family Member ----------
+@khata_bp.route("/api/my-khata/family/verify-otp", methods=["POST"])
+def customer_family_verify_otp():
+    cols = get_collections()
+    khata_user, clean_p, err = _get_customer_khata_owner(cols)
+    if err:
+        return err
+
+    data = request.get_json() or {}
+    member_phone = clean_phone_10(data.get("phone") or "")
+    otp_input = str(data.get("otp") or "").strip()
+
+    if not member_phone or not otp_input:
+        return jsonify({"success": False, "error": "Phone and 6-digit OTP are required."}), 400
+
+    otp_doc = cols["khata_otps"].find_one({
+        "khata_id": khata_user["_id"],
+        "family_phone": member_phone
+    })
+    if not otp_doc:
+        return jsonify({"success": False, "error": "No pending verification code found for this mobile number."}), 400
+
+    if is_datetime_expired(otp_doc.get("expiry")):
+        return jsonify({"success": False, "error": "Verification code has expired. Please request a new code."}), 400
+
+    if str(otp_doc.get("otp")) != otp_input:
+        return jsonify({"success": False, "error": "Incorrect verification code. Please check and try again."}), 400
+
+    member_name = otp_doc.get("family_name") or "Family Member"
+    cols["khata_otps"].delete_one({"_id": otp_doc["_id"]})
+
+    # Ensure master owner is present in family_members if empty
+    master_phone = clean_phone_10(khata_user.get("customer_phone", ""))
+    master_name = khata_user.get("customer_name") or "Primary Resident"
+    if not khata_user.get("family_members"):
+        initial_members = [{
+            "name": master_name,
+            "phone": master_phone,
+            "is_primary": True,
+            "added_at": khata_user.get("created_at") or datetime.datetime.now(datetime.timezone.utc)
+        }]
+        cols["khata_users"].update_one(
+            {"_id": khata_user["_id"]},
+            {"$set": {"family_members": initial_members, "family_phones": [master_phone]}}
+        )
+
+    new_member = {
+        "name": member_name.title(),
+        "phone": member_phone,
+        "is_primary": False,
+        "added_at": datetime.datetime.now(datetime.timezone.utc)
+    }
+
+    # Add to family_members and family_phones (prevent duplicate member object with same phone)
+    cols["khata_users"].update_one(
+        {"_id": khata_user["_id"]},
+        {
+            "$pull": {
+                "family_phones": {"$in": [member_phone, f"+91{member_phone}"]},
+                "family_members": {"phone": {"$in": [member_phone, f"+91{member_phone}"]}}
+            }
+        }
+    )
+    cols["khata_users"].update_one(
+        {"_id": khata_user["_id"]},
+        {
+            "$addToSet": {
+                "family_phones": member_phone,
+                "family_members": new_member
+            },
+            "$set": {
+                "updated_at": datetime.datetime.now(datetime.timezone.utc)
+            }
+        }
+    )
+
+    full_addr = khata_user.get("full_address_display") or f"{khata_user.get('block')} - {khata_user.get('flat_no')}"
+    primary_name = khata_user.get("customer_name") or "Account Owner"
+
+    # 1. Professional English WhatsApp Confirmation to Family Member
+    msg_family = (
+        f"🎉 *STORE CREDIT LINKED | JIPPY STORE* 🛍️\n\n"
+        f"Dear *{member_name.title()}*,\n\n"
+        f"Congratulations! Your mobile (+91 {member_phone}) has been successfully linked to the Society Store Credit account for *{full_addr}*.\n\n"
+        f"You can now choose *\"Society Store Credit\"* at checkout on Jippy Store for instant 1-click orders billed directly to your flat's monthly passbook.\n\n"
+        f"🔗 *Start Shopping:* https://jippy.store\n\n"
+        f"🛍️ *Thank you for choosing Jippy Store!*"
+    )
+    send_whatsapp_async(member_phone, msg_family)
+
+    # 2. Professional English Alert to Primary Mukhiya
+    msg_primary = (
+        f"👨‍👩‍👧‍👦 *FAMILY MEMBER LINKED | JIPPY STORE*\n\n"
+        f"Dear *{primary_name}*,\n\n"
+        f"*{member_name.title()}* (+91 {member_phone}) has been successfully added to your Flat Store Credit account (*{full_addr}*).\n\n"
+        f"All orders placed by {member_name.title()} will now reflect in your household passbook.\n\n"
+        f"🔗 *View Passbook:* https://jippy.store/my-khata\n\n"
+        f"⚡ *Jippy Store - 10-15 Mins Hyperlocal Grocery Delivery*"
+    )
+    send_whatsapp_async(clean_p, msg_primary)
+
+    # Fetch updated members list
+    refreshed = cols["khata_users"].find_one({"_id": khata_user["_id"]})
+    clean_members = []
+    for m in (refreshed.get("family_members") or []):
+        clean_members.append({
+            "name": m.get("name", ""),
+            "phone": m.get("phone", ""),
+            "is_primary": bool(m.get("is_primary", False)),
+            "added_at": str(m.get("added_at", ""))
+        })
+    return jsonify({
+        "success": True,
+        "message": f"{member_name.title()} (+91 {member_phone}) successfully linked!",
+        "members": clean_members
+    })
+
+
+# ---------- 👨‍👩‍👧‍👦 API: Primary Mukhiya Removes a Family Member ----------
+@khata_bp.route("/api/my-khata/family/remove", methods=["POST"])
+def customer_family_remove_member():
+    cols = get_collections()
+    khata_user, clean_p, err = _get_customer_khata_owner(cols)
+    if err:
+        return err
+
+    data = request.get_json() or {}
+    target_phone = clean_phone_10(data.get("phone") or "")
+
+    if not target_phone:
+        return jsonify({"success": False, "error": "Target phone number is required."}), 400
+
+    if target_phone == clean_p:
+        return jsonify({"success": False, "error": "Cannot remove the primary account owner."}), 400
+
+    cols["khata_users"].update_one(
+        {"_id": khata_user["_id"]},
+        {
+            "$pull": {
+                "family_phones": {"$in": [target_phone, f"+91{target_phone}"]},
+                "family_members": {"phone": {"$in": [target_phone, f"+91{target_phone}"]}}
+            },
+            "$set": {
+                "updated_at": datetime.datetime.now(datetime.timezone.utc)
+            }
+        }
+    )
+
+    full_addr = khata_user.get("full_address_display") or f"{khata_user.get('block')} - {khata_user.get('flat_no')}"
+
+
+
+    # Courtesy Unlink Notification to the removed member
+    msg_unlink = (
+        f"ℹ️ *STORE CREDIT UPDATE | JIPPY STORE*\n\n"
+        f"Your mobile number (+91 {target_phone}) has been unlinked from the Store Credit account for *{full_addr}*.\n\n"
+        f"You can continue ordering on Jippy Store using Pay on Delivery (COD) or online payment.\n\n"
+        f"🛍️ *Thank you for choosing Jippy Store!*"
+    )
+    send_whatsapp_async(target_phone, msg_unlink)
+
+    refreshed = cols["khata_users"].find_one({"_id": khata_user["_id"]})
+    clean_members = []
+    for m in (refreshed.get("family_members") or []):
+        clean_members.append({
+            "name": m.get("name", ""),
+            "phone": m.get("phone", ""),
+            "is_primary": bool(m.get("is_primary", False)),
+            "added_at": str(m.get("added_at", ""))
+        })
+    return jsonify({
+        "success": True,
+        "message": f"Mobile +91 {target_phone} unlinked successfully.",
+        "members": clean_members
     })
 
 
@@ -1792,30 +2613,188 @@ def customer_request_approval():
     flat_no = std_addr["flat_no"]
     full_disp = std_addr["full_display"]
 
-    # Check existing status: Block repeated requests until approved or rejected
+    # Build robust block and flat search patterns to handle both '1903' and 'FLAT 1903', 'B' and 'BLOCK B'
+    core_block = block.replace("BLOCK ", "").replace("TOWER ", "").replace("WING ", "").strip()
+    core_flat = flat_no.replace("FLAT ", "").replace("VILLA ", "").replace("UNIT ", "").strip()
+    block_patterns = list({block, core_block, f"BLOCK {core_block}", f"TOWER {core_block}", f"WING {core_block}"})
+    flat_patterns = list({flat_no, core_flat, f"FLAT {core_flat}", f"UNIT {core_flat}", f"VILLA {core_flat}"})
+
+    vendor_ids = [vendor["_id"]]
+    try:
+        vendor_ids.append(str(vendor["_id"]))
+    except Exception:
+        pass
+
+    # Check if an active account already exists for this exact flat under this vendor
+    existing_flat = cols["khata_users"].find_one({
+        "vendor_id": {"$in": vendor_ids},
+        "block": {"$in": block_patterns},
+        "flat_no": {"$in": flat_patterns},
+        "status": "ACTIVE",
+        "is_verified": True
+    })
+    if not existing_flat:
+        # Fallback search without vendor_id in case vendor session was unset
+        existing_flat = cols["khata_users"].find_one({
+            "block": {"$in": block_patterns},
+            "flat_no": {"$in": flat_patterns},
+            "status": "ACTIVE",
+            "is_verified": True
+        })
+    direct_vendor = bool(data.get("direct_vendor"))
+    send_owner_otp = bool(data.get("send_owner_otp"))
+
+    # 1. Check existing requester status: Block repeated requests if already active or pending
+    phone_variants = [user_phone, f"+91{user_phone}"]
+    q_or = [
+        {"customer_phone": {"$in": phone_variants}}
+    ]
+    if not direct_vendor:
+        q_or.append({"family_phones": {"$in": phone_variants}})
+
+    if user_id and not direct_vendor:
+        try:
+            q_or.append({"user_id": ObjectId(user_id)})
+        except Exception:
+            pass
+
     existing = cols["khata_users"].find_one({
         "vendor_id": vendor["_id"],
-        "$or": [
-            {"customer_phone": user_phone},
-            {"user_id": ObjectId(user_id) if user_id else None}
-        ]
+        "$or": q_or
     })
     if existing:
         curr_status = str(existing.get("status", "")).upper()
-        if curr_status == "PENDING":
-            return jsonify({
-                "success": False,
-                "already_pending": True,
-                "error": "Your Store Credit request is currently under review by the store manager. Please allow a few minutes for verification."
-            }), 400
-        elif curr_status == "ACTIVE" and existing.get("is_verified"):
-            return jsonify({
-                "success": False,
-                "already_verified": True,
-                "error": "Your Society Store Credit account is already verified and active."
-            }), 400
+        is_own = (clean_phone_10(existing.get("customer_phone", "")) == user_phone)
+        if is_own:
+            if curr_status == "ACTIVE" and existing.get("is_verified"):
+                return jsonify({
+                    "success": False,
+                    "already_verified": True,
+                    "error": "Your Society Store Credit account is already verified and active."
+                }), 400
+            elif curr_status == "PENDING" and not direct_vendor:
+                return jsonify({
+                    "success": False,
+                    "already_pending": True,
+                    "error": "Your Store Credit request is currently under review by the store manager. Please allow a few minutes for verification."
+                }), 400
 
-    # Queue as PENDING in vendor_khata_users
+    # If user requests a separate account, detach their phone from any household passbook where it was previously linked
+    if direct_vendor and user_phone:
+        cols["khata_users"].update_many(
+            {
+                "vendor_id": vendor["_id"],
+                "$or": [
+                    {"family_phones": user_phone},
+                    {"family_members.phone": user_phone}
+                ]
+            },
+            {
+                "$pull": {
+                    "family_phones": user_phone,
+                    "family_members": {"phone": user_phone}
+                }
+            }
+        )
+
+    # 2. Check if an active account exists for this flat
+    if existing_flat and not direct_vendor:
+        primary_name = existing_flat.get("customer_name") or "Primary Resident"
+        primary_p = clean_phone_10(existing_flat.get("customer_phone") or "")
+        fam_phones = set(existing_flat.get("family_phones") or [])
+        masked_phone = f"+91 {primary_p[:4]}•••{primary_p[-2:]}" if len(primary_p) >= 10 else primary_p
+
+        # A. Already linked to flat passbook
+        if user_phone == primary_p or user_phone in fam_phones:
+            return jsonify({
+                "success": True,
+                "already_verified": True,
+                "message": f"Your mobile (+91 {user_phone}) is already linked to {full_disp} (Owner: {primary_name}). You can order now!"
+            })
+
+        # B. 💡 Ask first before generating/sending OTP (Saves OTP costs & allows bachelor flow!)
+        if not send_owner_otp:
+            next_url = (data.get("next") or "").strip()
+            if not next_url or not next_url.startswith("/"):
+                next_url = "/my-khata"
+
+            redirect_url = f"/my-khata/choose-account?block={quote(block)}&flat_no={quote(flat_no)}&next={quote(next_url)}"
+
+            return jsonify({
+                "success": True,
+                "requires_household_choice": True,
+                "redirect_url": redirect_url,
+                "primary_name": primary_name,
+                "masked_phone": masked_phone,
+                "requester_phone": user_phone,
+                "block": block,
+                "flat_no": flat_no,
+                "floor": floor,
+                "full_address": full_disp,
+                "message": f"Flat {full_disp} already has an active account under {primary_name} ({masked_phone})."
+            })
+
+        # C. User explicitly confirmed Option 1: Send 6-Digit Approval OTP to Primary Owner (Mukhiya)
+        otp_code = str(random.randint(100000, 999999))
+        expiry = datetime.datetime.now(IST) + datetime.timedelta(minutes=5)
+
+        cols["khata_otps"].update_one(
+            {
+                "type": "HOUSEHOLD_OWNER_CONSENT",
+                "khata_id": existing_flat["_id"],
+                "requester_phone": user_phone
+            },
+            {
+                "$set": {
+                    "type": "HOUSEHOLD_OWNER_CONSENT",
+                    "khata_id": existing_flat["_id"],
+                    "requester_phone": user_phone,
+                    "requester_name": customer_name.title(),
+                    "primary_phone": primary_p,
+                    "primary_name": primary_name,
+                    "otp": otp_code,
+                    "expiry": expiry,
+                    "block": block,
+                    "flat_no": flat_no,
+                    "created_at": datetime.datetime.now(IST)
+                }
+            },
+            upsert=True
+        )
+
+        msg_owner = (
+            f"🔐 *STORE CREDIT APPROVAL | JIPPY STORE*\n\n"
+            f"Dear *{primary_name}*,\n\n"
+            f"*{customer_name.title()}* (+91 {user_phone}) is requesting permission to link to your flat's Store Credit passbook for *{full_disp}*.\n\n"
+            f"🔑 *Your 6-Digit Approval Code is:*\n"
+            f"👉 *{otp_code}*\n"
+            f"_(Valid for 5 minutes)_\n\n"
+            f"⚠️ *Only share this code if {customer_name.title()} is an authorized member of your household.*\n"
+            f"Once verified, all orders placed by {customer_name.title()} will reflect in your flat's monthly passbook.\n\n"
+            f"🛍️ *Thank you for choosing Jippy Store!*"
+        )
+        send_whatsapp_async(primary_p, msg_owner)
+
+        next_url = (data.get("next") or "").strip()
+        if not next_url or not next_url.startswith("/"):
+            next_url = "/my-khata"
+
+        redirect_url = f"/my-khata/verify-approval?block={quote(block)}&flat_no={quote(flat_no)}&next={quote(next_url)}"
+
+        return jsonify({
+            "success": True,
+            "requires_owner_otp": True,
+            "primary_name": primary_name,
+            "masked_phone": masked_phone,
+            "requester_phone": user_phone,
+            "block": block,
+            "flat_no": flat_no,
+            "full_address": full_disp,
+            "redirect_url": redirect_url,
+            "message": f"Flat {full_disp} is registered under {primary_name}. A 6-digit approval code has been sent to {primary_name} ({masked_phone}) via WhatsApp."
+        })
+
+    # Queue as PENDING in vendor_khata_users (Independent account will never be merged!)
     cols["khata_users"].update_one(
         {"vendor_id": vendor["_id"], "customer_phone": user_phone},
         {
@@ -1831,6 +2810,9 @@ def customer_request_approval():
                 "full_address_display": full_disp,
                 "status": "PENDING",
                 "is_verified": False,
+                "is_independent": True if direct_vendor else False,
+                "account_type": "INDEPENDENT" if direct_vendor else "FLAT_MASTER",
+                "resident_type": "INDEPENDENT" if direct_vendor else "PRIMARY_OWNER",
                 "updated_at": datetime.datetime.now(datetime.timezone.utc),
             },
             "$setOnInsert": {
@@ -1848,16 +2830,18 @@ def customer_request_approval():
 
     # 1. Notify Vendor automatically
     if vendor_phone:
+        req_type_lbl = "Separate / Independent " if direct_vendor else ""
+        flat_type_lbl = f"{full_disp} (Independent Account)" if direct_vendor else full_disp
         vendor_alert = (
-            f"🔔 *NEW STORE CREDIT REQUEST | JIPPY STORE*\n\n"
+            f"🔔 *NEW {req_type_lbl.upper()}STORE CREDIT REQUEST | JIPPY STORE*\n\n"
             f"Hello {shop_name},\n\n"
-            f"A resident has submitted a Store Credit authorization request:\n\n"
+            f"A resident has submitted a {req_type_lbl}Store Credit authorization request:\n\n"
             f"• Resident: *{customer_name}*\n"
-            f"• Unit / Flat: *{full_disp}*\n"
+            f"• Unit / Flat: *{flat_type_lbl}*\n"
             f"• Mobile: +91 {user_phone}\n\n"
-            f"Please review and approve this resident in your Jippy Vendor Hub.\n\n"
+            f"Please review and approve this resident in your Jippy Vendor Hub:\n"
             f"🔗 https://jippy.store/vendor/khata\n\n"
-            f"Jippy Store Automated System"
+            f"⚡ *Jippy Store Automated System*"
         )
         send_whatsapp_async(vendor_phone, vendor_alert)
 
@@ -1868,7 +2852,7 @@ def customer_request_approval():
             f"Dear *{customer_name}*,\n\n"
             f"Your Store Credit authorization request for *{full_disp}* has been submitted to *{shop_name}*.\n\n"
             f"The store manager will review your flat details and activate your monthly credit account shortly. You will receive an automated WhatsApp confirmation once approved.\n\n"
-            f"Thank you for shopping with Jippy Store! 🥑"
+            f"🛍️ *Thank you for shopping with Jippy Store!*"
         )
         send_whatsapp_async(user_phone, resident_confirm)
 
@@ -1879,14 +2863,280 @@ def customer_request_approval():
     })
 
 
+# ---------- 🏢 Dedicated Full-Page: Customer Choose Account Option (Link vs Separate) ----------
+@khata_bp.route("/my-khata/choose-account", methods=["GET"])
+def customer_choose_account_page():
+    cols = get_collections()
+    user_id = session.get("user_id")
+    user_phone = session.get("user_phone", "")
+    clean_p = clean_phone_10(user_phone)
+
+    next_url = (request.args.get("next") or "/my-khata").strip()
+    if not next_url.startswith("/"):
+        next_url = "/my-khata"
+
+    block_arg = (request.args.get("block") or "").strip()
+    flat_arg = (request.args.get("flat_no") or "").strip()
+
+    if not clean_p:
+        return redirect(f"/login?next={quote(request.full_path)}")
+
+    std_addr = standardize_address_components(raw_block=block_arg, raw_flat=flat_arg)
+    block = std_addr["block"]
+    flat_no = std_addr["flat_no"]
+    full_disp = std_addr["full_display"]
+
+    core_block = block.replace("BLOCK ", "").replace("TOWER ", "").replace("WING ", "").strip()
+    core_flat = flat_no.replace("FLAT ", "").replace("VILLA ", "").replace("UNIT ", "").strip()
+    block_patterns = list({block, core_block, f"BLOCK {core_block}", f"TOWER {core_block}", f"WING {core_block}"})
+    flat_patterns = list({flat_no, core_flat, f"FLAT {core_flat}", f"UNIT {core_flat}", f"VILLA {core_flat}"})
+
+    existing_flat = cols["khata_users"].find_one({
+        "block": {"$in": block_patterns},
+        "flat_no": {"$in": flat_patterns},
+        "status": "ACTIVE",
+        "is_verified": True
+    })
+
+    if not existing_flat:
+        return redirect(next_url)
+
+    primary_name = existing_flat.get("customer_name") or "Primary Resident"
+    primary_p = clean_phone_10(existing_flat.get("customer_phone") or "")
+    masked_phone = f"+91 {primary_p[:4]}•••{primary_p[-2:]}" if len(primary_p) >= 10 else primary_p
+
+    shop_name = "Society Store"
+    vendor_id = existing_flat.get("vendor_id")
+    if vendor_id:
+        try:
+            vendor = cols["users"].find_one({"_id": vendor_id})
+            if vendor:
+                shop_name = vendor.get("shop_name") or vendor.get("name") or "Society Store"
+        except Exception:
+            pass
+
+    return render_template(
+        "khata/customer_choose_account.html",
+        primary_name=primary_name,
+        masked_phone=masked_phone,
+        full_address=full_disp,
+        shop_name=shop_name,
+        block=block,
+        flat_no=flat_no,
+        next_url=next_url
+    )
+
+
+# ---------- 🔐 Dedicated Full-Page: Customer Verify Household Owner Approval Code ----------
+@khata_bp.route("/my-khata/verify-approval", methods=["GET"])
+def customer_verify_approval_page():
+    cols = get_collections()
+    user_id = session.get("user_id")
+    user_phone = session.get("user_phone", "")
+    clean_p = clean_phone_10(user_phone)
+
+    next_url = (request.args.get("next") or "/my-khata").strip()
+    if not next_url.startswith("/"):
+        next_url = "/my-khata"
+
+    block_arg = (request.args.get("block") or "").strip()
+    flat_arg = (request.args.get("flat_no") or "").strip()
+
+    if not clean_p:
+        return redirect(f"/login?next={quote(request.full_path)}")
+
+    # Look up pending HOUSEHOLD_OWNER_CONSENT OTP
+    otp_doc = cols["khata_otps"].find_one({
+        "type": "HOUSEHOLD_OWNER_CONSENT",
+        "requester_phone": clean_p
+    }, sort=[("created_at", -1)])
+
+    if not otp_doc:
+        # Check if already active/verified
+        return redirect(next_url)
+
+    # Get existing khata account
+    khata_user = cols["khata_users"].find_one({"_id": otp_doc["khata_id"]})
+    if not khata_user:
+        return redirect(next_url)
+
+    primary_name = khata_user.get("customer_name") or "Primary Resident"
+    primary_p = clean_phone_10(khata_user.get("customer_phone") or "")
+    masked_phone = f"+91 {primary_p[:4]}•••{primary_p[-2:]}" if len(primary_p) >= 10 else primary_p
+
+    full_disp = f"{khata_user.get('block', '')} - {khata_user.get('flat_no', '')}"
+    if khata_user.get("floor"):
+        full_disp += f" ({khata_user.get('floor')})"
+
+    shop_name = "Society Store"
+    vendor_id = khata_user.get("vendor_id")
+    if vendor_id:
+        try:
+            vendor = cols["users"].find_one({"_id": vendor_id})
+            if vendor:
+                shop_name = vendor.get("shop_name") or vendor.get("name") or "Society Store"
+        except Exception:
+            pass
+
+    return render_template(
+        "khata/customer_verify_approval.html",
+        otp_doc=otp_doc,
+        khata_user=khata_user,
+        primary_name=primary_name,
+        masked_phone=masked_phone,
+        full_address=full_disp,
+        shop_name=shop_name,
+        next_url=next_url,
+        block=block_arg or khata_user.get("block", ""),
+        flat_no=flat_arg or khata_user.get("flat_no", ""),
+        clean_user_phone=clean_p
+    )
+
+
+# ---------- 👨‍👩‍👧‍👦 API: Verify Owner Approval Code & Link Household Member ----------
+@khata_bp.route("/api/khata/household/verify-owner-otp", methods=["POST"])
+def customer_verify_owner_otp():
+    cols = get_collections()
+    data = request.get_json() or {}
+    user_id = session.get("user_id")
+    user_phone = clean_phone_10(data.get("phone") or session.get("user_phone", ""))
+    customer_name = (data.get("name") or session.get("user_name") or "Resident").strip()
+    block = (data.get("block") or "").strip()
+    flat_no = (data.get("flat_no") or "").strip()
+    otp_input = str(data.get("otp") or "").strip()
+
+    if not user_phone:
+        return jsonify({"success": False, "error": "Phone number is required."}), 400
+    if not otp_input or len(otp_input) != 6:
+        return jsonify({"success": False, "error": "Valid 6-digit approval code is required."}), 400
+
+    std_addr = standardize_address_components(raw_block=block, raw_flat=flat_no)
+    block_std = std_addr["block"]
+    flat_std = std_addr["flat_no"]
+    full_disp = std_addr["full_display"]
+
+    otp_doc = cols["khata_otps"].find_one({
+        "type": "HOUSEHOLD_OWNER_CONSENT",
+        "requester_phone": user_phone,
+        "block": block_std,
+        "flat_no": flat_std
+    })
+    if not otp_doc:
+        # Fallback by requester_phone and type
+        otp_doc = cols["khata_otps"].find_one({
+            "type": "HOUSEHOLD_OWNER_CONSENT",
+            "requester_phone": user_phone
+        }, sort=[("created_at", -1)])
+
+    if not otp_doc:
+        return jsonify({"success": False, "error": "No pending approval request found for this flat and mobile number."}), 400
+
+    if is_datetime_expired(otp_doc.get("expiry")):
+        return jsonify({"success": False, "error": "Approval code has expired. Please request a new code."}), 400
+
+    if str(otp_doc.get("otp")) != otp_input:
+        return jsonify({"success": False, "error": "Incorrect approval code. Please check with your household owner and try again."}), 400
+
+    khata_id = otp_doc.get("khata_id")
+    cols["khata_otps"].delete_one({"_id": otp_doc["_id"]})
+
+    existing_flat = cols["khata_users"].find_one({"_id": khata_id})
+    if not existing_flat:
+        return jsonify({"success": False, "error": "Khata account not found."}), 404
+
+    primary_name = existing_flat.get("customer_name") or "Primary Resident"
+    primary_p = clean_phone_10(existing_flat.get("customer_phone") or "")
+
+    # Add member to family_members and family_phones
+    new_member = {
+        "name": customer_name.title(),
+        "phone": user_phone,
+        "is_primary": False,
+        "added_at": datetime.datetime.now(datetime.timezone.utc)
+    }
+
+    cols["khata_users"].update_one(
+        {"_id": khata_id},
+        {
+            "$pull": {
+                "family_phones": {"$in": [user_phone, f"+91{user_phone}"]},
+                "family_members": {"phone": {"$in": [user_phone, f"+91{user_phone}"]}}
+            }
+        }
+    )
+    cols["khata_users"].update_one(
+        {"_id": khata_id},
+        {
+            "$addToSet": {
+                "family_phones": user_phone,
+                "family_members": new_member
+            },
+            "$set": {
+                "updated_at": datetime.datetime.now(datetime.timezone.utc)
+            }
+        }
+    )
+
+    # Clean up any leftover PENDING documents for this requester phone
+    try:
+        cols["khata_users"].delete_many({
+            "customer_phone": {"$in": [user_phone, f"+91{user_phone}"]},
+            "status": "PENDING"
+        })
+    except Exception:
+        pass
+
+    session["khata_verified"] = True
+    session["khata_user_id"] = str(khata_id)
+
+    # Confirmation alerts
+    msg_member = (
+        f"🎉 *STORE CREDIT LINKED | JIPPY STORE* 🛍️\n\n"
+        f"Dear *{customer_name.title()}*,\n\n"
+        f"You have been successfully linked to the Store Credit passbook for *{full_disp}* (Account Owner: *{primary_name}*).\n\n"
+        f"You can now select *\"Society Store Credit\"* at checkout for instant 1-click orders.\n\n"
+        f"🔗 *Start Shopping:* https://jippy.store\n\n"
+        f"🛍️ *Thank you for choosing Jippy Store!*"
+    )
+    send_whatsapp_async(user_phone, msg_member)
+
+    if primary_p:
+        msg_owner = (
+            f"👨‍👩‍👧‍👦 *HOUSEHOLD MEMBER VERIFIED | JIPPY STORE*\n\n"
+            f"Dear *{primary_name}*,\n\n"
+            f"*{customer_name.title()}* (+91 {user_phone}) has entered your approval code and is now linked to your Flat Store Credit passbook (*{full_disp}*).\n\n"
+            f"All orders placed by {customer_name.title()} will now reflect in your household passbook.\n\n"
+            f"🔗 *View Passbook:* https://jippy.store/my-khata\n\n"
+            f"⚡ *Jippy Store - Hyperlocal Grocery Delivery*"
+        )
+        send_whatsapp_async(primary_p, msg_owner)
+
+    return jsonify({
+        "success": True,
+        "is_verified": True,
+        "credit_limit": float(existing_flat.get("credit_limit") or 0.0),
+        "current_balance": float(existing_flat.get("current_balance") or 0.0),
+        "message": f"Successfully linked to {full_disp} (Owner: {primary_name})! Store Credit is now active for this order."
+    })
+
+
 # ---------- API: Check Khata Verification Status for Current User ----------
 @khata_bp.route("/api/khata/check-status", methods=["GET"])
 def check_khata_status():
     cols = get_collections()
     user_id = session.get("user_id")
-    user_phone = clean_phone_10(session.get("user_phone", ""))
+    raw_user_phone = session.get("user_phone", "") or session.get("phone", "")
+    clean_p = clean_phone_10(raw_user_phone)
 
-    if not user_phone and not user_id:
+    if not clean_p and user_id:
+        try:
+            u_doc = cols["users"].find_one({"_id": ObjectId(user_id)})
+            if u_doc:
+                clean_p = clean_phone_10(u_doc.get("phone", ""))
+        except Exception:
+            pass
+
+    if not clean_p and not user_id:
         return jsonify({"is_verified": False, "status": "GUEST"})
 
     # Current vendor
@@ -1916,33 +3166,68 @@ def check_khata_status():
     if not vendor:
         vendor = cols["users"].find_one({"role": "vendor"}, sort=[("_id", -1)])
 
-    if not vendor:
-        return jsonify({"is_verified": False, "status": "NO_VENDOR"})
+    # Construct robust phone & user_id match criteria
+    phone_variants = []
+    if clean_p:
+        phone_variants = [clean_p, f"+91{clean_p}", f"91{clean_p}"]
 
-    khata_rec = cols["khata_users"].find_one({
-        "vendor_id": vendor["_id"],
-        "$or": [
-            {"customer_phone": user_phone},
-            {"user_id": ObjectId(user_id) if user_id else None}
-        ]
-    })
+    or_clauses = []
+    if phone_variants:
+        or_clauses.append({"customer_phone": {"$in": phone_variants}})
+        or_clauses.append({"family_phones": {"$in": phone_variants}})
+    if user_id:
+        try:
+            or_clauses.append({"user_id": ObjectId(user_id)})
+        except Exception:
+            pass
+        or_clauses.append({"user_id": str(user_id)})
+
+    if not or_clauses:
+        return jsonify({"is_verified": False, "status": "GUEST"})
+
+    khata_rec = None
+    # 1. Match within current vendor (checking both ObjectId and string vendor_id)
+    if vendor:
+        vendor_variants = [vendor["_id"], str(vendor["_id"])]
+        khata_rec = cols["khata_users"].find_one({
+            "vendor_id": {"$in": vendor_variants},
+            "$or": or_clauses
+        })
+
+    # 2. Fallback: Check if user has ANY active/verified Khata account in the system
+    if not khata_rec:
+        khata_rec = cols["khata_users"].find_one({
+            "$or": or_clauses,
+            "status": "ACTIVE",
+            "is_verified": True
+        })
+
+    # 3. Fallback: Any Khata account matching user (e.g. PENDING or REJECTED)
+    if not khata_rec:
+        khata_rec = cols["khata_users"].find_one({
+            "$or": or_clauses
+        })
 
     if not khata_rec:
+        shop_name = vendor.get("shop_name") or vendor.get("name") if vendor else "Society Store"
+        vendor_phone = clean_phone_10(vendor.get("phone", "")) if vendor else ""
         return jsonify({
             "is_verified": False,
             "status": "NOT_ENROLLED",
-            "shop_name": vendor.get("shop_name") or vendor.get("name") or "Society Store",
-            "vendor_phone": clean_phone_10(vendor.get("phone", ""))
+            "shop_name": shop_name,
+            "vendor_phone": vendor_phone
         })
 
     is_verified = bool(khata_rec.get("is_verified") and khata_rec.get("status") == "ACTIVE")
     real_bal = recalculate_khata_user_balance(cols, khata_rec["_id"])
+    shop_name = vendor.get("shop_name") or vendor.get("name") if vendor else "Society Store"
+
     return jsonify({
         "is_verified": is_verified,
         "status": khata_rec.get("status", "PENDING"),
         "credit_limit": float(khata_rec.get("credit_limit") or 0.0),
         "current_balance": real_bal,
         "full_address": khata_rec.get("full_address_display", ""),
-        "shop_name": vendor.get("shop_name") or vendor.get("name") or "Society Store",
-        "vendor_phone": clean_phone_10(vendor.get("phone", ""))
+        "shop_name": shop_name,
+        "vendor_phone": clean_phone_10(vendor.get("phone", "")) if vendor else ""
     })
