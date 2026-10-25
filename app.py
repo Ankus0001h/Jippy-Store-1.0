@@ -4198,6 +4198,19 @@ def send_whatsapp_otp():
     session['whatsapp_phone'] = phone
     session['whatsapp_otp_expiry'] = (datetime.datetime.now() + datetime.timedelta(minutes=5)).timestamp()
     
+    try:
+        db.otp_verifications.update_one(
+            {"phone": phone},
+            {"$set": {
+                "otp": otp_code,
+                "expiry": (datetime.datetime.now() + datetime.timedelta(minutes=10)).timestamp(),
+                "created_at": datetime.datetime.now(datetime.timezone.utc)
+            }},
+            upsert=True
+        )
+    except Exception as e:
+        print(f"[OTP DB] Error saving OTP to db: {e}")
+    
     msg = (
         f"🔐 *VERIFICATION CODE | JIPPY STORE* 🛍️\n\n"
         f"Your one-time login verification code is: 👉 *{otp_code}*\n"
@@ -4214,15 +4227,30 @@ def send_whatsapp_otp():
 
 @app.route("/api/verify-whatsapp-otp", methods=["POST"])
 def verify_whatsapp_otp():
-    data = request.get_json()
+    data = request.get_json() or {}
     code = data.get("code", "").strip()
     action = data.get("action")
     name = data.get("name", "").strip()
     email = data.get("email", "").strip()
+    req_phone = data.get("phone", "").strip()
+    if req_phone:
+        req_phone = normalize_phone(req_phone)
     
     stored_otp = session.get('whatsapp_otp')
     stored_phone = session.get('whatsapp_phone')
     expiry = session.get('whatsapp_otp_expiry')
+    
+    # Robust fallback: If session was dropped (e.g. WebView/mobile restart), check MongoDB
+    target_phone = req_phone or stored_phone
+    if (not stored_otp or not stored_phone or not expiry) and target_phone:
+        try:
+            db_record = db.otp_verifications.find_one({"phone": target_phone})
+            if db_record:
+                stored_otp = db_record.get("otp")
+                stored_phone = target_phone
+                expiry = db_record.get("expiry")
+        except Exception as e:
+            print(f"[OTP DB] Fallback check error: {e}")
     
     if not stored_otp or not stored_phone or not expiry:
         return jsonify({"success": False, "error": "No OTP request found. Please request a new OTP."}), 400
@@ -4236,6 +4264,10 @@ def verify_whatsapp_otp():
     # Clear OTP
     session.pop('whatsapp_otp', None)
     session.pop('whatsapp_otp_expiry', None)
+    try:
+        db.otp_verifications.delete_one({"phone": stored_phone})
+    except Exception:
+        pass
 
     try:
         phone = stored_phone
