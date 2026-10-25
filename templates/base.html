@@ -938,7 +938,7 @@
     }
   </script>
 
-  <!-- 🌊 App Shimmer Skeleton Transition (Instant 0ms Activation) -->
+  <!-- 🌊 App Shimmer Skeleton Transition (Non-blocking & Instant) -->
   <script>
     (function() {
       const skeleton = document.getElementById('customer-app-skeleton');
@@ -948,26 +948,27 @@
         const isPortalRoute = url.includes('/admin') || url.includes('/vendor') || url.includes('/portal') || url.includes('/logistics');
         if (!isPortalRoute && skeleton) {
           skeleton.style.display = 'block';
-          skeleton.style.pointerEvents = 'auto';
+          skeleton.style.opacity = '1';
+          skeleton.style.pointerEvents = 'none';
         }
       }
 
       function hideInstantShimmer() {
         if (skeleton) {
+          skeleton.style.opacity = '0';
           skeleton.style.display = 'none';
           skeleton.style.pointerEvents = 'none';
         }
       }
 
-      // ⚡ INSTANT reaction: The exact frame the user touches/clicks any link or tab
+      // ⚡ Smooth link click transition (no touchstart interception so clicks are never canceled)
       function handleInstantTrigger(e) {
         const a = e.target.closest('a');
         if (a && a.href && !a.href.startsWith('javascript:') && !a.href.startsWith('#') && !a.target && a.origin === window.location.origin) {
           showInstantShimmer(a.href);
         }
       }
-      document.addEventListener('touchstart', handleInstantTrigger, { passive: true, capture: true });
-      document.addEventListener('click', handleInstantTrigger, true);
+      document.addEventListener('click', handleInstantTrigger, false);
 
       // ⚡ Instant shimmer when tab/page reload starts
       window.addEventListener('beforeunload', function() {
