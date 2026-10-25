@@ -1,0 +1,257 @@
+{% extends "base_vendor.html" %}
+
+{% block title %}Dukaan Settings | {{ shop_name }} | Jippy Store Seller Hub{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-3 sm:space-y-4 pb-12 sm:pb-8 font-['Plus_Jakarta_Sans']">
+
+  <!-- ======================================================== -->
+  <!-- PAGE HEADER: Back to Dashboard + Live Dukaan Mode Badge   -->
+  <!-- ======================================================== -->
+  <div class="fk-card p-3 sm:p-4">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+      
+      <div class="flex items-center gap-2.5 min-w-0">
+        <a href="{{ url_for('vendor_dashboard') }}" 
+           data-vendor-nav="{{ url_for('vendor_dashboard') }}"
+           class="w-8 h-8 sm:w-9 sm:h-9 rounded-xs bg-[#f8f9fa] border border-[#e0e0e0] text-[#212121] hover:text-[#2874f0] hover:border-[#2874f0] hover:bg-blue-50 flex items-center justify-center transition-all shadow-2xs shrink-0 active:scale-95"
+           title="Back to Hub">
+          <i class="fas fa-arrow-left text-xs sm:text-sm"></i>
+        </a>
+        <div class="min-w-0">
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <span class="text-[9.5px] font-black uppercase tracking-wider px-2 py-0.5 rounded-xs bg-blue-50 text-[#2874f0] border border-blue-200 whitespace-nowrap">
+              Store Operations
+            </span>
+            <span class="text-[10px] text-[#878787] hidden sm:inline">• Live Gateway Controls</span>
+          </div>
+          <h1 class="text-sm sm:text-lg font-bold text-[#212121] tracking-tight truncate mt-0.5">
+            Dukaan Gateway &amp; Settings
+          </h1>
+        </div>
+      </div>
+
+      <!-- Live Mode Badge -->
+      <div class="flex items-center gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-[#f0f0f0]">
+        <span id="page-current-mode-badge" 
+              class="px-2.5 py-1 rounded-xs text-[11px] sm:text-xs font-bold whitespace-nowrap {{ 'bg-emerald-50 text-emerald-800 border border-emerald-200' if is_online else 'bg-red-50 text-red-800 border border-red-200' }}">
+          Current Mode: {{ 'OPEN (Accepting Orders)' if is_online else 'CLOSED (Offline)' }}
+        </span>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- 1. BIG ONLINE / OFFLINE TOGGLE CARD (Mobile Friendly)    -->
+  <!-- ======================================================== -->
+  <div class="fk-card p-4 sm:p-5 border-l-4 transition-all duration-300 {{ 'border-l-emerald-500' if is_online else 'border-l-red-500' }}" id="store-main-card">
+    <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3.5 sm:gap-4">
+      
+      <div class="space-y-1 min-w-0 flex-1">
+        <div class="flex items-center gap-2">
+          <span id="page-status-badge" class="px-2 py-0.5 rounded-xs text-[10px] font-black uppercase tracking-wider {{ 'bg-emerald-100 text-emerald-800' if is_online else 'bg-red-100 text-red-800' }}">
+            {{ 'ONLINE' if is_online else 'CLOSED' }}
+          </span>
+          <span class="text-xs font-bold text-[#878787] flex items-center gap-1">
+            <i class="fas fa-tower-broadcast text-[#2874f0] text-[10px]"></i>
+            <span>Jippy Store Live Gateway</span>
+          </span>
+        </div>
+
+        <h2 id="page-status-title" class="text-base sm:text-lg font-extrabold text-[#212121] leading-tight flex items-center gap-1.5 pt-0.5">
+          <span>{{ '🟢 DUKAAN IS OPEN (ONLINE)' if is_online else '🔴 DUKAAN IS CLOSED (OFFLINE)' }}</span>
+        </h2>
+        
+        <p id="page-status-sub" class="text-xs text-[#616161] leading-normal">
+          {{ 'Your store is currently taking live orders from residents. Orders will ping with audio alert chime.' if is_online else 'Customers will see your store marked closed. No new orders will be placed while offline.' }}
+        </p>
+      </div>
+
+      <!-- Action Button (Full width on mobile, sleek on desktop) -->
+      <button type="button" 
+              id="page-status-toggle-btn"
+              onclick="triggerStatusToggle()" 
+              class="w-full sm:w-auto px-6 py-3 rounded-xs text-xs font-black uppercase tracking-wider shadow-xs transition-all active:scale-95 shrink-0 flex items-center justify-center gap-2 cursor-pointer {{ 'bg-red-600 hover:bg-red-700 text-white' if is_online else 'bg-emerald-600 hover:bg-emerald-700 text-white' }}">
+        <span class="w-2 h-2 rounded-full {{ 'bg-white animate-pulse' if is_online else 'bg-white/80' }}"></span>
+        <span>{{ 'Close Dukaan' if is_online else 'Open Dukaan' }}</span>
+      </button>
+
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- 2. SERVICEABLE SOCIETIES & STORE CREDENTIALS             -->
+  <!-- ======================================================== -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+    
+    <!-- Serviceable Societies Card -->
+    <div class="fk-card p-3.5 sm:p-5 space-y-3">
+      <div class="flex items-center justify-between border-b border-[#f0f0f0] pb-2.5">
+        <div class="flex items-center gap-2 min-w-0">
+          <div class="w-7 h-7 rounded-xs bg-blue-50 text-[#2874f0] flex items-center justify-center text-xs shrink-0">
+            <i class="fas fa-building"></i>
+          </div>
+          <h3 class="text-xs sm:text-sm font-bold text-[#212121] uppercase tracking-wider truncate">
+            Service Societies ({{ societies|length }})
+          </h3>
+        </div>
+        <span class="text-[10px] font-bold text-[#388e3c] bg-green-50 px-1.5 py-0.5 rounded-xs border border-green-200 whitespace-nowrap">
+          Active Zone
+        </span>
+      </div>
+
+      <div class="flex flex-wrap gap-1.5 max-h-56 overflow-y-auto pt-1">
+        {% for s in societies %}
+        <span class="px-2.5 py-1.5 rounded-xs bg-[#f8f9fa] border border-[#e0e0e0] text-xs font-semibold text-[#212121] flex items-center gap-1.5 shadow-2xs">
+          <i class="fas fa-city text-[#2874f0] text-[10px] shrink-0"></i>
+          <span class="truncate">{{ s.name }}</span>
+          {% if s.city %}
+          <span class="text-[10px] text-[#878787] shrink-0">({{ s.city }})</span>
+          {% endif %}
+        </span>
+        {% else %}
+        <span class="text-xs text-[#878787] py-2">Serving all active societies in this operational cluster.</span>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Store Profile & Node Credentials Card -->
+    <div class="fk-card p-3.5 sm:p-5 space-y-3">
+      <div class="flex items-center justify-between border-b border-[#f0f0f0] pb-2.5">
+        <div class="flex items-center gap-2 min-w-0">
+          <div class="w-7 h-7 rounded-xs bg-emerald-50 text-emerald-600 flex items-center justify-center text-xs shrink-0">
+            <i class="fas fa-id-card"></i>
+          </div>
+          <h3 class="text-xs sm:text-sm font-bold text-[#212121] uppercase tracking-wider truncate">
+            Merchant Terminal Profile
+          </h3>
+        </div>
+        <span class="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.5 rounded-xs border border-emerald-200 flex items-center gap-1 whitespace-nowrap">
+          <i class="fas fa-circle-check text-[9px]"></i> Verified
+        </span>
+      </div>
+
+      <div class="space-y-2 text-xs divide-y divide-[#f0f0f0]">
+        <div class="flex items-center justify-between py-1.5">
+          <span class="text-[#878787]">Store Name</span>
+          <span class="font-bold text-[#212121] truncate max-w-[200px] text-right">{{ shop_name }}</span>
+        </div>
+        
+        <div class="flex items-center justify-between py-1.5">
+          <span class="text-[#878787]">Partner Phone</span>
+          {% if vendor and vendor.phone %}
+          <a href="tel:{{ vendor.phone }}" class="font-mono-code font-bold text-[#2874f0] hover:underline flex items-center gap-1">
+            <i class="fas fa-phone text-[10px]"></i>
+            <span>{{ vendor.phone }}</span>
+          </a>
+          {% else %}
+          <span class="font-bold text-[#878787]">N/A</span>
+          {% endif %}
+        </div>
+
+        <div class="flex items-center justify-between py-1.5">
+          <span class="text-[#878787]">Partner Email</span>
+          <span class="font-bold text-[#212121] truncate max-w-[180px] text-right">{{ vendor.email if vendor and vendor.email else 'N/A' }}</span>
+        </div>
+
+        <div class="flex items-center justify-between py-1.5">
+          <span class="text-[#878787]">Terminal Node ID</span>
+          <div class="flex items-center gap-1.5">
+            {% set node_id = 'VN-' ~ ((vendor._id|string)[-6:]|upper if vendor else 'STORE') %}
+            <span class="font-mono-code text-[11px] font-black text-[#2874f0] bg-blue-50 px-2 py-0.5 rounded-xs border border-blue-200">
+              {{ node_id }}
+            </span>
+            <button type="button" 
+                    data-copy-text="{{ node_id }}"
+                    onclick="copyNodeId(this.dataset.copyText, this)" 
+                    class="text-[#878787] hover:text-[#2874f0] text-xs p-1 transition-colors cursor-pointer" 
+                    title="Copy Terminal ID">
+              <i class="fas fa-copy"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+  (function() {
+    'use strict';
+
+    // 1. Dukaan Status Toggle Trigger
+    window.triggerPageStatusToggle = function() {
+      if (typeof window.triggerStatusToggle === 'function') {
+        window.triggerStatusToggle();
+      }
+    };
+
+    // Bind direct click to ensure it always responds even before DOM events
+    const pageBtn = document.getElementById('page-status-toggle-btn');
+    if (pageBtn) {
+      pageBtn.onclick = function(e) {
+        if (typeof window.triggerStatusToggle === 'function') {
+          window.triggerStatusToggle();
+        }
+      };
+    }
+
+    // 2. Copy Terminal Node ID helper
+    window.copyNodeId = function(text, btn) {
+      if (!navigator.clipboard) return;
+      navigator.clipboard.writeText(text).then(() => {
+        const icon = btn ? btn.querySelector('i') : null;
+        if (icon) {
+          icon.className = 'fas fa-check text-emerald-600';
+          setTimeout(() => icon.className = 'fas fa-copy', 1500);
+        }
+        if (typeof showToast === 'function') {
+          showToast('Terminal Node ID copied!', 'success');
+        }
+      });
+    };
+
+    // 3. Live Background Polling for Dukaan Open / Close Status & Orders
+    function pollStoreLive() {
+      // Do not poll or override if status toggle is currently in flight or just clicked
+      if (window.isTogglingStatus) return;
+      if (Date.now() - (window._lastStatusToggleTime || 0) < 4000) return;
+
+      fetch('/vendor/api/live-poll')
+        .then(r => r.json())
+        .then(data => {
+          if (!data || !data.success) return;
+
+          // Sync Dukaan Status (Open / Closed)
+          if (typeof data.is_online === 'boolean') {
+            if (typeof window.updateStatusElements === 'function') {
+              window.updateStatusElements(data.is_online);
+            }
+          }
+
+          // Sync Nav Orders Badge if orders arrive while on Store Settings page
+          if (data.pending_count !== undefined) {
+            document.querySelectorAll('.vendor-pending-nav-badge, .vendor-pending-dock-badge').forEach(b => {
+              b.textContent = data.pending_count;
+              if (data.pending_count > 0) b.classList.remove('hidden');
+              else b.classList.add('hidden');
+            });
+          }
+        })
+        .catch(e => {
+          console.warn('Store poll error:', e);
+        });
+    }
+
+    // Register poller interval safely with cleanup tracking
+    if (window._vendorStoreInterval) {
+      clearInterval(window._vendorStoreInterval);
+    }
+    window._vendorStoreInterval = setInterval(pollStoreLive, 6000);
+    window._vendorPageIntervals = window._vendorPageIntervals || [];
+    window._vendorPageIntervals.push(window._vendorStoreInterval);
+  })();
+  </script>
+</div>
+{% endblock %}

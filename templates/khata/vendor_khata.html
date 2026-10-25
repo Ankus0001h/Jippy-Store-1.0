@@ -1,0 +1,2512 @@
+{% extends "base_vendor.html" %}
+
+{% block title %}Society Khata Hub | {{ shop_name }} | Jippy Store Seller Hub{% endblock %}
+
+{% block extra_head %}
+<style>
+  /* 🛒 Flipkart Seller Hub Design System */
+  body,
+  input,
+  button,
+  select,
+  textarea {
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  }
+
+  /* 🛒 Clean Flipkart Seller Card System */
+  .fk-card,
+  .fk-item-card {
+    background-color: #ffffff !important;
+    background: #ffffff !important;
+    border: 1px solid #e0e0e0 !important;
+    border-radius: 4px !important;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.06) !important;
+  }
+
+  .fk-item-card {
+    transition: all 0.15s ease-in-out;
+  }
+
+  .fk-item-card:hover {
+    border-color: #2874f0 !important;
+    box-shadow: 0 2px 8px 0 rgba(40, 116, 240, 0.12) !important;
+  }
+
+  /* Flipkart Primary Blue (#2874f0) & Orange Action (#fb641b) */
+  .btn-fk-blue {
+    background-color: #2874f0 !important;
+    color: #ffffff !important;
+    border-radius: 2px !important;
+    font-weight: 700 !important;
+    transition: all 0.15s ease-in-out;
+  }
+
+  .btn-fk-blue:hover {
+    background-color: #1259c7 !important;
+  }
+
+  .btn-fk-blue:active {
+    transform: scale(0.98);
+  }
+
+  .btn-fk-orange {
+    background-color: #fb641b !important;
+    color: #ffffff !important;
+    border-radius: 2px !important;
+    font-weight: 700 !important;
+    transition: all 0.15s ease-in-out;
+  }
+
+  .btn-fk-orange:hover {
+    background-color: #f05510 !important;
+  }
+
+  .btn-fk-orange:active {
+    transform: scale(0.98);
+  }
+
+  .btn-fk-white {
+    background-color: #ffffff !important;
+    color: #212121 !important;
+    border: 1px solid #e0e0e0 !important;
+    border-radius: 2px !important;
+    font-weight: 700 !important;
+    transition: all 0.15s ease-in-out;
+  }
+
+  .btn-fk-white:hover {
+    background-color: #f8f9fa !important;
+    border-color: #c2c2c2 !important;
+  }
+
+  .btn-fk-white:active {
+    transform: scale(0.98);
+  }
+
+  /* Mobile Bottom Sheet Modal Transitions */
+  @keyframes slideUpSheet {
+    from {
+      transform: translateY(100%);
+      opacity: 0;
+    }
+
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  .modal-sheet {
+    animation: slideUpSheet 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  /* Guaranteed Modal & Element Visibility Controls */
+  /* standard Tailwind .hidden is used */
+
+  /* 🏷️ Status Filter Tabs (Guaranteed Blue Active State) */
+  .status-pill {
+    transition: all 0.15s ease-in-out;
+  }
+
+  .status-pill.is-active {
+    background-color: #2874f0 !important;
+    color: #ffffff !important;
+    border: 1px solid #2874f0 !important;
+    box-shadow: 0 1px 3px 0 rgba(40, 116, 240, 0.3) !important;
+  }
+
+  .status-pill.is-active * {
+    color: #ffffff !important;
+  }
+
+  .status-pill.is-active .badge-count {
+    background-color: rgba(255, 255, 255, 0.25) !important;
+    color: #ffffff !important;
+  }
+
+  .status-pill.is-inactive {
+    background-color: #f8f9fa !important;
+    color: #212121 !important;
+    border: 1px solid #e0e0e0 !important;
+    box-shadow: none !important;
+  }
+
+  .status-pill.is-inactive:hover {
+    background-color: #f1f3f6 !important;
+  }
+
+  .block-pill.is-active {
+    background-color: #2874f0 !important;
+    color: #ffffff !important;
+    border: 1px solid #2874f0 !important;
+  }
+
+  .block-pill.is-inactive {
+    background-color: #f8f9fa !important;
+    color: #212121 !important;
+    border: 1px solid #e0e0e0 !important;
+  }
+
+  /* 📱 6-Box High-Contrast OTP Inputs (Guaranteed Never Collapse) */
+  .modal-otp-box {
+    width: 42px !important;
+    min-width: 42px !important;
+    max-width: 46px !important;
+    height: 52px !important;
+    font-size: 22px !important;
+    font-weight: 800 !important;
+    text-align: center !important;
+    color: #111827 !important;
+    background-color: #ffffff !important;
+    border: 2px solid #2874f0 !important;
+    border-radius: 6px !important;
+    outline: none !important;
+    box-shadow: 0 1px 3px 0 rgba(40, 116, 240, 0.15) !important;
+    flex-shrink: 0 !important;
+    display: inline-block !important;
+    box-sizing: border-box !important;
+    transition: all 0.15s ease-in-out;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: textfield;
+  }
+
+  @media (max-width: 380px) {
+    .modal-otp-box {
+      width: 36px !important;
+      min-width: 36px !important;
+      height: 46px !important;
+      font-size: 19px !important;
+      border-radius: 4px !important;
+    }
+  }
+
+  .modal-otp-box:focus {
+    border-color: #1259c7 !important;
+    background-color: #ffffff !important;
+    box-shadow: 0 0 0 3px rgba(40, 116, 240, 0.3) !important;
+    transform: translateY(-2px);
+  }
+
+  .modal-otp-box.filled {
+    border-color: #15803d !important;
+    background-color: #f0fdf4 !important;
+    color: #166534 !important;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<style>
+  .fk-card,
+  .fk-item-card {
+    background-color: #ffffff !important;
+    background: #ffffff !important;
+    border: 1px solid #e0e0e0 !important;
+    border-radius: 4px !important;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.06) !important;
+  }
+
+  .fk-item-card:hover {
+    border-color: #2874f0 !important;
+  }
+</style>
+<div class="max-w-4xl mx-auto space-y-3 pb-12 sm:pb-8 font-['Plus_Jakarta_Sans']">
+
+  <!-- ======================================================== -->
+  <!-- 1. FLIPKART SELLER HUB: TOP HEADER & ACTIONS BAR        -->
+  <!-- ======================================================== -->
+  <div class="bg-white border border-[#e0e0e0] rounded-xs p-3.5 sm:px-4 sm:py-3.5 shadow-2xs fk-card">
+
+    <!-- Top Row: Back Button, Title & Live Status Indicator -->
+    <div class="flex items-center justify-between gap-2.5">
+
+      <!-- Left: Back Button & Hub Title (Unrestricted Breathing Room) -->
+      <div class="flex items-center gap-2.5 min-w-0 flex-1">
+        <a href="{{ url_for('vendor_dashboard') }}"
+          class="w-9 h-9 rounded-xs bg-[#f1f3f6] hover:bg-[#2874f0] hover:text-white text-[#212121] flex items-center justify-center transition-all shrink-0 active:scale-95 cursor-pointer shadow-2xs"
+          title="Back to Vendor Dashboard">
+          <i class="fas fa-arrow-left text-xs"></i>
+        </a>
+        <div class="min-w-0 flex-1">
+          <h1
+            class="text-sm sm:text-base font-bold text-[#212121] tracking-tight flex items-center gap-1.5 whitespace-nowrap">
+            <i class="fas fa-book-bookmark text-[#2874f0] text-sm shrink-0"></i>
+            <span>Society Khata</span>
+          </h1>
+          <p class="text-[11px] sm:text-xs text-[#878787] truncate mt-0.5">
+            {{ shop_name }} • Store Credit
+          </p>
+        </div>
+      </div>
+
+      <!-- Right: Unified Interactive Live Sync & Single Add Resident Button -->
+      <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
+        <!-- Interactive Live Status & Refresh Pill -->
+        <button type="button" onclick="syncKhataLive(true)" id="liveSyncPill"
+          class="h-8 sm:h-8.5 px-2 sm:px-3 rounded-full bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 inline-flex items-center gap-1 sm:gap-1.5 text-[11px] sm:text-xs font-bold cursor-pointer transition-all active:scale-95 shadow-2xs shrink-0"
+          title="Live background sync active. Click to refresh now.">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
+          <span id="liveSyncLabel">Live</span>
+          <i class="fas fa-rotate-right text-[10px] text-emerald-600 shrink-0" id="iconManualSync"></i>
+        </button>
+
+        <!-- Only One Add Resident Button (Responsive: '+ Add' on mobile, '+ Add Resident' on desktop) -->
+        <a href="{{ url_for('khata.vendor_add_resident_page') }}"
+          class="h-8 sm:h-8.5 px-2.5 sm:px-3.5 bg-[#fb641b] hover:bg-[#f05510] text-white text-[11px] sm:text-xs font-bold rounded-xs shadow-xs transition-all inline-flex items-center justify-center gap-1 sm:gap-1.5 whitespace-nowrap cursor-pointer active:scale-95 shrink-0"
+          style="background-color: #fb641b !important; color: #ffffff !important;"
+          title="Add new resident to Store Credit">
+          <i class="fas fa-user-plus text-[10px] sm:text-xs"></i>
+          <span class="sm:hidden">+ Add</span>
+          <span class="hidden sm:inline">+ Add Resident</span>
+        </a>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- 2. FLIPKART SELLER KPI SCORECARD (3-Column Clean Metrics)-->
+  <!-- ======================================================== -->
+  <div class="grid grid-cols-3 gap-2 sm:gap-3">
+
+    <!-- 1. Total Outstanding Udhar -->
+    <div
+      class="bg-white border border-[#e0e0e0] rounded-xs p-3 sm:p-3.5 flex flex-col justify-between shadow-2xs fk-card cursor-pointer hover:border-[#fb641b] transition-colors"
+      onclick="setStatusFilter('HAS_DUES')" title="Click to view residents with pending dues">
+      <div class="flex items-center justify-between gap-1 w-full">
+        <span class="text-[9.5px] sm:text-[10.5px] font-bold text-[#878787] uppercase tracking-wider truncate">
+          Total Udhar
+        </span>
+        <div
+          class="w-6 h-6 rounded-xs bg-orange-50 text-[#fb641b] flex items-center justify-center text-[10px] shrink-0">
+          <i class="fas fa-wallet"></i>
+        </div>
+      </div>
+      <div class="mt-2">
+        <div class="text-base sm:text-2xl font-black text-[#fb641b] leading-tight truncate">
+          ₹<span id="kpiTotalDues">{{ "%.2f"|format(total_outstanding) }}</span>
+        </div>
+        <span class="text-[10px] text-[#878787] hidden sm:block mt-0.5">Pending collection</span>
+      </div>
+    </div>
+
+    <!-- 2. Active Khata Accounts -->
+    <div
+      class="bg-white border border-[#e0e0e0] rounded-xs p-3 sm:p-3.5 flex flex-col justify-between shadow-2xs fk-card cursor-pointer hover:border-[#2874f0] transition-colors"
+      onclick="setStatusFilter('ACTIVE')" title="Click to view verified active accounts">
+      <div class="flex items-center justify-between gap-1 w-full">
+        <span class="text-[9.5px] sm:text-[10.5px] font-bold text-[#878787] uppercase tracking-wider truncate">
+          Active
+        </span>
+        <div class="w-6 h-6 rounded-xs bg-blue-50 text-[#2874f0] flex items-center justify-center text-[10px] shrink-0">
+          <i class="fas fa-users"></i>
+        </div>
+      </div>
+      <div class="mt-2">
+        <div class="text-base sm:text-2xl font-black text-[#212121] leading-tight">
+          <span id="kpiActiveAccounts">{{ active_count }}</span>
+        </div>
+        <span class="text-[10px] text-[#388e3c] font-bold hidden sm:block mt-0.5">Verified residents</span>
+      </div>
+    </div>
+
+    <!-- 3. Pending Approvals -->
+    <div
+      class="bg-white border border-[#e0e0e0] rounded-xs p-3 sm:p-3.5 flex flex-col justify-between shadow-2xs fk-card cursor-pointer hover:border-[#2874f0] transition-colors"
+      onclick="setStatusFilter('PENDING')" title="Click to view requests needing review">
+      <div class="flex items-center justify-between gap-1 w-full">
+        <span class="text-[9.5px] sm:text-[10.5px] font-bold text-[#878787] uppercase tracking-wider truncate">
+          Pending
+        </span>
+        <div
+          class="w-6 h-6 rounded-xs bg-amber-50 text-amber-700 flex items-center justify-center text-[10px] shrink-0 relative">
+          <i class="fas fa-clock"></i>
+          <span id="kpiPendingPingDot"
+            class="w-1.5 h-1.5 rounded-full bg-[#fb641b] animate-ping absolute -top-0.5 -right-0.5 {% if pending_count == 0 %}hidden{% endif %}"></span>
+        </div>
+      </div>
+      <div class="mt-2">
+        <div class="text-base sm:text-2xl font-black text-[#212121] leading-tight flex items-center gap-1">
+          <span id="kpiPendingRequests">{{ pending_count }}</span>
+          <span id="kpiPendingActionBadge"
+            class="text-[9px] px-1.5 py-0.2 rounded-xs bg-[#fb641b] text-white font-black animate-pulse {% if pending_count == 0 %}hidden{% endif %}">Action</span>
+        </div>
+        <span class="text-[10px] text-[#878787] hidden sm:block mt-0.5">Needs approval</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- 3. FLIPKART TABS & SEARCH BAR                           -->
+  <!-- ======================================================== -->
+  <div class="bg-white border border-[#e0e0e0] rounded-xs p-2 sm:p-2.5 space-y-2 shadow-2xs fk-card">
+
+    <!-- Top Search Input -->
+    <div class="relative">
+      <i class="fas fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-[#878787] text-xs"></i>
+      <input type="text" id="khataSearchInput" onkeyup="filterKhataCards()"
+        class="w-full pl-8 pr-8 py-2 text-xs bg-[#f8f9fa] border border-[#e0e0e0] rounded-xs text-[#212121] placeholder:text-[#878787] outline-none focus:border-[#2874f0] focus:bg-white transition-all font-medium"
+        placeholder="Search Flat No (e.g. 1903), Tower, Resident Name, or Mobile..." />
+      <button type="button" id="clearSearchBtn" onclick="clearKhataSearch()"
+        class="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#878787] hover:text-[#212121] text-xs hidden">
+        <i class="fas fa-times-circle"></i>
+      </button>
+    </div>
+
+    <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5 pt-0.5 border-t border-[#f0f0f0]">
+
+      <!-- ALL -->
+      <button type="button" onclick="setStatusFilter('ALL')" id="filterStatusAll"
+        class="status-pill is-active px-3 py-1.5 text-xs font-bold rounded-xs transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5">
+        <span>All</span>
+        <span class="badge-count px-1.5 py-0.2 rounded-xs text-[9.5px] font-bold" id="countStatusAll">{{
+          total_records_count }}</span>
+      </button>
+
+      <!-- HAS DUES -->
+      <button type="button" onclick="setStatusFilter('HAS_DUES')" id="filterStatusHasDues"
+        class="status-pill is-inactive px-3 py-1.5 text-xs font-bold rounded-xs transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5">
+        <span class="w-1.5 h-1.5 rounded-full bg-[#fb641b]"></span>
+        <span>Has Dues</span>
+        <span class="badge-count px-1.5 py-0.2 rounded-xs bg-orange-100 text-[#fb641b] text-[9.5px] font-bold"
+          id="countStatusHasDues">{{ has_dues_count|default(0) }}</span>
+      </button>
+
+      <!-- ACTIVE -->
+      <button type="button" onclick="setStatusFilter('ACTIVE')" id="filterStatusActive"
+        class="status-pill is-inactive px-3 py-1.5 text-xs font-bold rounded-xs transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5">
+        <span>Active</span>
+        <span class="badge-count px-1.5 py-0.2 rounded-xs bg-slate-200 text-[#212121] text-[9.5px] font-bold"
+          id="countStatusActive">{{ active_count }}</span>
+      </button>
+
+      <!-- PENDING -->
+      <button type="button" onclick="setStatusFilter('PENDING')" id="filterStatusPending"
+        class="status-pill is-inactive px-3 py-1.5 text-xs font-bold rounded-xs transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5">
+        <span>Pending</span>
+        <span
+          class="badge-count px-1.5 py-0.2 rounded-xs bg-[#fb641b] text-white text-[9.5px] font-bold animate-pulse {% if pending_count == 0 %}hidden{% endif %}"
+          id="countStatusPending">{{ pending_count }}</span>
+      </button>
+
+      <!-- DECLINED / REJECTED -->
+      <button type="button" onclick="setStatusFilter('REJECTED')" id="filterStatusRejected"
+        class="status-pill is-inactive px-3 py-1.5 text-xs font-bold rounded-xs transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 {% if not rejected_count or rejected_count == 0 %}hidden{% endif %}">
+        <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+        <span>Declined</span>
+        <span class="badge-count px-1.5 py-0.2 rounded-xs bg-rose-100 text-rose-700 text-[9.5px] font-bold"
+          id="countStatusRejected">{{ rejected_count|default(0) }}</span>
+      </button>
+
+    </div>
+
+    <!-- Tower / Block Filter Chips -->
+    <div id="blockPillsContainer"
+      class="flex items-center gap-1.5 overflow-x-auto no-scrollbar border-t border-[#f0f0f0] pt-2 {% if not blocks_list or blocks_list|length <= 1 %}hidden{% endif %}">
+      <span class="text-[10px] font-bold uppercase tracking-wider text-[#878787] shrink-0 mr-1 flex items-center gap-1">
+        <i class="fas fa-building text-[10px]"></i> Tower:
+      </span>
+      <button type="button" onclick="setBlockFilter('ALL')" id="blockPillAll"
+        class="block-pill is-active px-2.5 py-0.5 text-xs font-bold rounded-xs shrink-0 transition-all cursor-pointer">
+        All
+      </button>
+      {% if blocks_list and blocks_list|length > 1 %}
+      {% for b in blocks_list %}
+      <button type="button" onclick="setBlockFilter('{{ b|escape }}')" id="blockPill_{{ loop.index }}"
+        data-block-name="{{ b|escape }}"
+        class="block-pill is-inactive px-2.5 py-0.5 text-xs font-bold rounded-xs shrink-0 transition-all cursor-pointer">
+        {{ b }}
+      </button>
+      {% endfor %}
+      {% endif %}
+    </div>
+
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- 4. FLIPKART RESIDENT CARDS LIST CONTAINER (Phone Friendly)-->
+  <!-- ======================================================== -->
+  <div id="khataContainer" class="space-y-3">
+    {% for r in khata_records %}
+    <div class="bg-white border border-[#e0e0e0] rounded-xs p-3 sm:p-3.5 space-y-2.5 shadow-2xs fk-item-card"
+      id="khataCard-{{ r._id }}" data-id="{{ r._id }}" data-block="{{ r.block|default('General Block') }}"
+      data-flat="{{ r.flat_no|default('') }}" data-name="{{ r.customer_name|default('Resident') }}"
+      data-phone="{{ r.customer_phone|default('') }}" data-status="{{ r.status|default('ACTIVE') }}"
+      data-balance="{{ r.current_balance|default(0.0) }}">
+
+      <!-- Top Strip: Flat Unit Badge on left, Due Amount / Status on right -->
+      <div class="flex items-center justify-between gap-2 border-b border-[#f0f0f0] pb-2">
+
+        <!-- Unit Badge (Flipkart Style) -->
+        <div class="flex items-center gap-1.5 min-w-0">
+          <span
+            class="inline-flex items-center gap-1.5 px-2 py-0.5 bg-blue-50 border border-blue-200 text-[#2874f0] text-xs font-bold rounded-xs shrink-0 whitespace-nowrap shadow-2xs">
+            <i class="fas fa-door-closed text-[10px]"></i>
+            {% set raw_flat = (r.flat_no|default('-')|string)|trim %}
+            {% set is_prefixed = (raw_flat|lower).startswith('flat') or (raw_flat|lower).startswith('unit') or
+            (raw_flat|lower).startswith('villa') or (raw_flat|lower).startswith('shop') or
+            (raw_flat|lower).startswith('house') %}
+            <span>{{ r.block|default('Block') }} • {{ raw_flat if is_prefixed else 'Flat ' ~ raw_flat }}</span>
+          </span>
+          {% if r.floor %}
+          <span class="text-[10.5px] font-semibold text-[#878787] shrink-0 whitespace-nowrap hidden sm:inline">
+            ({{ r.floor }})
+          </span>
+          {% endif %}
+        </div>
+
+        <!-- Balance / Status -->
+        <div class="shrink-0 text-right">
+          {% if r.status == 'PENDING' %}
+          <span
+            class="bg-amber-50 text-amber-800 border border-amber-200 text-[10px] font-bold px-2 py-0.5 rounded-xs uppercase tracking-wider inline-flex items-center gap-1 whitespace-nowrap">
+            <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+            <span>Pending Review</span>
+          </span>
+          {% elif r.status == 'REJECTED' %}
+          <span
+            class="bg-rose-50 text-rose-700 border border-rose-200 text-[10px] font-bold px-2 py-0.5 rounded-xs uppercase tracking-wider inline-flex items-center gap-1 whitespace-nowrap">
+            <i class="fas fa-times-circle text-[9.5px]"></i>
+            <span>Declined</span>
+          </span>
+          {% else %}
+          <div>
+            {% if r.current_balance and r.current_balance > 0 %}
+            <div class="inline-flex items-baseline gap-1">
+              <span class="text-[10px] font-bold uppercase text-[#878787]">Due:</span>
+              <span class="text-sm sm:text-base font-black text-[#fb641b] whitespace-nowrap">
+                ₹{{ "%.2f"|format(r.current_balance|default(0.0)) }}
+              </span>
+            </div>
+            {% elif r.current_balance and r.current_balance < 0 %}
+            <div class="inline-flex items-center gap-1.5">
+              <div class="inline-flex items-center gap-1 text-[#388e3c]">
+                <i class="fas fa-circle-check text-xs"></i>
+                <span class="text-xs font-bold">No Dues</span>
+              </div>
+              <span class="bg-emerald-50 text-[#388e3c] border border-emerald-200 text-[10px] font-bold px-1.5 py-0.2 rounded-xs whitespace-nowrap">
+                Adv: ₹{{ "%.2f"|format(r.current_balance|abs) }}
+              </span>
+            </div>
+            {% else %}
+            <div class="inline-flex items-center gap-1 text-[#388e3c]">
+              <i class="fas fa-circle-check text-xs"></i>
+              <span class="text-xs font-bold">No Dues (₹0)</span>
+            </div>
+            {% endif %}
+          </div>
+          {% endif %}
+        </div>
+
+      </div>
+
+      <!-- Middle: Resident Details & Quick Contact Shortcuts -->
+      <div class="flex items-center justify-between gap-2">
+
+        <!-- Name, Phone & Credit Limit -->
+        <div class="min-w-0 flex-1">
+          <div class="font-bold text-[#212121] text-xs sm:text-sm truncate flex items-center gap-1.5 flex-wrap">
+            <span>{{ r.customer_name|default('Resident') }}</span>
+            {% if r.is_independent or r.account_type == 'INDEPENDENT' %}
+            <span class="text-[9px] font-bold px-1.5 py-0.2 rounded-2xs bg-purple-50 text-purple-700 border border-purple-200 uppercase tracking-wide">
+              Independent
+            </span>
+            {% endif %}
+          </div>
+
+          <div class="flex items-center gap-2 mt-0.5 text-xs text-[#878787] flex-wrap">
+            <a href="tel:+91{{ r.customer_phone }}"
+              class="hover:text-[#2874f0] inline-flex items-center gap-1 font-medium transition-colors">
+              <i class="fas fa-phone text-[9px] text-[#2874f0]"></i>
+              <span>+91 {{ r.customer_phone }}</span>
+            </a>
+            <span class="text-[#e0e0e0]">•</span>
+            <span>
+              Limit: {% if r.credit_limit and r.credit_limit > 0 %}₹{{ "%.0f"|format(r.credit_limit) }}{% else
+              %}Unlimited{% endif %}
+            </span>
+          </div>
+
+          {% if r.family_members and r.family_members|length > 1 %}
+          <div class="flex items-center gap-1.5 mt-1.5 flex-wrap">
+            <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-xs bg-[#e8f0fe] text-[#2874f0] text-[10px] font-bold">
+              <i class="fas fa-users text-[9px]"></i>
+              <span>{{ r.family_members|length }} Members</span>
+            </span>
+            <span class="text-[11px] text-[#616161] truncate max-w-[220px]" title="{% for m in r.family_members %}{{ m.name }}{% if m.is_primary %} (Primary){% endif %}{% if not loop.last %}, {% endif %}{% endfor %}">
+              {% for m in r.family_members %}
+                {{ m.name }}{% if m.is_primary %} 👑{% endif %}{% if not loop.last %}, {% endif %}
+              {% endfor %}
+            </span>
+          </div>
+          {% endif %}
+        </div>
+
+        <!-- Right: Contact Shortcuts (Flipkart Square Icons) -->
+        <div class="flex items-center gap-1.5 shrink-0">
+          <a href="tel:+91{{ r.customer_phone }}"
+            class="w-8 h-8 rounded-xs bg-[#f1f3f6] hover:bg-[#2874f0] hover:text-white text-[#212121] border border-[#e0e0e0] flex items-center justify-center transition-all active:scale-95 cursor-pointer shadow-2xs"
+            title="Call Resident">
+            <i class="fas fa-phone text-xs"></i>
+          </a>
+          {% if r.status != 'REJECTED' %}
+          <button type="button" onclick="sendWhatsAppReminder('{{ r._id }}')"
+            class="w-8 h-8 rounded-xs bg-emerald-50 hover:bg-[#26a541] hover:text-white text-[#26a541] border border-emerald-200 flex items-center justify-center transition-all active:scale-95 cursor-pointer shadow-2xs"
+            title="Send WhatsApp Bill Statement">
+            <i class="fab fa-whatsapp text-sm"></i>
+          </button>
+          {% endif %}
+        </div>
+
+      </div>
+
+      <!-- Bottom Actions: Flipkart 50/50 Thumb Grid (Zero Text Wrap) -->
+      {% if r.status == 'PENDING' %}
+      <div class="grid grid-cols-2 gap-2 pt-2 border-t border-[#f0f0f0]">
+        <button type="button"
+          onclick="openApproveModal('{{ r._id }}', '{{ r.customer_name|escape }}', '{{ r.full_address_display|escape }}')"
+          class="h-9 btn-fk-blue text-xs font-bold rounded-xs shadow-2xs flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer">
+          <i class="fas fa-check text-xs"></i>
+          <span>Approve &amp; Activate</span>
+        </button>
+        <button type="button" onclick="rejectRequest('{{ r._id }}')"
+          class="h-9 btn-fk-white text-xs font-bold rounded-xs flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer hover:text-rose-600 hover:border-rose-200">
+          <i class="fas fa-times text-xs"></i>
+          <span>Decline</span>
+        </button>
+      </div>
+      {% elif r.status == 'REJECTED' %}
+      <div class="grid grid-cols-2 gap-2 pt-2 border-t border-[#f0f0f0]">
+        <button type="button"
+          onclick="openApproveModal('{{ r._id }}', '{{ r.customer_name|escape }}', '{{ r.full_address_display|escape }}')"
+          class="h-9 btn-fk-blue text-xs font-bold rounded-xs shadow-2xs flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer">
+          <i class="fas fa-redo text-xs"></i>
+          <span>Re-Approve</span>
+        </button>
+        <button type="button" onclick="deleteResidentRecord('{{ r._id }}', '{{ r.customer_name|escape }}')"
+          class="h-9 btn-fk-white text-xs font-bold rounded-xs flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer text-rose-600 border-rose-200 hover:bg-rose-50">
+          <i class="fas fa-trash-alt text-xs"></i>
+          <span>Delete Record</span>
+        </button>
+      </div>
+      {% else %}
+      <div class="grid grid-cols-2 gap-2 pt-2 border-t border-[#f0f0f0]">
+        <!-- 1. Record Payment Received (Flipkart Blue Button) -->
+        <button type="button" data-id="{{ r._id }}" data-name="{{ r.customer_name|default('Resident')|escape }}"
+          data-balance="{{ r.current_balance|default(0.0) }}"
+          onclick="openRecordPaymentModal(this.dataset.id, this.dataset.name, parseFloat(this.dataset.balance || 0))"
+          class="h-9 btn-fk-blue text-xs font-bold rounded-xs shadow-2xs flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer">
+          <i class="fas fa-receipt text-xs"></i>
+          <span>Record Payment</span>
+        </button>
+
+        <!-- 2. Passbook (Flipkart White Button) with Delete if 0 balance -->
+        <div class="flex items-center gap-1.5">
+          <button type="button" onclick="openLedgerModal('{{ r._id }}')"
+            class="flex-1 h-9 btn-fk-white text-xs font-bold rounded-xs flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer">
+            <i class="fas fa-book-open text-xs text-[#878787]"></i>
+            <span>Passbook</span>
+          </button>
+          {% if not r.current_balance or r.current_balance <= 0 %} <button type="button"
+            onclick="event.stopPropagation(); deleteResidentRecord('{{ r._id }}', '{{ r.customer_name|escape }}')"
+            title="Remove resident account (No dues)"
+            class="w-9 h-9 shrink-0 rounded-xs bg-[#f8f9fa] hover:bg-rose-50 text-[#878787] hover:text-rose-600 border border-[#e0e0e0] hover:border-rose-200 flex items-center justify-center transition-all cursor-pointer">
+            <i class="fas fa-trash-alt text-xs"></i>
+            </button>
+            {% endif %}
+        </div>
+      </div>
+      {% endif %}
+
+    </div>
+    {% else %}
+    <!-- Empty State (Flipkart Style) -->
+    <div id="noKhataPlaceholder" class="fk-card p-8 text-center space-y-3">
+      <div
+        class="w-12 h-12 rounded-xs bg-blue-50 text-[#2874f0] flex items-center justify-center mx-auto text-xl border border-blue-200">
+        <i class="fas fa-book-bookmark"></i>
+      </div>
+      <div>
+        <h3 class="text-sm font-bold text-[#212121]">No Store Credit Accounts Yet</h3>
+        <p class="text-xs text-[#878787] mt-1 max-w-sm mx-auto">Register a resident to enable 1-click doorstep store
+          credit ordering.</p>
+      </div>
+      <a href="{{ url_for('khata.vendor_add_resident_page') }}"
+        class="px-4 py-2 btn-fk-blue text-xs font-bold rounded-xs shadow-xs inline-flex items-center">
+        <i class="fas fa-user-plus mr-1.5"></i> Add First Resident
+      </a>
+    </div>
+    {% endfor %}
+
+    <!-- No Search Results Dynamic Box -->
+    <div id="noSearchResults" class="fk-card p-8 text-center space-y-2 hidden">
+      <div class="w-10 h-10 rounded-xs bg-slate-100 text-[#878787] flex items-center justify-center mx-auto text-base">
+        <i class="fas fa-magnifying-glass"></i>
+      </div>
+      <h3 class="text-xs sm:text-sm font-bold text-[#212121]">No matching residents found</h3>
+      <p class="text-[11px] text-[#878787]">Try searching with another flat number, tower, or name.</p>
+      <button type="button" onclick="clearKhataSearch(); setStatusFilter('ALL');"
+        class="text-xs font-bold text-[#2874f0] hover:underline pt-1 cursor-pointer">
+        Clear search &amp; filters
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<!-- ======================================================== -->
+<!-- MODAL 1: ADD RESIDENT WITH OTP (Flipkart Style Sheet)    -->
+<!-- ======================================================== -->
+<div id="addResidentModal"
+  class="fixed inset-0 z-[100] bg-black/60 backdrop-blur-[2px] hidden items-end sm:items-center justify-center p-0 sm:p-4"
+  style="display: none;">
+  <div
+    class="modal-sheet bg-white rounded-t-sm sm:rounded-xs border border-[#e0e0e0] shadow-2xl max-w-md w-full max-h-[92vh] flex flex-col overflow-hidden font-['Plus_Jakarta_Sans']">
+
+    <!-- Modal Header (Flipkart Blue) -->
+    <div
+      class="bg-gradient-to-r from-[#2874f0] to-[#1259c7] px-4 py-3 text-white flex items-center justify-between shrink-0">
+      <div class="flex items-center gap-2">
+        <i class="fas fa-user-shield text-sm"></i>
+        <h3 class="text-xs sm:text-sm font-bold tracking-tight" id="addModalTitle">Add Resident (Verified with OTP)</h3>
+      </div>
+      <button type="button" onclick="closeAddResidentModal()"
+        class="w-7 h-7 rounded-xs bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-all cursor-pointer">
+        <i class="fas fa-times text-xs"></i>
+      </button>
+    </div>
+
+    <!-- Modal Body (Scrollable) -->
+    <div class="p-4 space-y-3 overflow-y-auto flex-1">
+
+      <!-- STEP 1: Details Entry -->
+      <div id="addStep1" class="space-y-3">
+        <!-- Society Selector -->
+        <div>
+          <label class="block text-[11px] font-bold uppercase tracking-wider text-[#878787] mb-1">Society</label>
+          <select id="modalSocietyId"
+            class="w-full text-xs font-bold bg-[#f8f9fa] border border-[#e0e0e0] rounded-xs px-3 py-2 outline-none focus:border-[#2874f0]">
+            {% for s in societies %}
+            <option value="{{ s.id }}">{{ s.name }} ({{ s.city }})</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- Tower / Block -->
+        <div>
+          <label class="block text-[11px] font-bold uppercase tracking-wider text-[#878787] mb-1">Tower / Block / Wing *</label>
+          <input type="text" id="modalBlock" placeholder="e.g. Tower B, Wing C, Block 4, or B"
+            class="w-full text-xs font-bold uppercase bg-white border border-[#c2c2c2] rounded-xs px-3 py-2 outline-none focus:border-[#2874f0] placeholder:normal-case placeholder:font-normal"
+            oninput="this.value = this.value.toUpperCase();"
+            onblur="normalizeModalBlock()" required />
+        </div>
+
+        <!-- Flat No & Floor (Optional) Grid -->
+        <div class="grid grid-cols-2 gap-2.5">
+          <div>
+            <label class="block text-[11px] font-bold uppercase tracking-wider text-[#878787] mb-1">Flat / House No. *</label>
+            <input type="text" id="modalFlatNo" placeholder="e.g. 1903, 402, Villa 12"
+              class="w-full text-xs font-bold uppercase bg-white border border-[#c2c2c2] rounded-xs px-3 py-2 outline-none focus:border-[#2874f0] placeholder:normal-case placeholder:font-normal"
+              oninput="this.value = this.value.toUpperCase();"
+              onblur="normalizeModalFlat()" required />
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold uppercase tracking-wider text-[#878787] mb-1">Floor <span class="text-[#878787] font-normal">(Optional)</span></label>
+            <input type="text" id="modalFloor" placeholder="e.g. 19th, 4th, Ground"
+              class="w-full text-xs font-bold uppercase bg-white border border-[#c2c2c2] rounded-xs px-3 py-2 outline-none focus:border-[#2874f0] placeholder:normal-case placeholder:font-normal"
+              oninput="this.value = this.value.toUpperCase(); markModalFloorManual();"
+              onblur="normalizeModalFloor()" />
+          </div>
+        </div>
+
+        <!-- Resident Name -->
+        <div>
+          <label class="block text-[11px] font-bold uppercase tracking-wider text-[#878787] mb-1">Resident Full Name *</label>
+          <input type="text" id="modalCustomerName" placeholder="e.g. Rahul Sharma"
+            class="w-full text-xs font-bold uppercase bg-white border border-[#c2c2c2] rounded-xs px-3 py-2 outline-none focus:border-[#2874f0] placeholder:normal-case placeholder:font-normal"
+            oninput="this.value = this.value.toUpperCase()" required />
+        </div>
+
+        <!-- Mobile Number & Credit Limit -->
+        <div class="grid grid-cols-2 gap-2.5">
+          <div>
+            <label class="block text-[11px] font-bold uppercase tracking-wider text-[#878787] mb-1">WhatsApp Number *</label>
+            <div class="relative">
+              <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-[#878787]">+91</span>
+              <input type="tel" id="modalPhone" maxlength="10" placeholder="10-digit number"
+                class="w-full pl-9 pr-2.5 py-2 text-xs font-bold bg-white border border-[#c2c2c2] rounded-xs outline-none focus:border-[#2874f0]"
+                required />
+            </div>
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold uppercase tracking-wider text-[#878787] mb-1">Credit Limit (₹)</label>
+            <input type="number" id="modalCreditLimit" placeholder="0 for Unlimited"
+              class="w-full text-xs font-medium bg-white border border-[#c2c2c2] rounded-xs px-3 py-2 outline-none focus:border-[#2874f0]" />
+          </div>
+        </div>
+
+        <!-- Info Note -->
+        <div
+          class="bg-blue-50 border border-blue-200 p-2.5 rounded-xs text-[11px] text-blue-900 flex items-start gap-2">
+          <i class="fas fa-shield-halved text-[#2874f0] text-xs mt-0.5 shrink-0"></i>
+          <span>Clicking "Send OTP" sends a 6-digit WhatsApp code to verify resident approval.</span>
+        </div>
+
+        <button type="button" id="btnSendOtp" onclick="sendResidentOtp()"
+          class="w-full py-2.5 btn-fk-blue text-xs font-bold rounded-xs shadow-xs transition-all active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer">
+          <i class="fab fa-whatsapp text-sm"></i>
+          <span>Send Verification OTP via WhatsApp</span>
+        </button>
+      </div>
+
+      <!-- STEP 2: OTP Verification -->
+      <div id="addStep2" class="hidden space-y-3">
+        <div class="text-center py-1">
+          <div
+            class="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center justify-center mx-auto text-base mb-1 shadow-2xs">
+            <i class="fas fa-key"></i>
+          </div>
+          <h4 class="text-xs sm:text-sm font-bold text-[#212121]">Enter 6-Digit WhatsApp Code</h4>
+          <p class="text-[11px] text-[#878787] mt-0.5" id="otpSentNotice">Code sent to resident's WhatsApp.</p>
+          <div class="mt-2 flex flex-col items-center justify-center gap-1">
+            <h5 class="text-xs font-black text-[#212121] tracking-tight uppercase" id="modalOtpResidentName">
+              Resident
+            </h5>
+            <div class="inline-block max-w-full px-2">
+              <span class="inline-flex items-center gap-1.5 text-[11px] font-bold text-[#2874f0] bg-blue-50 px-2.5 py-0.5 rounded-xs border border-blue-200 text-center shadow-2xs" id="modalOtpResidentLabel">
+                <i class="fas fa-building text-[9px] text-[#2874f0]/70"></i>
+                <span id="modalOtpResidentAddressText">Flat Details</span>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 6 High-Contrast OTP Boxes with 3-3 Split -->
+        <div class="py-3 px-2 bg-[#f8faff] rounded-sm border-2 border-dashed border-[#2874f0]/30 my-1 text-center">
+          <div class="flex items-center justify-center gap-1 sm:gap-2 max-w-sm mx-auto" id="modalOtpBoxes" style="display: flex; flex-direction: row; align-items: center; justify-content: center;">
+            <input type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="modal-otp-box shrink-0" data-idx="0"
+              autocomplete="one-time-code" aria-label="Digit 1" style="width: 40px; min-width: 36px; height: 50px; text-align: center; font-size: 22px; font-weight: 800; border: 2px solid #2874f0; border-radius: 6px; background-color: #ffffff; color: #111827; flex-shrink: 0; outline: none; box-sizing: border-box;" />
+            <input type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="modal-otp-box shrink-0" data-idx="1"
+              aria-label="Digit 2" style="width: 40px; min-width: 36px; height: 50px; text-align: center; font-size: 22px; font-weight: 800; border: 2px solid #2874f0; border-radius: 6px; background-color: #ffffff; color: #111827; flex-shrink: 0; outline: none; box-sizing: border-box;" />
+            <input type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="modal-otp-box shrink-0" data-idx="2"
+              aria-label="Digit 3" style="width: 40px; min-width: 36px; height: 50px; text-align: center; font-size: 22px; font-weight: 800; border: 2px solid #2874f0; border-radius: 6px; background-color: #ffffff; color: #111827; flex-shrink: 0; outline: none; box-sizing: border-box;" />
+
+            <!-- Center Divider Dash -->
+            <span class="text-[#2874f0] font-black text-lg px-1 select-none shrink-0" style="display: inline-flex; align-items: center; justify-content: center; width: 14px; flex-shrink: 0;">-</span>
+
+            <input type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="modal-otp-box shrink-0" data-idx="3"
+              aria-label="Digit 4" style="width: 40px; min-width: 36px; height: 50px; text-align: center; font-size: 22px; font-weight: 800; border: 2px solid #2874f0; border-radius: 6px; background-color: #ffffff; color: #111827; flex-shrink: 0; outline: none; box-sizing: border-box;" />
+            <input type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="modal-otp-box shrink-0" data-idx="4"
+              aria-label="Digit 5" style="width: 40px; min-width: 36px; height: 50px; text-align: center; font-size: 22px; font-weight: 800; border: 2px solid #2874f0; border-radius: 6px; background-color: #ffffff; color: #111827; flex-shrink: 0; outline: none; box-sizing: border-box;" />
+            <input type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="modal-otp-box shrink-0" data-idx="5"
+              aria-label="Digit 6" style="width: 40px; min-width: 36px; height: 50px; text-align: center; font-size: 22px; font-weight: 800; border: 2px solid #2874f0; border-radius: 6px; background-color: #ffffff; color: #111827; flex-shrink: 0; outline: none; box-sizing: border-box;" />
+          </div>
+
+          <div
+            class="flex items-center justify-between text-[10.5px] text-[#878787] max-w-xs mx-auto mt-2.5 pt-1 border-t border-[#e0e0e0]">
+            <span>Type digits or paste</span>
+            <button type="button" onclick="clearModalOtpBoxes()"
+              class="text-[#878787] hover:text-rose-600 font-bold underline cursor-pointer">
+              Clear All
+            </button>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between text-xs pt-1">
+          <button type="button" onclick="backToAddStep1()" class="text-[#878787] hover:text-[#212121] font-bold">
+            <i class="fas fa-arrow-left text-[10px] mr-1"></i> Edit Details
+          </button>
+          <button type="button" onclick="sendResidentOtp()" class="text-[#2874f0] hover:underline font-bold">
+            Resend OTP
+          </button>
+        </div>
+
+        <button type="button" id="btnVerifyOtp" onclick="verifyResidentOtpAndActivate()"
+          class="w-full py-2.5 btn-fk-blue text-xs font-bold rounded-xs shadow-xs transition-all active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer">
+          <i class="fas fa-check-circle text-sm"></i>
+          <span>Verify OTP &amp; Activate Khata</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================== -->
+<!-- MODAL 2: APPROVE PENDING REQUEST (Flipkart Style)        -->
+<!-- ======================================================== -->
+<div id="approveModal"
+  class="fixed inset-0 z-[100] bg-black/60 backdrop-blur-[2px] hidden items-end sm:items-center justify-center p-0 sm:p-4"
+  style="display: none;">
+  <div
+    class="modal-sheet bg-white rounded-t-sm sm:rounded-xs border border-[#e0e0e0] shadow-2xl max-w-sm w-full overflow-hidden font-['Plus_Jakarta_Sans']">
+
+    <div class="bg-gradient-to-r from-[#2874f0] to-[#1259c7] px-4 py-3 text-white flex items-center justify-between">
+      <h3 class="text-xs sm:text-sm font-bold">Approve Store Credit Account</h3>
+      <button type="button" onclick="closeApproveModal()"
+        class="w-7 h-7 rounded-xs bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-all cursor-pointer">
+        <i class="fas fa-times text-xs"></i>
+      </button>
+    </div>
+
+    <div class="p-4 space-y-3">
+      <input type="hidden" id="approveRecordId" />
+      <div class="bg-blue-50 border border-blue-200 p-2.5 rounded-xs">
+        <div class="text-xs font-bold text-[#212121]" id="approveResidentName">Resident Name</div>
+        <div class="text-[11px] text-[#878787] mt-0.5" id="approveAddress">Tower - Flat</div>
+      </div>
+
+      <div>
+        <label class="block text-[11px] font-bold uppercase tracking-wider text-[#878787] mb-1">Monthly Credit Limit
+          (₹)</label>
+        <input type="number" id="approveCreditLimit" placeholder="0 for Unlimited (Default)"
+          class="w-full text-xs font-medium bg-white border border-[#c2c2c2] rounded-xs px-3 py-2 outline-none focus:border-[#2874f0]" />
+        <span class="text-[10px] text-[#878787] mt-1 block">Leave 0 to grant unlimited monthly credit.</span>
+      </div>
+
+      <button type="button" onclick="confirmApproval()"
+        class="w-full py-2.5 btn-fk-blue text-xs font-bold rounded-xs shadow-xs transition-all active:scale-95 cursor-pointer">
+        Confirm &amp; Activate Account
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================== -->
+<!-- MODAL 3: RECORD PAYMENT RECEIVED (Flipkart Style)        -->
+<!-- ======================================================== -->
+<div id="recordPaymentModal"
+  class="fixed inset-0 z-[100] bg-black/60 backdrop-blur-[2px] hidden items-end sm:items-center justify-center p-0 sm:p-4"
+  style="display: none;">
+  <div
+    class="modal-sheet bg-white rounded-t-sm sm:rounded-xs border border-[#e0e0e0] shadow-2xl max-w-sm w-full overflow-hidden font-['Plus_Jakarta_Sans']">
+
+    <div class="bg-gradient-to-r from-[#2874f0] to-[#1259c7] px-4 py-3 text-white flex items-center justify-between">
+      <div class="flex items-center gap-1.5">
+        <i class="fas fa-receipt text-xs"></i>
+        <h3 class="text-xs sm:text-sm font-bold">Record Payment Received</h3>
+      </div>
+      <button type="button" onclick="closeRecordPaymentModal()"
+        class="w-7 h-7 rounded-xs bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-all cursor-pointer">
+        <i class="fas fa-times text-xs"></i>
+      </button>
+    </div>
+
+    <div class="p-4 space-y-3">
+      <input type="hidden" id="paymentRecordId" />
+
+      <!-- Resident & Due Summary Box -->
+      <div class="flex items-center justify-between bg-[#f8f9fa] border border-[#e0e0e0] p-2.5 rounded-xs">
+        <div>
+          <div class="text-xs font-bold text-[#212121]" id="paymentCustomerName">Resident</div>
+          <div class="text-[10.5px] text-[#878787]">Store Credit Settlement</div>
+        </div>
+        <div class="text-right">
+          <div class="text-[10px] uppercase font-bold text-[#878787]">Current Due</div>
+          <div class="text-sm sm:text-base font-black text-[#fb641b]" id="paymentCurrentDue">₹0.00</div>
+        </div>
+      </div>
+
+      <!-- Quick Preset Amount Chips -->
+      <div>
+        <label class="block text-[11px] font-bold uppercase tracking-wider text-[#878787] mb-1">Amount Received (₹)
+          *</label>
+        <div class="relative">
+          <span class="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-[#878787]">₹</span>
+          <input type="number" id="paymentAmountInput" step="0.5" inputmode="decimal" placeholder="0.00"
+            class="w-full pl-7 pr-3 py-2 text-base font-bold bg-white border border-[#c2c2c2] rounded-xs outline-none focus:border-[#2874f0] text-[#212121]"
+            required />
+        </div>
+
+        <!-- Preset Amount Pills -->
+        <div class="flex items-center gap-1.5 mt-2 overflow-x-auto no-scrollbar" id="paymentPresetChips"></div>
+      </div>
+
+      <!-- Payment Mode & Reference -->
+      <div class="grid grid-cols-2 gap-2">
+        <div>
+          <label class="block text-[11px] font-bold uppercase tracking-wider text-[#878787] mb-1">Payment Mode</label>
+          <select id="paymentModeSelect"
+            class="w-full text-xs font-bold bg-[#f8f9fa] border border-[#e0e0e0] rounded-xs px-2.5 py-2 outline-none focus:border-[#2874f0]">
+            <option value="Cash">Cash</option>
+            <option value="UPI">UPI</option>
+            <option value="Bank Transfer">Bank Transfer</option>
+            <option value="Cheque">Cheque</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold uppercase tracking-wider text-[#878787] mb-1">Notes / Ref</label>
+          <input type="text" id="paymentNotesInput" placeholder="Optional notes"
+            class="w-full text-xs bg-white border border-[#c2c2c2] rounded-xs px-2.5 py-2 outline-none focus:border-[#2874f0]" />
+        </div>
+      </div>
+
+      <button type="button" onclick="submitRecordPayment()"
+        class="w-full py-2.5 btn-fk-blue text-xs font-bold rounded-xs shadow-xs transition-all active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer">
+        <i class="fas fa-check text-xs"></i>
+        <span>Save Payment &amp; Update Ledger</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================== -->
+<!-- MODAL 4: PASSBOOK / ITEMIZED LEDGER (Flipkart Style)     -->
+<!-- ======================================================== -->
+<div id="ledgerModal"
+  class="fixed inset-0 z-[100] bg-black/60 backdrop-blur-[2px] hidden items-end sm:items-center justify-center p-0 sm:p-4"
+  style="display: none;">
+  <div
+    class="modal-sheet bg-white rounded-t-sm sm:rounded-xs border border-[#e0e0e0] shadow-2xl max-w-lg w-full max-h-[88vh] flex flex-col overflow-hidden font-['Plus_Jakarta_Sans']">
+
+    <div
+      class="bg-gradient-to-r from-[#2874f0] to-[#1259c7] px-4 py-3 text-white flex items-center justify-between shrink-0">
+      <div class="flex items-center gap-2">
+        <i class="fas fa-book-open text-xs text-white"></i>
+        <h3 class="text-xs sm:text-sm font-bold" id="ledgerModalTitle">Resident Passbook</h3>
+        <span id="ledgerModalCountBadge" class="text-[10px] bg-white/20 px-2 py-0.5 rounded-full font-bold hidden">0 Records</span>
+      </div>
+      <button type="button" onclick="closeLedgerModal()"
+        class="w-7 h-7 rounded-xs bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-all cursor-pointer">
+        <i class="fas fa-times text-xs"></i>
+      </button>
+    </div>
+
+    <!-- Passbook Header Bar -->
+    <div class="bg-blue-50/70 border-b border-blue-200/50 p-3 flex items-center justify-between shrink-0">
+      <div>
+        <div class="text-xs font-bold text-[#212121]" id="ledgerResidentName">Resident Name</div>
+        <div class="text-[11px] text-[#878787]" id="ledgerResidentAddress">Tower - Flat</div>
+      </div>
+      <div class="text-right">
+        <div class="text-[10px] uppercase font-bold text-[#878787]" id="ledgerCurrentBalanceLabel">Outstanding Due</div>
+        <div class="text-sm sm:text-base font-black text-[#fb641b]" id="ledgerCurrentBalance">₹0.00</div>
+      </div>
+    </div>
+
+    <!-- Scrollable Entries List -->
+    <div class="p-3 overflow-y-auto flex-1 space-y-2" id="ledgerEntriesList">
+      <div class="text-center py-8 text-xs text-[#878787]">Loading ledger transactions...</div>
+    </div>
+
+    <div class="bg-[#f8f9fa] px-4 py-2.5 border-t border-[#e0e0e0] flex items-center justify-between shrink-0">
+      <button type="button" id="ledgerRecordPaymentBtn"
+        class="px-3 py-1.5 btn-fk-blue text-xs font-bold rounded-xs cursor-pointer flex items-center gap-1.5 shadow-2xs">
+        <i class="fas fa-receipt text-xs"></i>
+        <span>Record Payment</span>
+      </button>
+      <button type="button" onclick="closeLedgerModal()"
+        class="px-4 py-1.5 btn-fk-white text-xs font-bold rounded-xs cursor-pointer">
+        Close Passbook
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================== -->
+<!-- JAVASCRIPT: FILTERING, MODALS & AJAX API DISPATCH        -->
+<!-- ======================================================== -->
+<script>
+  let activeBlock = 'ALL';
+  let activeStatus = 'ALL';
+  let isSyncingLive = false;
+  let liveSyncTimer = null;
+
+  function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
+  function renderKhataCardHtml(r) {
+    const rawFlat = (r.flat_no || '-').toString().trim();
+    const isPrefixed = /^(flat|unit|villa|shop|house)/i.test(rawFlat);
+    const flatDisplay = isPrefixed ? rawFlat : ('Flat ' + rawFlat);
+    const bal = parseFloat(r.current_balance || 0);
+    const limit = parseFloat(r.credit_limit || 0);
+
+    // Status / Balance badge
+    let statusBalanceHtml = '';
+    if (r.status === 'PENDING') {
+      statusBalanceHtml = `
+        <span class="bg-amber-50 text-amber-800 border border-amber-200 text-[10px] font-bold px-2 py-0.5 rounded-xs uppercase tracking-wider inline-flex items-center gap-1 whitespace-nowrap">
+          <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+          <span>Pending Review</span>
+        </span>`;
+    } else if (r.status === 'REJECTED') {
+      statusBalanceHtml = `
+        <span class="bg-rose-50 text-rose-700 border border-rose-200 text-[10px] font-bold px-2 py-0.5 rounded-xs uppercase tracking-wider inline-flex items-center gap-1 whitespace-nowrap">
+          <i class="fas fa-times-circle text-[9.5px]"></i>
+          <span>Declined</span>
+        </span>`;
+    } else {
+      if (bal > 0) {
+        statusBalanceHtml = `
+          <div class="inline-flex items-baseline gap-1">
+            <span class="text-[10px] font-bold uppercase text-[#878787]">Due:</span>
+            <span class="text-sm sm:text-base font-black text-[#fb641b] whitespace-nowrap">
+              ₹${bal.toFixed(2)}
+            </span>
+          </div>`;
+      } else if (bal < 0) {
+        statusBalanceHtml = `
+          <div class="inline-flex items-center gap-1.5">
+            <div class="inline-flex items-center gap-1 text-[#388e3c]">
+              <i class="fas fa-circle-check text-xs"></i>
+              <span class="text-xs font-bold">No Dues</span>
+            </div>
+            <span class="bg-emerald-50 text-[#388e3c] border border-emerald-200 text-[10px] font-bold px-1.5 py-0.2 rounded-xs whitespace-nowrap">
+              Adv: ₹${Math.abs(bal).toFixed(2)}
+            </span>
+          </div>`;
+      } else {
+        statusBalanceHtml = `
+          <div class="inline-flex items-center gap-1 text-[#388e3c]">
+            <i class="fas fa-circle-check text-xs"></i>
+            <span class="text-xs font-bold">No Dues (₹0)</span>
+          </div>`;
+      }
+    }
+
+    // Bottom Action Buttons
+    let actionsHtml = '';
+    if (r.status === 'PENDING') {
+      actionsHtml = `
+        <div class="grid grid-cols-2 gap-2 pt-2 border-t border-[#f0f0f0]">
+          <button type="button" onclick="openApproveModal('${escapeHtml(r.id)}', '${escapeHtml(r.customer_name)}', '${escapeHtml(r.full_address_display || '')}')"
+            class="h-9 btn-fk-blue text-xs font-bold rounded-xs shadow-2xs flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer">
+            <i class="fas fa-check text-xs"></i>
+            <span>Approve &amp; Activate</span>
+          </button>
+          <button type="button" onclick="rejectRequest('${escapeHtml(r.id)}')"
+            class="h-9 btn-fk-white text-xs font-bold rounded-xs flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer hover:text-rose-600 hover:border-rose-200">
+            <i class="fas fa-times text-xs"></i>
+            <span>Decline</span>
+          </button>
+        </div>`;
+    } else if (r.status === 'REJECTED') {
+      actionsHtml = `
+        <div class="grid grid-cols-2 gap-2 pt-2 border-t border-[#f0f0f0]">
+          <button type="button" onclick="openApproveModal('${escapeHtml(r.id)}', '${escapeHtml(r.customer_name)}', '${escapeHtml(r.full_address_display || '')}')"
+            class="h-9 btn-fk-blue text-xs font-bold rounded-xs shadow-2xs flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer">
+            <i class="fas fa-redo text-xs"></i>
+            <span>Re-Approve</span>
+          </button>
+          <button type="button" onclick="deleteResidentRecord('${escapeHtml(r.id)}', '${escapeHtml(r.customer_name)}')"
+            class="h-9 btn-fk-white text-xs font-bold rounded-xs flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer text-rose-600 border-rose-200 hover:bg-rose-50">
+            <i class="fas fa-trash-alt text-xs"></i>
+            <span>Delete Record</span>
+          </button>
+        </div>`;
+    } else {
+      const canDelete = bal <= 0;
+      actionsHtml = `
+        <div class="grid grid-cols-2 gap-2 pt-2 border-t border-[#f0f0f0]">
+          <button type="button"
+            data-id="${escapeHtml(r.id)}"
+            data-name="${escapeHtml(r.customer_name || 'Resident')}"
+            data-balance="${bal.toFixed(2)}"
+            onclick="openRecordPaymentModal(this.dataset.id, this.dataset.name, parseFloat(this.dataset.balance || 0))"
+            class="h-9 btn-fk-blue text-xs font-bold rounded-xs shadow-2xs flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer">
+            <i class="fas fa-receipt text-xs"></i>
+            <span>Record Payment</span>
+          </button>
+
+          <div class="flex items-center gap-1.5">
+            <button type="button" onclick="openLedgerModal('${escapeHtml(r.id)}')"
+              class="flex-1 h-9 btn-fk-white text-xs font-bold rounded-xs flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer">
+              <i class="fas fa-book-open text-xs text-[#878787]"></i>
+              <span>Passbook</span>
+            </button>
+            ${canDelete ? `
+            <button type="button" onclick="event.stopPropagation(); deleteResidentRecord('${escapeHtml(r.id)}', '${escapeHtml(r.customer_name)}')"
+              title="Remove resident account (No dues)"
+              class="w-9 h-9 shrink-0 rounded-xs bg-[#f8f9fa] hover:bg-rose-50 text-[#878787] hover:text-rose-600 border border-[#e0e0e0] hover:border-rose-200 flex items-center justify-center transition-all cursor-pointer">
+              <i class="fas fa-trash-alt text-xs"></i>
+            </button>` : ''}
+          </div>
+        </div>`;
+    }
+
+    const whatsappBtn = r.status !== 'REJECTED' ? `
+      <button type="button" 
+              onclick="sendWhatsAppReminder('${escapeHtml(r.id)}')"
+              class="w-8 h-8 rounded-xs bg-emerald-50 hover:bg-[#26a541] hover:text-white text-[#26a541] border border-emerald-200 flex items-center justify-center transition-all active:scale-95 cursor-pointer shadow-2xs"
+              title="Send WhatsApp Bill Statement">
+        <i class="fab fa-whatsapp text-sm"></i>
+      </button>` : '';
+
+    const familyMembers = Array.isArray(r.family_members) ? r.family_members : [];
+    let familyHtml = '';
+    if (familyMembers.length > 1) {
+      const names = familyMembers.map(m => escapeHtml(m.name || 'Member') + (m.is_primary ? ' 👑' : '')).join(', ');
+      familyHtml = `
+        <div class="flex items-center gap-1.5 mt-1.5 flex-wrap">
+          <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-xs bg-[#e8f0fe] text-[#2874f0] text-[10px] font-bold">
+            <i class="fas fa-users text-[9px]"></i>
+            <span>${familyMembers.length} Members</span>
+          </span>
+          <span class="text-[11px] text-[#616161] truncate max-w-[220px]" title="${names}">
+            ${names}
+          </span>
+        </div>`;
+    }
+
+    return `
+      <div class="bg-white border border-[#e0e0e0] rounded-xs p-3 sm:p-3.5 space-y-2.5 shadow-2xs fk-item-card" 
+           id="khataCard-${escapeHtml(r.id)}"
+           data-id="${escapeHtml(r.id)}"
+           data-block="${escapeHtml(r.block || 'General Block')}"
+           data-flat="${escapeHtml(r.flat_no || '')}"
+           data-name="${escapeHtml(r.customer_name || 'Resident')}"
+           data-phone="${escapeHtml(r.customer_phone || '')}"
+           data-status="${escapeHtml(r.status || 'ACTIVE')}"
+           data-balance="${bal.toFixed(2)}">
+        
+        <div class="flex items-center justify-between gap-2 border-b border-[#f0f0f0] pb-2">
+          <div class="flex items-center gap-1.5 min-w-0">
+            <span class="inline-flex items-center gap-1.5 px-2 py-0.5 bg-blue-50 border border-blue-200 text-[#2874f0] text-xs font-bold rounded-xs shrink-0 whitespace-nowrap shadow-2xs">
+              <i class="fas fa-door-closed text-[10px]"></i>
+              <span>${escapeHtml(r.block || 'Block')} • ${escapeHtml(flatDisplay)}</span>
+            </span>
+            ${r.floor ? `<span class="text-[10.5px] font-semibold text-[#878787] shrink-0 whitespace-nowrap hidden sm:inline">(${escapeHtml(r.floor)})</span>` : ''}
+          </div>
+
+          <div class="shrink-0 text-right">
+            ${statusBalanceHtml}
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between gap-2">
+          <div class="min-w-0 flex-1">
+            <div class="font-bold text-[#212121] text-xs sm:text-sm truncate flex items-center gap-1.5 flex-wrap">
+              <span>${escapeHtml(r.customer_name || 'Resident')}</span>
+              ${(r.is_independent || r.account_type === 'INDEPENDENT') ? `
+                <span class="text-[9px] font-bold px-1.5 py-0.2 rounded-2xs bg-purple-50 text-purple-700 border border-purple-200 uppercase tracking-wide">
+                  Independent
+                </span>` : ''}
+            </div>
+            
+            <div class="flex items-center gap-2 mt-0.5 text-xs text-[#878787] flex-wrap">
+              <a href="tel:+91${escapeHtml(r.customer_phone)}" class="hover:text-[#2874f0] inline-flex items-center gap-1 font-medium transition-colors">
+                <i class="fas fa-phone text-[9px] text-[#2874f0]"></i>
+                <span>+91 ${escapeHtml(r.customer_phone)}</span>
+              </a>
+              <span class="text-[#e0e0e0]">•</span>
+              <span>
+                Limit: ${limit > 0 ? `₹${limit.toFixed(0)}` : 'Unlimited'}
+              </span>
+            </div>
+            ${familyHtml}
+          </div>
+
+          <div class="flex items-center gap-1.5 shrink-0">
+            <a href="tel:+91${escapeHtml(r.customer_phone)}"
+               class="w-8 h-8 rounded-xs bg-[#f1f3f6] hover:bg-[#2874f0] hover:text-white text-[#212121] border border-[#e0e0e0] flex items-center justify-center transition-all active:scale-95 cursor-pointer shadow-2xs"
+               title="Call Resident">
+              <i class="fas fa-phone text-xs"></i>
+            </a>
+            ${whatsappBtn}
+          </div>
+        </div>
+
+        ${actionsHtml}
+      </div>
+    `;
+  }
+
+  async function syncKhataLive(isManual = false, force = false) {
+    if (isSyncingLive && !force) return;
+    isSyncingLive = true;
+
+    const icon = document.getElementById('iconManualSync');
+    const label = document.getElementById('liveSyncLabel');
+    if (icon) icon.classList.add('fa-spin');
+    if (label) label.innerText = 'Syncing...';
+
+    try {
+      const resp = await fetch(`/vendor/khata/api/live-sync?_t=${Date.now()}`);
+      if (!resp.ok) throw new Error('Live sync failed');
+      const data = await resp.json();
+      if (!data.success) throw new Error(data.error || 'Live sync error');
+
+      // 1. Update KPI numbers
+      const kpis = data.kpis || {};
+      const kpiTotal = document.getElementById('kpiTotalDues');
+      const kpiActive = document.getElementById('kpiActiveAccounts');
+      const kpiPending = document.getElementById('kpiPendingRequests');
+      if (kpiTotal) kpiTotal.innerText = Number(kpis.total_outstanding || 0).toFixed(2);
+      if (kpiActive) kpiActive.innerText = kpis.active_count || 0;
+      if (kpiPending) kpiPending.innerText = kpis.pending_count || 0;
+
+      const pCount = kpis.pending_count || 0;
+      const pingDot = document.getElementById('kpiPendingPingDot');
+      const actionBadge = document.getElementById('kpiPendingActionBadge');
+      if (pingDot) pingDot.classList.toggle('hidden', pCount === 0);
+      if (actionBadge) actionBadge.classList.toggle('hidden', pCount === 0);
+
+      // 2. Update Tab Badges
+      const countAll = document.getElementById('countStatusAll');
+      const countDues = document.getElementById('countStatusHasDues');
+      const countActive = document.getElementById('countStatusActive');
+      const countPending = document.getElementById('countStatusPending');
+      const countRejected = document.getElementById('countStatusRejected');
+      const tabRejected = document.getElementById('filterStatusRejected');
+
+      if (countAll) countAll.innerText = kpis.total_records_count || 0;
+      if (countDues) countDues.innerText = kpis.has_dues_count || 0;
+      if (countActive) countActive.innerText = kpis.active_count || 0;
+
+      if (countPending) {
+        countPending.innerText = pCount;
+        countPending.classList.toggle('hidden', pCount === 0);
+      }
+
+      const rCount = kpis.rejected_count || 0;
+      if (tabRejected) {
+        tabRejected.classList.toggle('hidden', rCount === 0 && activeStatus !== 'REJECTED');
+      }
+      if (countRejected) {
+        countRejected.innerText = rCount;
+      }
+
+      // 3. Update Block Pills if blocks list changed
+      const blockContainer = document.getElementById('blockPillsContainer');
+      if (blockContainer && data.blocks) {
+        if (data.blocks.length > 1) {
+          blockContainer.classList.remove('hidden');
+          let pillsHtml = `
+            <span class="text-[10px] font-bold uppercase tracking-wider text-[#878787] shrink-0 mr-1 flex items-center gap-1">
+              <i class="fas fa-building text-[10px]"></i> Tower:
+            </span>
+            <button type="button" onclick="setBlockFilter('ALL')" id="blockPillAll"
+              class="block-pill ${activeBlock === 'ALL' ? 'is-active' : 'is-inactive'} px-2.5 py-0.5 text-xs font-bold rounded-xs shrink-0 transition-all cursor-pointer">
+              All
+            </button>
+          `;
+          data.blocks.forEach((b, idx) => {
+            const isAct = (activeBlock === b);
+            pillsHtml += `
+              <button type="button" onclick="setBlockFilter('${escapeHtml(b)}')" id="blockPill_${idx + 1}"
+                data-block-name="${escapeHtml(b)}"
+                class="block-pill ${isAct ? 'is-active' : 'is-inactive'} px-2.5 py-0.5 text-xs font-bold rounded-xs shrink-0 transition-all cursor-pointer">
+                ${escapeHtml(b)}
+              </button>
+            `;
+          });
+          blockContainer.innerHTML = pillsHtml;
+        } else {
+          blockContainer.classList.add('hidden');
+        }
+      }
+
+      // 4. Update Cards Container
+      const container = document.getElementById('khataContainer');
+      if (container) {
+        if (!data.records || data.records.length === 0) {
+          container.innerHTML = `
+            <div id="noKhataPlaceholder" class="fk-card p-8 text-center space-y-3">
+              <div class="w-12 h-12 rounded-xs bg-blue-50 text-[#2874f0] flex items-center justify-center mx-auto text-xl border border-blue-200">
+                <i class="fas fa-book-bookmark"></i>
+              </div>
+              <div>
+                <h3 class="text-sm font-bold text-[#212121]">No Store Credit Accounts Yet</h3>
+                <p class="text-xs text-[#878787] mt-1 max-w-sm mx-auto">Register a resident to enable 1-click doorstep store credit ordering.</p>
+              </div>
+              <a href="/vendor/khata/add-resident" class="px-4 py-2 btn-fk-blue text-xs font-bold rounded-xs shadow-xs inline-flex items-center">
+                <i class="fas fa-user-plus mr-1.5"></i> Add First Resident
+              </a>
+            </div>
+            <div id="noSearchResults" class="fk-card p-8 text-center space-y-2 hidden">
+              <div class="w-10 h-10 rounded-xs bg-slate-100 text-[#878787] flex items-center justify-center mx-auto text-base">
+                <i class="fas fa-magnifying-glass"></i>
+              </div>
+              <h3 class="text-xs sm:text-sm font-bold text-[#212121]">No matching residents found</h3>
+              <p class="text-[11px] text-[#878787]">Try searching with another flat number, tower, or name.</p>
+              <button type="button" onclick="clearKhataSearch(); setStatusFilter('ALL');" class="text-xs font-bold text-[#2874f0] hover:underline pt-1 cursor-pointer">
+                Clear search &amp; filters
+              </button>
+            </div>
+          `;
+        } else {
+          const sig = JSON.stringify(data.records.map(r => [r.id, r.status, r.current_balance, r.family_count, r.customer_name, r.block, r.flat_no]));
+          if (container.dataset.lastSignature !== sig) {
+            container.dataset.lastSignature = sig;
+            const cardsHtml = data.records.map(r => renderKhataCardHtml(r)).join('');
+            const noSearchHtml = `
+              <div id="noSearchResults" class="fk-card p-8 text-center space-y-2 hidden">
+                <div class="w-10 h-10 rounded-xs bg-slate-100 text-[#878787] flex items-center justify-center mx-auto text-base">
+                  <i class="fas fa-magnifying-glass"></i>
+                </div>
+                <h3 class="text-xs sm:text-sm font-bold text-[#212121]">No matching residents found</h3>
+                <p class="text-[11px] text-[#878787]">Try searching with another flat number, tower, or name.</p>
+                <button type="button" onclick="clearKhataSearch(); setStatusFilter('ALL');" class="text-xs font-bold text-[#2874f0] hover:underline pt-1 cursor-pointer">
+                  Clear search &amp; filters
+                </button>
+              </div>
+            `;
+            container.innerHTML = cardsHtml + noSearchHtml;
+            filterKhataCards();
+          }
+        }
+      }
+
+      if (isManual) {
+        showToast('Khata live synced successfully', 'success');
+      }
+    } catch (err) {
+      console.error('Live sync error:', err);
+      if (isManual) {
+        showToast('Live sync failed. Check network.', 'error');
+      }
+    } finally {
+      isSyncingLive = false;
+      if (icon) icon.classList.remove('fa-spin');
+      if (label) label.innerText = 'Live';
+    }
+  }
+
+  function startLiveSyncPolling() {
+    if (liveSyncTimer) clearInterval(liveSyncTimer);
+    liveSyncTimer = setInterval(() => {
+      if (!document.hidden) {
+        syncKhataLive(false);
+      }
+    }, 6000);
+  }
+
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+      syncKhataLive(false);
+    }
+  });
+
+  document.addEventListener('DOMContentLoaded', () => {
+    startLiveSyncPolling();
+  });
+
+  function filterKhataCards() {
+    const q = (document.getElementById('khataSearchInput').value || '').toLowerCase().trim();
+    const clearBtn = document.getElementById('clearSearchBtn');
+    if (clearBtn) {
+      clearBtn.style.display = q ? 'block' : 'none';
+    }
+
+    const cards = document.querySelectorAll('#khataContainer .fk-item-card');
+    let visibleCount = 0;
+
+    cards.forEach(card => {
+      const block = (card.getAttribute('data-block') || '').toLowerCase();
+      const flat = (card.getAttribute('data-flat') || '').toLowerCase();
+      const name = (card.getAttribute('data-name') || '').toLowerCase();
+      const phone = (card.getAttribute('data-phone') || '').toLowerCase();
+      const status = (card.getAttribute('data-status') || '').toUpperCase();
+      const balance = parseFloat(card.getAttribute('data-balance') || 0);
+
+      const matchesBlock = (activeBlock === 'ALL') || (block === activeBlock.toLowerCase());
+
+      let matchesStatus = true;
+      if (activeStatus === 'ACTIVE') {
+        matchesStatus = (status === 'ACTIVE');
+      } else if (activeStatus === 'PENDING') {
+        matchesStatus = (status === 'PENDING');
+      } else if (activeStatus === 'HAS_DUES') {
+        matchesStatus = (status === 'ACTIVE' && balance > 0);
+      } else if (activeStatus === 'REJECTED') {
+        matchesStatus = (status === 'REJECTED');
+      }
+
+      const matchesQuery = !q || block.includes(q) || flat.includes(q) || name.includes(q) || phone.includes(q);
+
+      if (matchesBlock && matchesStatus && matchesQuery) {
+        card.style.display = 'block';
+        visibleCount++;
+      } else {
+        card.style.display = 'none';
+      }
+    });
+
+    const noRes = document.getElementById('noSearchResults');
+    if (noRes) {
+      noRes.classList.toggle('hidden', visibleCount > 0 || cards.length === 0);
+    }
+  }
+
+  function clearKhataSearch() {
+    const input = document.getElementById('khataSearchInput');
+    if (input) {
+      input.value = '';
+      input.focus();
+    }
+    filterKhataCards();
+  }
+
+  function setStatusFilter(status) {
+    activeStatus = status;
+    document.querySelectorAll('.status-pill').forEach(btn => {
+      btn.classList.remove('is-active');
+      btn.classList.add('is-inactive');
+    });
+
+    let btnId = 'filterStatusAll';
+    if (status === 'ACTIVE') btnId = 'filterStatusActive';
+    else if (status === 'PENDING') btnId = 'filterStatusPending';
+    else if (status === 'HAS_DUES') btnId = 'filterStatusHasDues';
+    else if (status === 'REJECTED') btnId = 'filterStatusRejected';
+
+    const activeBtn = document.getElementById(btnId);
+    if (activeBtn) {
+      activeBtn.classList.remove('is-inactive');
+      activeBtn.classList.add('is-active');
+    }
+    filterKhataCards();
+  }
+
+  function setBlockFilter(block) {
+    activeBlock = block;
+    document.querySelectorAll('.block-pill').forEach(btn => {
+      btn.classList.remove('is-active');
+      btn.classList.add('is-inactive');
+    });
+
+    if (block === 'ALL') {
+      const allBtn = document.getElementById('blockPillAll');
+      if (allBtn) {
+        allBtn.classList.remove('is-inactive');
+        allBtn.classList.add('is-active');
+      }
+    } else {
+      document.querySelectorAll(`[data-block-name="${block}"]`).forEach(btn => {
+        btn.classList.remove('is-inactive');
+        btn.classList.add('is-active');
+      });
+    }
+    filterKhataCards();
+  }
+
+  // --- Add Resident with OTP Modal ---
+  function openAddResidentModal() {
+    const m = document.getElementById('addResidentModal');
+    if (m) {
+      m.classList.remove('hidden');
+      m.classList.add('flex');
+      m.style.display = 'flex';
+    }
+    backToAddStep1();
+  }
+  function closeAddResidentModal() {
+    const m = document.getElementById('addResidentModal');
+    if (m) {
+      m.classList.add('hidden');
+      m.classList.remove('flex');
+      m.style.display = 'none';
+    }
+  }
+  function backToAddStep1() {
+    document.getElementById('addStep1').classList.remove('hidden');
+    document.getElementById('addStep2').classList.add('hidden');
+  }
+
+  function getOrdinalFloor(n) {
+    n = parseInt(n);
+    if (isNaN(n) || n === 0) return 'GROUND FLOOR';
+    if (n % 100 >= 11 && n % 100 <= 13) return n + 'TH FLOOR';
+    const last = n % 10;
+    if (last === 1) return n + 'ST FLOOR';
+    if (last === 2) return n + 'ND FLOOR';
+    if (last === 3) return n + 'RD FLOOR';
+    return n + 'TH FLOOR';
+  }
+
+  function standardizeBlock(b) {
+    let s = (b || "").trim().toUpperCase().replace(/[()\[\]{}]/g, '');
+    if (!s) return "GENERAL BLOCK";
+
+    // 1. Phase / Pocket / Sector
+    const phaseM = s.match(/^(PHASE|PHS|PH|POCKET|PKT|PCKT|SECTOR|SEC|SCTR)\s*[\-:#\.]*\s*(.*)$/i);
+    if (phaseM) {
+      let kw = phaseM[1].toUpperCase();
+      if (['PHS', 'PH'].includes(kw)) kw = 'PHASE';
+      else if (['PKT', 'PCKT'].includes(kw)) kw = 'POCKET';
+      else if (['SEC', 'SCTR'].includes(kw)) kw = 'SECTOR';
+      const rem = phaseM[2].replace(/^[\-:#\.\s]+/, '').trim();
+      return rem ? `${kw} ${rem}` : kw;
+    }
+
+    // 2. Wing (keywords, common typos like WENG/WEENG/VING/WIG, shorthand W-1/W1, reverse order e.g. 1 WING)
+    if (/\b(?:WING|WNG|WNNG|WENG|WEENG|VING|VEENG|WIG|WIGN)\b/i.test(s) || /^W[\-\s#:\.]*[A-Z0-9]+$/i.test(s) || /^[A-Z0-9]+\s*(?:WING|WNG|WNNG|WENG|WEENG)$/i.test(s)) {
+      const revM = s.match(/^([A-Z0-9]+)\s*(?:WING|WNG|WNNG|WENG|WEENG)$/i);
+      let core = '';
+      if (revM) {
+        core = revM[1].trim();
+      } else {
+        core = s.replace(/^(?:WING|WNG|WNNG|WENG|WEENG|VING|VEENG|WIG|WIGN)\s*(?:NO\.?|NUMBER|NUM)?\s*[:\-#]?\s*|^(?:W[\-\s#:\.]+)/gi, '')
+                .replace(/WING|WNG|WNNG|WENG|WEENG|VING|VEENG|WIG|WIGN/gi, '');
+      }
+      core = core.replace(/^[\-:#\.\s]+|[\-:#\.\s]+$/g, '').trim();
+      return 'WING ' + (core || 'GENERAL');
+    }
+
+    // 3. Tower (keywords, typos e.g. TOWR/TAWAR/TWR, shorthand T-1/T1, reverse order e.g. 1 TOWER)
+    if (/\b(?:TOWER|TOWR|TOWUR|TOWRE|TOWERR|TWR|TAWAR|TAWER|TOUWER|TOW)\b/i.test(s) || /^T[\-\s#:\.]*\d+[A-Z]?$/i.test(s) || /^[A-Z0-9]+\s*(?:TOWER|TOWR|TOWUR|TWR)$/i.test(s)) {
+      const revM = s.match(/^([A-Z0-9]+)\s*(?:TOWER|TOWR|TOWUR|TOWRE|TOWERR|TWR)$/i);
+      let core = '';
+      if (revM) {
+        core = revM[1].trim();
+      } else {
+        core = s.replace(/^(?:TOWER|TOWR|TOWUR|TOWRE|TOWERR|TWR|TAWAR|TAWER|TOUWER|TOW)\s*(?:NO\.?|NUMBER|NUM)?\s*[:\-#]?\s*|^T[\-\s#:\.]*/gi, '')
+                .replace(/TOWER|TOWR|TOWUR|TOWRE|TOWERR|TWR|TAWAR|TAWER|TOUWER|TOW/gi, '');
+      }
+      core = core.replace(/^[\-:#\.\s]+|[\-:#\.\s]+$/g, '').trim();
+      return 'TOWER ' + (core || 'GENERAL');
+    }
+
+    // 4. Block (keywords, typos e.g. BLCK/BLOK/BLK, reverse order e.g. A BLOCK)
+    if (/\b(?:BLOCK|BLCK|BLOK|BLK|BLKK|BLC|BLOC)\b/i.test(s) || /^[A-Z0-9]+\s*(?:BLOCK|BLCK|BLOK|BLK)$/i.test(s)) {
+      const revM = s.match(/^([A-Z0-9]+)\s*(?:BLOCK|BLCK|BLOK|BLK|BLKK|BLC|BLOC)$/i);
+      let core = '';
+      if (revM) {
+        core = revM[1].trim();
+      } else {
+        core = s.replace(/^(?:BLOCK|BLCK|BLOK|BLK|BLKK|BLC|BLOC)\s*(?:NO\.?|NUMBER|NUM)?\s*[:\-#]?\s*/gi, '')
+                .replace(/BLOCK|BLCK|BLOK|BLK|BLKK|BLC|BLOC/gi, '');
+      }
+      core = core.replace(/^[\-:#\.\s]+|[\-:#\.\s]+$/g, '').trim();
+      return 'BLOCK ' + (core || 'GENERAL');
+    }
+
+    // 5. Fallback: DO NOT blindly prepend "BLOCK"!
+    // Only prepend BLOCK if user entered a short 1-2 char code (e.g. "B", "A", "4", "C-2")
+    const clean = s.replace(/^[\-:#\.\s]+|[\-:#\.\s]+$/g, '').trim();
+    if (!clean) return 'GENERAL BLOCK';
+    if (/^[A-Z0-9]{1,2}$|^[A-Z][\-:]?\d{1,2}$/i.test(clean)) {
+      return 'BLOCK ' + clean;
+    }
+    // Full word or unfamiliar phrase: Preserve user's text as-is!
+    return clean;
+  }
+
+  function standardizeFlat(fn) {
+    let s = (fn || "").trim().toUpperCase().replace(/[()\[\]{}]/g, '');
+    if (!s) return "FLAT -";
+
+    // 0. Extract & strip any embedded floor mention from flat (e.g. "402 4th floor", "402 4th fl", "402, 4th")
+    s = s.replace(/\b(\d{1,2}(?:ST|ND|RD|TH)\s*(?:FLOOR|FLOO|FLR|FL)?|\d{1,2}\s*(?:FLOOR|FLOO|FLR)|GROUND\s*FLOOR|BASEMENT\s*(?:2\s*)?FLOOR|GF|FF|SF|TERRACE\s*FLOOR)\b/gi, '').trim();
+    s = s.replace(/\b(?:FLOOR|FLOO|FLR)\b/gi, '').trim();
+    s = s.replace(/(?:[\-:\s#,]+)FL\b/gi, '').trim();
+    s = s.replace(/[,:\-\s]+$/, '').trim();
+
+    // 1. Villa (shorthand, typos, prefixes, suffixes)
+    if (/\b(?:VILLA|VIL|VLA|VLLA)\b/i.test(s) || /^V[\-\s#:\.]*\d+/i.test(s) || /\d+\s*(?:VILLA|VIL)\b/i.test(s)) {
+      let core = s.replace(/\b(?:VILLA|VIL|VLA|VLLA|NUMBER|NUM|NO)\b[\.\s:]*/gi, '')
+                  .replace(/^[#:\-\s\.]+|[#:\-\s\.]+$/g, '')
+                  .replace(/^V[\-\s#:\.]*/i, '').trim();
+      return 'VILLA ' + (core || s);
+    }
+
+    // 2. House (shorthand, typos, prefixes, suffixes)
+    if (/\b(?:HOUSE|HSE)\b/i.test(s) || /^H[\.\-]?\s*(?:NUMBER|NUM|NO)?[\.\-\s#:]*\d+/i.test(s) || /\d+\s*(?:HOUSE|HSE)\b/i.test(s)) {
+      let core = s.replace(/\b(?:HOUSE|HSE|NUMBER|NUM|NO)\b[\.\s:]*/gi, '')
+                  .replace(/^[#:\-\s\.]+|[#:\-\s\.]+$/g, '')
+                  .replace(/^H[\.\-]?\s*(?:NUMBER|NUM|NO)?[\.\-\s#:]*/i, '').trim();
+      return 'HOUSE ' + (core || s);
+    }
+
+    // 3. Shop (shorthand, typos, prefixes, suffixes)
+    if (/\b(?:SHOP|SHP|STORE)\b/i.test(s) || /^S[\-\s#:\.]*\d+/i.test(s) || /\d+\s*(?:SHOP|SHP|STORE)\b/i.test(s)) {
+      let core = s.replace(/\b(?:SHOP|SHP|STORE|NUMBER|NUM|NO)\b[\.\s:]*/gi, '')
+                  .replace(/^[#:\-\s\.]+|[#:\-\s\.]+$/g, '')
+                  .replace(/^S[\-\s#:]*/i, '').trim();
+      return 'SHOP ' + (core || s);
+    }
+
+    // 4. Flat / Unit / Apt / Suffix / Typos
+    const suffixM = s.match(/^([A-Z0-9\-]+)\s*(?:FLAT|FLT|FLTT|FLAAT|FLA|UNIT|UNT|APT|APARTMENT|APRT|ROOM|RM)$/i);
+    let core = '';
+    if (suffixM) {
+      core = suffixM[1].trim();
+    } else {
+      core = s.replace(/^(?:(?:FLAT|FLT|FLTT|FLAAT|FLA|UNIT|UNT|APT|APARTMENT|APRT|ROOM|RM)\s*(?:NO\.?|NUMBER|NUM)?\s*[:\-#]?\s*)+/gi, '')
+              .replace(/^(?:NO\.?|NUMBER|NUM|#)\s*[:\-]?\s*/gi, '')
+              .replace(/^(?:FL|F)[\-\s#:\.]*(?=[A-Z0-9])/i, '')
+              .replace(/^[A-Z0-9]{1,3}[\-\s]+(?=\d{3,4})/i, '')
+              .replace(/[\-\s]*(?:FLAT|FLT|FL|FLOOR|FLR)$/i, '')
+              .trim();
+    }
+    core = core.replace(/^[\-:\s#]+|[\-:\s#]+$/g, '').trim();
+    return 'FLAT ' + (core || s);
+  }
+
+  function deriveFloorFromFlat(flatNumber) {
+    if (!flatNumber || /^(?:VILLA|HOUSE|SHOP)/i.test(flatNumber)) return '';
+    const flatM = flatNumber.match(/\b(\d{3,4})\b/);
+    if (flatM) {
+      const flCalc = Math.floor(parseInt(flatM[1]) / 100);
+      if (flCalc >= 1 && flCalc <= 99) {
+        return getOrdinalFloor(flCalc);
+      }
+    }
+    return '';
+  }
+
+  function standardizeFloor(fl) {
+    if (!fl) return '';
+    let s = (fl || '').trim().toUpperCase().replace(/[()\[\]{}]/g, '');
+    if (!s) return '';
+
+    // 1. Basement
+    if (/\b(B\s*2|BASEMENT\s*2|-2)\b/i.test(s)) return 'BASEMENT 2 FLOOR';
+    if (/\b(BASEMENT|BSMT|LOWER\s*GROUND|LG|-1)\b/i.test(s) || ['B', 'B1'].includes(s)) return 'BASEMENT FLOOR';
+
+    // 2. Ground
+    if (/\b(GROUND|GRND|GRD)\b/i.test(s) || ['G', 'GF', '0', 'ZERO'].includes(s)) return 'GROUND FLOOR';
+
+    // 3. Terrace / Penthouse
+    if (/\b(TERRACE|TOP|ROOF|PENTHOUSE|PH)\b/i.test(s)) return 'TERRACE FLOOR';
+
+    // 4. Any numbers inside the string (e.g. "19TH FLOO", "19 FLOO", "FLOO 19", "19", "FLR 19")
+    const numM = s.match(/\b(\d{1,3})\b/) || s.match(/(\d+)/);
+    if (numM) {
+      const val = parseInt(numM[1]);
+      if (val === 0) return 'GROUND FLOOR';
+      if (val >= 1 && val <= 150) return getOrdinalFloor(val);
+      return val + ' FLOOR';
+    }
+
+    // 5. Word numbers (English & Hindi)
+    const wordsMap = {
+      'FIRST': 1, '1ST': 1, 'PEHLA': 1, 'FF': 1,
+      'SECOND': 2, '2ND': 2, 'DUSRA': 2, 'SF': 2,
+      'THIRD': 3, '3RD': 3, 'TEESRA': 3, 'TF': 3,
+      'FOURTH': 4, '4TH': 4, 'CHAUTHA': 4,
+      'FIFTH': 5, '5TH': 5, 'PAANCHWA': 5,
+      'SIXTH': 6, '6TH': 6, 'SEVENTH': 7, '7TH': 7,
+      'EIGHTH': 8, '8TH': 8, 'NINTH': 9, '9TH': 9,
+      'TENTH': 10, '10TH': 10, 'NINETEENTH': 19, 'TWENTIETH': 20
+    };
+    for (const [w, n] of Object.entries(wordsMap)) {
+      if (new RegExp('\\b' + w + '\\b', 'i').test(s)) {
+        return getOrdinalFloor(n);
+      }
+    }
+
+    // 6. Fallback clean
+    const cleanCore = s.replace(/\b(?:FLOOR|FLOO|FLR|FLO|FL|LEVEL|LVL)\b|(?:FLOOR|FLOO|FLR|FLO)/gi, '')
+                       .replace(/^[\-:\s]+|[\-:\s]+$/g, '').trim();
+    return cleanCore ? cleanCore + ' FLOOR' : '';
+  }
+
+  function normalizeModalBlock() {
+    const el = document.getElementById('modalBlock');
+    if (!el) return;
+    const v = el.value.trim();
+    if (v) {
+      el.value = standardizeBlock(v);
+    }
+  }
+
+  function markModalFloorManual() {
+    const floorEl = document.getElementById('modalFloor');
+    if (floorEl) {
+      const val = floorEl.value.trim();
+      floorEl.dataset.cleared = val === "" ? "true" : "false";
+      floorEl.dataset.manual = val !== "" ? "true" : "false";
+    }
+  }
+
+  function deriveFloorAfterModalFlatComplete() {
+    const flatEl = document.getElementById('modalFlatNo');
+    const floorEl = document.getElementById('modalFloor');
+    if (!flatEl || !floorEl) return;
+    // If user explicitly cleared the floor, DO NOT re-derive!
+    if (floorEl.dataset.cleared === "true") return;
+    // If user manually entered a custom floor, do not overwrite
+    if (floorEl.dataset.manual === "true" && floorEl.value.trim()) return;
+
+    if (!floorEl.value.trim()) {
+      const derived = deriveFloorFromFlat(flatEl.value.trim());
+      if (derived) {
+        floorEl.value = derived;
+        floorEl.dataset.manual = "false";
+        floorEl.dataset.cleared = "false";
+      }
+    }
+  }
+
+  function normalizeModalFlat() {
+    const flatEl = document.getElementById('modalFlatNo');
+    if (!flatEl) return;
+    const v = flatEl.value.trim();
+    if (v) {
+      flatEl.value = standardizeFlat(v);
+    }
+    deriveFloorAfterModalFlatComplete();
+  }
+
+  function normalizeModalFloor() {
+    const floorEl = document.getElementById('modalFloor');
+    if (!floorEl) return;
+    if (floorEl.value.trim()) {
+      const clean = standardizeFloor(floorEl.value.trim());
+      if (clean) {
+        floorEl.value = clean;
+        floorEl.dataset.manual = "true";
+        floorEl.dataset.cleared = "false";
+      }
+    } else {
+      floorEl.dataset.cleared = "true";
+      floorEl.dataset.manual = "false";
+    }
+  }
+
+  async function sendResidentOtp() {
+    let phone = document.getElementById('modalPhone').value.trim();
+    let name = document.getElementById('modalCustomerName').value.trim().toUpperCase();
+    let rawBlock = document.getElementById('modalBlock').value.trim().toUpperCase();
+    let rawFloor = document.getElementById('modalFloor').value.trim().toUpperCase();
+    let rawFlatNo = document.getElementById('modalFlatNo').value.trim().toUpperCase();
+    const socId = document.getElementById('modalSocietyId').value;
+    const limit = document.getElementById('modalCreditLimit').value;
+
+    if (!phone || phone.length < 10) {
+      showToast('Please enter a valid 10-digit mobile number', 'error');
+      return;
+    }
+    if (!rawBlock || !rawFlatNo || !name) {
+      showToast('Please fill in Tower/Block, Flat Number, and Resident Name', 'error');
+      return;
+    }
+
+    const block = standardizeBlock(rawBlock);
+    const flatNo = standardizeFlat(rawFlatNo);
+    const floor = standardizeFloor(rawFloor);
+
+    // Update screen inputs so vendor sees clean standardized values immediately
+    const blockEl = document.getElementById('modalBlock');
+    const flatEl = document.getElementById('modalFlatNo');
+    const floorEl = document.getElementById('modalFloor');
+    const nameEl = document.getElementById('modalCustomerName');
+    if (blockEl) blockEl.value = block;
+    if (flatEl) flatEl.value = flatNo;
+    if (floorEl) floorEl.value = floor;
+    if (nameEl) nameEl.value = name;
+
+    const btn = document.getElementById('btnSendOtp');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Sending WhatsApp OTP...';
+
+    try {
+      const resp = await fetch('/vendor/khata/api/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone: phone,
+          customer_name: name,
+          block: block,
+          floor: floor,
+          flat_no: flatNo,
+          society_id: socId,
+          credit_limit: limit
+        })
+      });
+      const data = await resp.json();
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fab fa-whatsapp text-sm mr-1"></i> Send Verification OTP via WhatsApp';
+
+      if (data.success) {
+        showToast(data.message || 'OTP dispatched to resident WhatsApp', 'success');
+        let fullDisp = data.full_address_display;
+        if (!fullDisp) {
+          fullDisp = `${block} - ${flatNo}`;
+          if (floor && !flatNo.toUpperCase().includes(floor.toUpperCase())) {
+            fullDisp += ` (${floor})`;
+          }
+        }
+        fullDisp = fullDisp.replace(/\b(FLOOR|FL|FLAT|BLOCK|TOWER|WING)\s+\1\b/gi, '$1')
+                           .replace(/\bFLAT\s+FL\b/gi, 'FLAT')
+                           .replace(/\bFL\s+FLAT\b/gi, 'FLAT')
+                           .replace(/\bFLOOR\s+FLOOR\b/gi, 'FLOOR');
+        let cleanDisp = fullDisp.trim();
+        if (cleanDisp.startsWith('(') && cleanDisp.endsWith(')')) {
+          cleanDisp = cleanDisp.slice(1, -1).trim();
+        }
+        const nameEl = document.getElementById('modalOtpResidentName');
+        if (nameEl) nameEl.innerText = name;
+        const addrEl = document.getElementById('modalOtpResidentAddressText');
+        if (addrEl) {
+          addrEl.innerText = cleanDisp;
+        } else {
+          const lbl = document.getElementById('modalOtpResidentLabel');
+          if (lbl) lbl.innerText = cleanDisp;
+        }
+
+        document.getElementById('addStep1').classList.add('hidden');
+        document.getElementById('addStep2').classList.remove('hidden');
+        clearModalOtpBoxes();
+        setTimeout(() => {
+          const fBox = document.querySelector('.modal-otp-box[data-idx="0"]');
+          if (fBox) fBox.focus();
+        }, 120);
+      } else {
+        showToast(data.error || 'Failed to send OTP', 'error');
+      }
+    } catch (e) {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fab fa-whatsapp text-sm mr-1"></i> Send Verification OTP via WhatsApp';
+      showToast('Network error while dispatching OTP', 'error');
+    }
+  }
+
+  function clearModalOtpBoxes() {
+    document.querySelectorAll('.modal-otp-box').forEach(b => {
+      b.value = '';
+      b.classList.remove('filled');
+    });
+  }
+
+  function getModalOtpValue() {
+    let code = '';
+    document.querySelectorAll('.modal-otp-box').forEach(b => {
+      code += (b.value || '').trim();
+    });
+    return code;
+  }
+
+  // Set up 6-Box Modal OTP Events
+  document.querySelectorAll('.modal-otp-box').forEach((box, idx, arr) => {
+    box.addEventListener('keydown', (e) => {
+      if (e.key === 'Backspace') {
+        if (!box.value && idx > 0) {
+          arr[idx - 1].focus();
+          arr[idx - 1].value = '';
+          arr[idx - 1].classList.remove('filled');
+        } else {
+          box.value = '';
+          box.classList.remove('filled');
+        }
+      } else if (e.key === 'ArrowLeft' && idx > 0) {
+        arr[idx - 1].focus();
+      } else if (e.key === 'ArrowRight' && idx < arr.length - 1) {
+        arr[idx + 1].focus();
+      }
+    });
+
+    box.addEventListener('input', () => {
+      const val = box.value.replace(/[^0-9]/g, '');
+      box.value = val ? val[0] : '';
+      if (box.value) {
+        box.classList.add('filled');
+        if (idx < arr.length - 1) {
+          arr[idx + 1].focus();
+        } else {
+          box.blur();
+          verifyResidentOtpAndActivate();
+        }
+      } else {
+        box.classList.remove('filled');
+      }
+    });
+
+    box.addEventListener('paste', (e) => {
+      e.preventDefault();
+      const pasteData = (e.clipboardData || window.clipboardData).getData('text').trim();
+      const digits = pasteData.replace(/[^0-9]/g, '').slice(0, 6);
+      if (digits) {
+        digits.split('').forEach((d, i) => {
+          if (arr[i]) {
+            arr[i].value = d;
+            arr[i].classList.add('filled');
+          }
+        });
+        const nextIdx = Math.min(digits.length, arr.length - 1);
+        arr[nextIdx].focus();
+        if (digits.length === 6) {
+          verifyResidentOtpAndActivate();
+        }
+      }
+    });
+
+    box.addEventListener('focus', () => box.select());
+  });
+
+  async function verifyResidentOtpAndActivate() {
+    const otp = getModalOtpValue();
+    const phone = document.getElementById('modalPhone').value.trim();
+    const name = document.getElementById('modalCustomerName').value.trim();
+    const block = document.getElementById('modalBlock').value.trim();
+    const floor = document.getElementById('modalFloor').value.trim();
+    const flatNo = document.getElementById('modalFlatNo').value.trim();
+    const socId = document.getElementById('modalSocietyId').value;
+    const limit = document.getElementById('modalCreditLimit').value;
+
+    if (!otp || otp.length !== 6) {
+      showToast('Please enter the 6-digit verification code', 'error');
+      return;
+    }
+
+    const btn = document.getElementById('btnVerifyOtp');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Verifying Code...';
+
+    try {
+      const resp = await fetch('/vendor/khata/api/verify-otp-and-add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          otp: otp,
+          phone: phone,
+          customer_name: name,
+          block: block,
+          floor: floor,
+          flat_no: flatNo,
+          society_id: socId,
+          credit_limit: limit
+        })
+      });
+      const data = await resp.json();
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-check-circle text-sm mr-1"></i> Verify OTP &amp; Activate Khata';
+
+      if (data.success) {
+        showToast(data.message, 'success');
+        closeAddResidentModal();
+        await syncKhataLive(false);
+      } else {
+        showToast(data.error || 'Invalid OTP code', 'error');
+      }
+    } catch (e) {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-check-circle text-sm mr-1"></i> Verify OTP &amp; Activate Khata';
+      showToast('Verification failed due to network error', 'error');
+    }
+  }
+
+  // --- Approve / Reject Requests ---
+  function openApproveModal(id, name, addr) {
+    document.getElementById('approveRecordId').value = id;
+    document.getElementById('approveResidentName').innerText = name;
+    document.getElementById('approveAddress').innerText = addr;
+    const m = document.getElementById('approveModal');
+    if (m) {
+      m.classList.remove('hidden');
+      m.classList.add('flex');
+      m.style.display = 'flex';
+    }
+  }
+  function closeApproveModal() {
+    const m = document.getElementById('approveModal');
+    if (m) {
+      m.classList.add('hidden');
+      m.classList.remove('flex');
+      m.style.display = 'none';
+    }
+  }
+  async function confirmApproval() {
+    const id = document.getElementById('approveRecordId').value;
+    const limit = document.getElementById('approveCreditLimit').value;
+    const btn = document.querySelector('#approveModal button[onclick="confirmApproval()"]');
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Activating...';
+    }
+
+    try {
+      const resp = await fetch('/vendor/khata/api/approve-request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ record_id: id, credit_limit: limit })
+      });
+      const data = await resp.json();
+      if (data.success) {
+        showToast(data.message, 'success');
+        closeApproveModal();
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = 'Confirm &amp; Activate Account';
+        }
+        // Optimistic UI update immediately
+        const card = document.getElementById(`khataCard-${id}`);
+        if (card) {
+          card.setAttribute('data-status', 'ACTIVE');
+          if (activeStatus === 'PENDING') {
+            card.style.display = 'none';
+          }
+        }
+        await syncKhataLive(false, true);
+      } else {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = 'Confirm &amp; Activate Account';
+        }
+        showToast(data.error || 'Failed to approve', 'error');
+      }
+    } catch (e) {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = 'Confirm &amp; Activate Account';
+      }
+      showToast('Network error during approval', 'error');
+    }
+  }
+
+  async function rejectRequest(id) {
+    if (!confirm('Are you sure you want to decline this Store Credit request?')) return;
+    try {
+      const resp = await fetch('/vendor/khata/api/reject-request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ record_id: id })
+      });
+      const data = await resp.json();
+      if (data.success) {
+        showToast(data.message, 'info');
+        // Optimistic UI update immediately
+        const card = document.getElementById(`khataCard-${id}`);
+        if (card) {
+          card.setAttribute('data-status', 'REJECTED');
+          if (activeStatus === 'PENDING') {
+            card.style.display = 'none';
+          }
+        }
+        await syncKhataLive(false, true);
+      } else {
+        showToast(data.error || 'Failed to decline request', 'error');
+      }
+    } catch (e) {
+      showToast('Network error', 'error');
+    }
+  }
+
+  async function deleteResidentRecord(id, name) {
+    if (!confirm(`Are you sure you want to delete ${name || 'this resident'} from your Khata records?`)) return;
+    try {
+      const resp = await fetch('/vendor/khata/api/delete-resident', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ record_id: id })
+      });
+      const data = await resp.json();
+      if (data.success) {
+        showToast(data.message || 'Resident record deleted', 'success');
+        const c = document.getElementById(`khataCard-${id}`);
+        if (c) c.remove();
+        filterKhataCards();
+        await syncKhataLive(false, true);
+      } else {
+        showToast(data.error || 'Failed to delete record', 'error');
+      }
+    } catch (e) {
+      showToast('Network error while deleting resident', 'error');
+    }
+  }
+
+  // --- Record Payment Modal ---
+  function openRecordPaymentModal(id, name, bal) {
+    document.getElementById('paymentRecordId').value = id;
+    document.getElementById('paymentCustomerName').innerText = name;
+    const dueEl = document.getElementById('paymentCurrentDue');
+    if (dueEl) {
+      if (bal > 0) {
+        dueEl.innerText = `₹${bal.toFixed(2)}`;
+        dueEl.className = 'text-sm font-black text-[#fb641b]';
+      } else if (bal < 0) {
+        dueEl.innerText = `₹0.00 (Adv: ₹${Math.abs(bal).toFixed(2)})`;
+        dueEl.className = 'text-sm font-black text-[#388e3c]';
+      } else {
+        dueEl.innerText = '₹0.00 (No Dues)';
+        dueEl.className = 'text-sm font-black text-[#388e3c]';
+      }
+    }
+    document.getElementById('paymentAmountInput').value = bal > 0 ? bal : '';
+
+    // Generate quick preset amount chips (Flipkart style)
+    const chipContainer = document.getElementById('paymentPresetChips');
+    if (chipContainer) {
+      let chipsHtml = '';
+      if (bal > 0) {
+        chipsHtml += `<button type="button" onclick="setPaymentAmount(${bal})" class="px-2 py-0.5 text-xs font-bold rounded-xs bg-orange-50 text-[#fb641b] border border-orange-200 hover:bg-orange-100 whitespace-nowrap active:scale-95">Full Due (₹${bal.toFixed(0)})</button>`;
+      }
+      const presets = [100, 200, 500, 1000];
+      presets.forEach(p => {
+        chipsHtml += `<button type="button" onclick="setPaymentAmount(${p})" class="px-2 py-0.5 text-xs font-bold rounded-xs bg-[#f8f9fa] text-[#212121] border border-[#e0e0e0] hover:bg-slate-100 whitespace-nowrap active:scale-95">₹${p}</button>`;
+      });
+      chipContainer.innerHTML = chipsHtml;
+    }
+
+    const m = document.getElementById('recordPaymentModal');
+    if (m) {
+      m.classList.remove('hidden');
+      m.classList.add('flex');
+      m.style.display = 'flex';
+    }
+    const input = document.getElementById('paymentAmountInput');
+    if (input) input.focus();
+  }
+
+  function setPaymentAmount(amt) {
+    document.getElementById('paymentAmountInput').value = amt;
+  }
+
+  function closeRecordPaymentModal() {
+    const m = document.getElementById('recordPaymentModal');
+    if (m) {
+      m.classList.add('hidden');
+      m.classList.remove('flex');
+      m.style.display = 'none';
+    }
+  }
+
+  async function submitRecordPayment() {
+    const id = document.getElementById('paymentRecordId').value;
+    const amount = parseFloat(document.getElementById('paymentAmountInput').value);
+    const mode = document.getElementById('paymentModeSelect').value;
+    const notes = document.getElementById('paymentNotesInput').value.trim();
+
+    if (!amount || amount <= 0) {
+      showToast('Please enter a valid payment amount', 'error');
+      return;
+    }
+
+    const curDueText = (document.getElementById('paymentCurrentDue').innerText || '').replace(/[^\d.]/g, '');
+    const curDue = parseFloat(curDueText || 0);
+    if (curDue > 0 && amount > curDue) {
+      if (!confirm(`Amount entered (₹${amount.toFixed(2)}) is greater than current due balance (₹${curDue.toFixed(2)}). Do you want to proceed?`)) {
+        return;
+      }
+    }
+
+    const btn = document.querySelector('#recordPaymentModal button[onclick="submitRecordPayment()"]');
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Saving Payment...';
+    }
+
+    try {
+      const resp = await fetch('/vendor/khata/api/record-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          record_id: id,
+          amount: amount,
+          mode: mode,
+          notes: notes
+        })
+      });
+      const data = await resp.json();
+      if (data.success) {
+        showToast(data.message, 'success');
+        closeRecordPaymentModal();
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fas fa-check text-xs mr-1"></i> Save Payment &amp; Update Ledger';
+        }
+        await syncKhataLive(false);
+      } else {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fas fa-check text-xs mr-1"></i> Save Payment &amp; Update Ledger';
+        }
+        showToast(data.error || 'Payment recording failed', 'error');
+      }
+    } catch (e) {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-check text-xs mr-1"></i> Save Payment &amp; Update Ledger';
+      }
+      showToast('Network error while recording payment', 'error');
+    }
+  }
+
+  // --- 1-Click WhatsApp Statement Link ---
+  async function sendWhatsAppReminder(id) {
+    try {
+      showToast('Opening WhatsApp statement...', 'info');
+      const resp = await fetch(`/vendor/khata/api/whatsapp-reminder-url/${id}`);
+      const data = await resp.json();
+      if (data.success && data.whatsapp_url) {
+        window.open(data.whatsapp_url, '_blank');
+      } else {
+        showToast(data.error || 'Failed to generate WhatsApp statement', 'error');
+      }
+    } catch (e) {
+      showToast('Network error generating statement', 'error');
+    }
+  }
+
+  // --- Passbook / Ledger Modal with Load More Pagination ---
+  let vendorLedgerPage = 1;
+  let vendorLedgerRecordId = null;
+  let vendorLedgerLoadedCount = 0;
+  let vendorLedgerTotalCount = 0;
+
+  function renderVendorLedgerEntryHtml(e) {
+    const isDebit = (e.type === 'DEBIT');
+    const isAdj = (e.payment_mode === 'BILL_ADJUSTMENT');
+    
+    let badgeClass = '';
+    let badgeIcon = '';
+    let badgeText = '';
+
+    if (isAdj) {
+      if (isDebit) {
+        badgeClass = 'bg-amber-50 text-amber-900 border border-amber-200';
+        badgeIcon = 'fas fa-plus-circle text-amber-600';
+        badgeText = 'Custom Item Added';
+      } else {
+        badgeClass = 'bg-sky-50 text-sky-900 border border-sky-200';
+        badgeIcon = 'fas fa-rotate-left text-sky-600';
+        badgeText = 'Price Reduced';
+      }
+    } else if (isDebit) {
+      badgeClass = 'bg-rose-50 text-rose-800 border border-rose-200';
+      badgeIcon = 'fas fa-bag-shopping text-rose-500';
+      badgeText = 'Debit (Order)';
+    } else {
+      badgeClass = 'bg-emerald-50 text-emerald-900 border border-emerald-200';
+      badgeIcon = 'fas fa-circle-check text-emerald-600';
+      badgeText = 'Payment Received';
+    }
+
+    let cleanNotes = (e.notes || '').trim().replace(/^["']|["']$/g, '');
+    cleanNotes = cleanNotes.replace(/\s*for\s+Order\s+#[A-Za-z0-9]+/i, '').trim();
+
+    const orderPill = e.order_id 
+      ? `<span class="px-1.5 py-0.5 rounded-xs text-[10.5px] font-mono font-bold bg-slate-100 text-slate-700 border border-slate-200/80">#${e.order_id.slice(-8).toUpperCase()}</span>`
+      : `<span class="px-1.5 py-0.5 rounded-xs text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200/80">${e.payment_mode || 'Cash'}</span>`;
+
+    const balAfter = Number(e.balance_after || 0);
+    let balAfterHtml = '';
+    if (balAfter > 0) {
+      balAfterHtml = `<span class="text-slate-400">Due:</span> <b class="font-bold text-slate-700 font-mono">₹${balAfter.toFixed(2)}</b>`;
+    } else if (balAfter < 0) {
+      balAfterHtml = `<span class="text-slate-400">Adv:</span> <b class="font-bold text-emerald-600 font-mono">₹${Math.abs(balAfter).toFixed(2)}</b>`;
+    } else {
+      balAfterHtml = `<span class="text-slate-400">Bal:</span> <b class="font-bold text-slate-500 font-mono">₹0.00</b>`;
+    }
+
+    return `
+      <div class="p-3 rounded-xs bg-white border border-slate-200 hover:border-slate-300 shadow-2xs transition-all flex items-start justify-between gap-2.5 text-xs animate-fade-in">
+        <div class="space-y-1 min-w-0 flex-1">
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-xs text-[9.5px] font-extrabold uppercase tracking-wider ${badgeClass}">
+              <i class="${badgeIcon} text-[9px]"></i>
+              <span>${badgeText}</span>
+            </span>
+            ${orderPill}
+          </div>
+          <div class="text-[10.5px] text-[#878787] font-medium flex items-center gap-1">
+            <i class="far fa-clock text-[9px] text-slate-400"></i>
+            <span>${e.date_str}</span>
+          </div>
+          ${cleanNotes ? `
+            <div class="inline-flex items-center gap-1 text-[11px] font-medium text-slate-700 bg-slate-50 border border-slate-200/80 px-2 py-0.5 rounded-xs max-w-full">
+              <i class="fas fa-receipt text-[10px] text-slate-400 shrink-0"></i>
+              <span class="truncate">${cleanNotes}</span>
+            </div>
+          ` : ''}
+        </div>
+        <div class="text-right shrink-0 min-w-[90px] whitespace-nowrap pl-1">
+          <div class="font-extrabold text-sm sm:text-[15px] font-mono leading-tight whitespace-nowrap ${isDebit ? 'text-rose-600' : 'text-emerald-600'}">
+            ${isDebit ? '-₹' : '+₹'}${e.amount.toFixed(2)}
+          </div>
+          <div class="text-[10px] text-slate-500 font-medium whitespace-nowrap mt-0.5">
+            ${balAfterHtml}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  async function openLedgerModal(id) {
+    vendorLedgerRecordId = id;
+    vendorLedgerPage = 1;
+    vendorLedgerLoadedCount = 0;
+    vendorLedgerTotalCount = 0;
+
+    const modal = document.getElementById('ledgerModal');
+    const list = document.getElementById('ledgerEntriesList');
+    const countBadge = document.getElementById('ledgerModalCountBadge');
+    if (countBadge) countBadge.classList.add('hidden');
+
+    if (modal) {
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      modal.style.display = 'flex';
+    }
+    list.innerHTML = '<div class="text-center py-8 text-xs text-[#878787]"><i class="fas fa-spinner fa-spin mr-1.5"></i> Fetching itemized transactions...</div>';
+
+    try {
+      const resp = await fetch(`/vendor/khata/api/ledger/${id}?page=1&limit=10`);
+      const data = await resp.json();
+      if (data.success) {
+        document.getElementById('ledgerResidentName').innerText = data.customer_name;
+        document.getElementById('ledgerResidentAddress').innerText = data.full_address;
+        const curBal = Number(data.current_balance || 0);
+        const balLabel = document.getElementById('ledgerCurrentBalanceLabel');
+        const balVal = document.getElementById('ledgerCurrentBalance');
+        if (curBal > 0) {
+          if (balLabel) balLabel.innerText = 'Outstanding Due';
+          if (balVal) {
+            balVal.innerText = `₹${curBal.toFixed(2)}`;
+            balVal.className = 'text-sm sm:text-base font-black text-[#fb641b]';
+          }
+        } else if (curBal < 0) {
+          if (balLabel) balLabel.innerText = 'Advance Credit';
+          if (balVal) {
+            balVal.innerText = `+₹${Math.abs(curBal).toFixed(2)}`;
+            balVal.className = 'text-sm sm:text-base font-black text-[#388e3c]';
+          }
+        } else {
+          if (balLabel) balLabel.innerText = 'Outstanding Due';
+          if (balVal) {
+            balVal.innerText = '₹0.00 (No Dues)';
+            balVal.className = 'text-sm sm:text-base font-black text-[#388e3c]';
+          }
+        }
+
+        vendorLedgerTotalCount = data.total_count || 0;
+        if (countBadge) {
+          countBadge.innerText = `${vendorLedgerTotalCount} Records`;
+          countBadge.classList.remove('hidden');
+        }
+
+        // Wire quick "Record Payment" button inside Passbook footer
+        const recPayBtn = document.getElementById('ledgerRecordPaymentBtn');
+        if (recPayBtn) {
+          recPayBtn.onclick = function() {
+            closeLedgerModal();
+            openRecordPaymentModal(id, data.customer_name, curBal);
+          };
+        }
+
+        if (data.entries && data.entries.length > 0) {
+          vendorLedgerLoadedCount = data.entries.length;
+          let html = data.entries.map(e => renderVendorLedgerEntryHtml(e)).join('');
+
+          if (data.has_more) {
+            html += `
+              <div id="vendorLedgerLoadMoreBox" class="pt-2 text-center">
+                <button type="button" onclick="loadMoreVendorLedger()" id="btnVendorLoadMore"
+                  class="w-full py-2 btn-fk-white text-xs font-bold rounded-xs flex items-center justify-center gap-1.5 shadow-2xs hover:bg-blue-50 hover:text-[#2874f0] hover:border-blue-200 transition-all active:scale-98 cursor-pointer">
+                  <i class="fas fa-arrow-down text-[10px]"></i>
+                  <span id="vendorLoadMoreText">Load More (Showing ${vendorLedgerLoadedCount} of ${vendorLedgerTotalCount})</span>
+                </button>
+              </div>
+            `;
+          }
+          list.innerHTML = html;
+        } else {
+          list.innerHTML = '<div class="text-center py-8 text-xs text-[#878787]">No transactions recorded yet in this khata.</div>';
+        }
+      } else {
+        list.innerHTML = `<div class="text-center py-8 text-xs text-rose-500">${data.error}</div>`;
+      }
+    } catch (e) {
+      list.innerHTML = '<div class="text-center py-8 text-xs text-rose-500">Failed to load transactions.</div>';
+    }
+  }
+
+  async function loadMoreVendorLedger() {
+    if (!vendorLedgerRecordId) return;
+    const btn = document.getElementById('btnVendorLoadMore');
+    const label = document.getElementById('vendorLoadMoreText');
+    if (btn) {
+      btn.disabled = true;
+      if (label) label.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Loading...';
+    }
+
+    try {
+      vendorLedgerPage += 1;
+      const resp = await fetch(`/vendor/khata/api/ledger/${vendorLedgerRecordId}?page=${vendorLedgerPage}&limit=10`);
+      const data = await resp.json();
+      if (data.success && data.entries && data.entries.length > 0) {
+        const moreBox = document.getElementById('vendorLedgerLoadMoreBox');
+        data.entries.forEach(e => {
+          const wrapper = document.createElement('div');
+          wrapper.innerHTML = renderVendorLedgerEntryHtml(e).trim();
+          if (moreBox) {
+            moreBox.parentNode.insertBefore(wrapper.firstElementChild, moreBox);
+          }
+        });
+
+        vendorLedgerLoadedCount += data.entries.length;
+        if (data.has_more) {
+          if (btn) {
+            btn.disabled = false;
+            if (label) label.innerText = `Load More (Showing ${vendorLedgerLoadedCount} of ${vendorLedgerTotalCount})`;
+          }
+        } else {
+          if (moreBox) moreBox.remove();
+        }
+      } else {
+        const moreBox = document.getElementById('vendorLedgerLoadMoreBox');
+        if (moreBox) moreBox.remove();
+      }
+    } catch (err) {
+      console.error(err);
+      if (btn) {
+        btn.disabled = false;
+        if (label) label.innerText = 'Failed to load. Click to retry';
+      }
+    }
+  }
+
+  function closeLedgerModal() {
+    const modal = document.getElementById('ledgerModal');
+    if (modal) {
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+      modal.style.display = 'none';
+    }
+  }
+
+  // --- Global Backdrop Click & Escape Key Handlers for ALL Modals ---
+  ['addResidentModal', 'approveModal', 'recordPaymentModal', 'ledgerModal'].forEach(modalId => {
+    const modalEl = document.getElementById(modalId);
+    if (modalEl) {
+      modalEl.addEventListener('click', function(e) {
+        if (e.target === this) {
+          if (modalId === 'addResidentModal') closeAddResidentModal();
+          else if (modalId === 'approveModal') closeApproveModal();
+          else if (modalId === 'recordPaymentModal') closeRecordPaymentModal();
+          else if (modalId === 'ledgerModal') closeLedgerModal();
+        }
+      });
+    }
+  });
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      closeApproveModal();
+      closeRecordPaymentModal();
+      closeLedgerModal();
+      closeAddResidentModal();
+    }
+  });
+
+  function showToast(msg, type = 'success') {
+    const el = document.createElement('div');
+    const bg = type === 'success' ? 'bg-[#388e3c]' : (type === 'error' ? 'bg-[#d32f2f]' : 'bg-[#212121]');
+    el.className = `fixed bottom-16 sm:bottom-5 right-4 z-[99999] px-4 py-2.5 rounded-xs text-white text-xs font-bold shadow-xl flex items-center gap-2 ${bg} animate-fade-in`;
+    el.innerHTML = `<i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-circle-exclamation'}"></i><span>${msg}</span>`;
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 3500);
+  }
+</script>
+{% endblock %}

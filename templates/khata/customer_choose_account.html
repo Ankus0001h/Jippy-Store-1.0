@@ -1,0 +1,349 @@
+{% extends "base.html" %}
+
+{% block title %}Choose Account Option | Jippy Store{% endblock %}
+
+{% block extra_head %}
+<style>
+  body, input, button, select, textarea {
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- 🛍️ Flipkart Style Page Background (#f1f3f6) -->
+<div class="min-h-[100dvh] bg-[#f1f3f6] flex flex-col font-['Plus_Jakarta_Sans']">
+
+  <!-- Mobile Top Header (Flipkart Signature Blue Header - 100% Zero Wrap) -->
+  <header class="sm:hidden sticky top-0 z-50 bg-[#2874f0] text-white px-3 py-2.5 flex items-center justify-between shadow-md flex-nowrap">
+    <div class="flex items-center gap-2.5 min-w-0 flex-1">
+      <a href="{{ next_url|default('/my-khata') }}" data-turbo="false"
+        class="w-7 h-7 flex items-center justify-center text-white hover:bg-white/15 rounded-full transition-all shrink-0"
+        title="Back">
+        <i class="fas fa-arrow-left text-xs"></i>
+      </a>
+      <div class="min-w-0 flex-1">
+        <h1 class="text-[15px] font-bold text-white leading-tight truncate">Account Selection</h1>
+        <p class="text-[10px] text-blue-100 font-medium truncate">Jippy Store Credit</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-1 px-2 py-0.5 bg-white/15 rounded-xs text-[9.5px] font-bold uppercase tracking-wide shrink-0 whitespace-nowrap ml-2">
+      <i class="fas fa-shield-alt text-emerald-300"></i>
+      <span>Secure</span>
+    </div>
+  </header>
+
+  <!-- Main Centered Split Card (Flipkart Pattern) -->
+  <div class="flex-1 flex items-start sm:items-center justify-center px-2 py-3 sm:p-6 sm:py-10">
+    <div class="w-full max-w-[760px] bg-white rounded-none sm:rounded-sm border border-[#e0e0e0] shadow-md flex flex-col sm:flex-row overflow-hidden relative">
+
+      <!-- Alert Notification Banner (Flipkart Style Alert) -->
+      <div id="choiceAlert" style="display: none;"
+        class="absolute top-3 left-3 right-3 sm:left-[305px] sm:right-5 z-50 p-2.5 rounded-sm bg-red-50 border border-red-200 flex gap-2 items-center animate-fade-in shadow-xs flex-nowrap">
+        <i class="fas fa-circle-exclamation text-red-500 text-xs shrink-0" id="choiceAlertIcon"></i>
+        <p id="choiceAlertText" class="text-[12px] font-semibold text-red-700 leading-tight min-w-0 flex-1"></p>
+      </div>
+
+      <!-- 🟦 Left Panel (Flipkart Signature Royal Blue #2874f0 - Desktop Only) -->
+      <div class="hidden sm:flex sm:w-[290px] bg-[#2874f0] text-white p-7 flex-col justify-between shrink-0 relative overflow-hidden">
+        <!-- Subtle Flipkart Background Shapes -->
+        <div class="absolute -right-8 -bottom-8 w-44 h-44 rounded-full bg-white/10 pointer-events-none"></div>
+        <div class="absolute -left-6 top-12 w-28 h-28 rounded-full bg-white/5 pointer-events-none"></div>
+
+        <div>
+          <a href="{{ next_url|default('/my-khata') }}" data-turbo="false"
+            class="inline-flex items-center gap-1.5 text-xs text-blue-100 hover:text-white transition-colors mb-6 group cursor-pointer">
+            <i class="fas fa-arrow-left text-[11px] group-hover:-translate-x-0.5 transition-transform"></i>
+            <span>Back</span>
+          </a>
+
+          <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/15 text-[11px] font-bold text-white mb-3 backdrop-blur-xs">
+            <i class="fas fa-shield-halved text-emerald-300 text-[10px]"></i>
+            <span>Verified Household</span>
+          </div>
+
+          <h2 class="text-2xl font-black tracking-tight leading-snug">
+            Store Credit<br />Setup
+          </h2>
+          <p class="text-xs text-blue-100 mt-2.5 leading-relaxed">
+            Choose how you want to manage your monthly grocery credit at {{ shop_name|default('your society store') }}.
+          </p>
+
+          <!-- Benefits List with Icons -->
+          <div class="mt-6 space-y-3.5">
+            <div class="flex items-start gap-2.5">
+              <div class="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-white text-[10px] shrink-0 mt-0.5">
+                <i class="fas fa-check"></i>
+              </div>
+              <p class="text-[11.5px] text-blue-50 leading-tight">
+                <strong>Shared Bill:</strong> Link with flat passbook via quick WhatsApp approval.
+              </p>
+            </div>
+            <div class="flex items-start gap-2.5">
+              <div class="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-white text-[10px] shrink-0 mt-0.5">
+                <i class="fas fa-check"></i>
+              </div>
+              <p class="text-[11.5px] text-blue-50 leading-tight">
+                <strong>Independent:</strong> Separate limit &amp; bill sent directly to store manager.
+              </p>
+            </div>
+            <div class="flex items-start gap-2.5">
+              <div class="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-white text-[10px] shrink-0 mt-0.5">
+                <i class="fas fa-check"></i>
+              </div>
+              <p class="text-[11.5px] text-blue-50 leading-tight">
+                <strong>Zero Fees:</strong> 100% free monthly billing with zero extra charges.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Graphic Card Preview -->
+        <div class="bg-white/10 backdrop-blur-xs border border-white/20 rounded-sm p-3 mt-6">
+          <div class="flex items-center justify-between text-[11px] font-bold text-white/90">
+            <span>{{ shop_name|default('Society Store') }}</span>
+            <span class="text-emerald-300">● Live Credit</span>
+          </div>
+          <div class="text-[10px] text-blue-200 mt-1 truncate">
+            Unit: {{ full_address|default('Your Flat') }}
+          </div>
+        </div>
+      </div>
+
+      <!-- ⬜ Right Panel (Clean White Flipkart Form) -->
+      <div class="flex-1 p-4 sm:p-7 flex flex-col justify-between">
+        <div class="space-y-4">
+
+          <!-- Section Heading -->
+          <div>
+            <div class="flex items-center gap-1.5 text-[11px] font-bold text-[#878787] uppercase tracking-wider">
+              <span>Step 1 of 2</span>
+              <span>•</span>
+              <span class="text-[#2874f0]">Account Option</span>
+            </div>
+            <h2 class="text-[18px] sm:text-[20px] font-black text-[#212121] tracking-tight mt-0.5 leading-snug">
+              Choose Account Option
+            </h2>
+            <p class="text-[12.5px] text-[#555] mt-1 leading-snug">
+              Flat <strong class="text-[#212121]">{{ full_address }}</strong> already has an active Store Credit account.
+            </p>
+          </div>
+
+          <!-- Clean Flat Owner Info Pill -->
+          <div class="bg-blue-50/70 border border-blue-100 rounded-sm px-3.5 py-2.5 flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-full bg-blue-100 text-[#2874f0] flex items-center justify-center text-xs shrink-0 font-bold">
+              <i class="fas fa-store"></i>
+            </div>
+            <div class="min-w-0 flex-1">
+              <p class="text-[12.5px] font-bold text-[#212121] leading-tight truncate">
+                Flat Owner: {{ primary_name }} ({{ masked_phone }})
+              </p>
+              <p class="text-[11px] text-[#878787] leading-tight mt-0.5">
+                Active monthly credit passbook already exists for this unit
+              </p>
+            </div>
+          </div>
+
+          <!-- Two Interactive Flipkart Radio Options -->
+          <div class="space-y-2.5 pt-1">
+
+            <!-- Option 1: Link to Existing Flat Account -->
+            <div id="choiceCardFamily" onclick="setAccountChoice('family')"
+              class="cursor-pointer border-2 border-[#2874f0] bg-blue-50/30 rounded-sm p-3.5 transition-all flex items-start gap-3 select-none">
+              <div class="mt-0.5">
+                <div id="radioIndicatorFamily" class="w-4 h-4 rounded-full border-2 border-[#2874f0] flex items-center justify-center">
+                  <div class="w-2 h-2 rounded-full bg-[#2874f0]"></div>
+                </div>
+              </div>
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <h4 class="text-[13px] font-bold text-[#212121]">Link to Flat Account</h4>
+                  <span class="text-[9px] font-bold px-1.5 py-0.2 rounded-2xs bg-blue-100 text-[#2874f0] uppercase tracking-wide">Shared Bill</span>
+                </div>
+                <p class="text-[11.5px] text-[#666] mt-0.5 leading-snug">
+                  Quick access via 6-digit WhatsApp OTP sent to {{ primary_name }}. All orders bill together.
+                </p>
+              </div>
+            </div>
+
+            <!-- Option 2: Create Separate Account (Direct to Store Manager) -->
+            <div id="choiceCardBachelor" onclick="setAccountChoice('bachelor')"
+              class="cursor-pointer border border-[#e0e0e0] hover:border-slate-300 bg-white rounded-sm p-3.5 transition-all flex items-start gap-3 select-none">
+              <div class="mt-0.5">
+                <div id="radioIndicatorBachelor" class="w-4 h-4 rounded-full border border-slate-300 flex items-center justify-center">
+                  <div class="w-2 h-2 rounded-full bg-transparent"></div>
+                </div>
+              </div>
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <h4 class="text-[13px] font-bold text-[#212121]">Create Separate Account</h4>
+                  <span class="text-[9px] font-bold px-1.5 py-0.2 rounded-2xs bg-emerald-50 text-emerald-700 border border-emerald-200 uppercase tracking-wide">Direct Store</span>
+                </div>
+                <p class="text-[11.5px] text-[#666] mt-0.5 leading-snug">
+                  For roommates or bachelors wanting an independent passbook. Request sent directly to Store Manager (No OTP to owner).
+                </p>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Flipkart Signature Orange CTA Button -->
+          <div class="pt-2">
+            <button type="button" id="btnContinueChoice" onclick="submitAccountChoice()"
+              class="w-full h-12 bg-[#fb641b] hover:bg-[#e85a15] active:scale-[0.99] text-white font-bold text-[14px] rounded-sm shadow-sm transition-all flex items-center justify-center gap-2 uppercase tracking-wide cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed">
+              <i class="fas fa-check-circle text-xs hidden" id="choiceIconSpin"></i>
+              <span id="choiceBtnText">CONTINUE</span>
+              <i class="fas fa-chevron-right text-xs" id="choiceIconChevron"></i>
+            </button>
+          </div>
+
+          <!-- Bottom Help Links -->
+          <div class="pt-2 border-t border-[#f0f0f0] flex items-center justify-between text-xs text-[#878787]">
+            <a href="{{ next_url|default('/my-khata') }}" data-turbo="false" class="hover:text-[#212121] transition-colors">
+              <i class="fas fa-arrow-left text-[10px] mr-1"></i> Cancel &amp; Return
+            </a>
+            <span class="text-[11px] text-[#2874f0] font-medium flex items-center gap-1">
+              <i class="fas fa-lock text-[10px]"></i> 100% Safe &amp; Secure
+            </span>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<!-- Hidden Configuration Data Attributes (prevents IDE JS syntax errors) -->
+<div id="chooseAccountConfig"
+  data-block="{{ block|default('') }}"
+  data-flat="{{ flat_no|default('') }}"
+  data-next-url="{{ next_url|default('/my-khata') }}">
+</div>
+
+<script>
+  let selectedChoice = 'family';
+  const cfgEl = document.getElementById('chooseAccountConfig');
+  const targetBlock = cfgEl ? cfgEl.dataset.block : '';
+  const targetFlat = cfgEl ? cfgEl.dataset.flat : '';
+  const nextTargetUrl = cfgEl ? cfgEl.dataset.nextUrl : '/my-khata';
+
+  function setAccountChoice(opt) {
+    selectedChoice = opt;
+    const cardFamily = document.getElementById('choiceCardFamily');
+    const radioFamily = document.getElementById('radioIndicatorFamily');
+    const cardBachelor = document.getElementById('choiceCardBachelor');
+    const radioBachelor = document.getElementById('radioIndicatorBachelor');
+
+    if (opt === 'family') {
+      if (cardFamily) cardFamily.className = "cursor-pointer border-2 border-[#2874f0] bg-blue-50/30 rounded-sm p-3.5 transition-all flex items-start gap-3 select-none";
+      if (radioFamily) {
+        radioFamily.className = "w-4 h-4 rounded-full border-2 border-[#2874f0] flex items-center justify-center";
+        radioFamily.innerHTML = '<div class="w-2 h-2 rounded-full bg-[#2874f0]"></div>';
+      }
+      if (cardBachelor) cardBachelor.className = "cursor-pointer border border-[#e0e0e0] hover:border-slate-300 bg-white rounded-sm p-3.5 transition-all flex items-start gap-3 select-none";
+      if (radioBachelor) {
+        radioBachelor.className = "w-4 h-4 rounded-full border border-slate-300 flex items-center justify-center";
+        radioBachelor.innerHTML = '<div class="w-2 h-2 rounded-full bg-transparent"></div>';
+      }
+    } else {
+      if (cardBachelor) cardBachelor.className = "cursor-pointer border-2 border-[#2874f0] bg-blue-50/30 rounded-sm p-3.5 transition-all flex items-start gap-3 select-none";
+      if (radioBachelor) {
+        radioBachelor.className = "w-4 h-4 rounded-full border-2 border-[#2874f0] flex items-center justify-center";
+        radioBachelor.innerHTML = '<div class="w-2 h-2 rounded-full bg-[#2874f0]"></div>';
+      }
+      if (cardFamily) cardFamily.className = "cursor-pointer border border-[#e0e0e0] hover:border-slate-300 bg-white rounded-sm p-3.5 transition-all flex items-start gap-3 select-none";
+      if (radioFamily) {
+        radioFamily.className = "w-4 h-4 rounded-full border border-slate-300 flex items-center justify-center";
+        radioFamily.innerHTML = '<div class="w-2 h-2 rounded-full bg-transparent"></div>';
+      }
+    }
+  }
+
+  function showChoiceAlert(msg, isSuccess = false) {
+    const alertBox = document.getElementById('choiceAlert');
+    const alertText = document.getElementById('choiceAlertText');
+    const alertIcon = document.getElementById('choiceAlertIcon');
+    if (!alertBox || !alertText) return;
+
+    alertText.textContent = msg;
+    if (isSuccess) {
+      alertBox.className = "absolute top-3 left-3 right-3 sm:left-[305px] sm:right-5 z-50 p-2.5 rounded-sm bg-emerald-50 border border-emerald-200 flex gap-2 items-center animate-fade-in shadow-xs flex-nowrap";
+      if (alertIcon) alertIcon.className = "fas fa-check-circle text-emerald-600 text-xs shrink-0";
+      alertText.className = "text-[12px] font-semibold text-emerald-800 leading-tight min-w-0 flex-1";
+    } else {
+      alertBox.className = "absolute top-3 left-3 right-3 sm:left-[305px] sm:right-5 z-50 p-2.5 rounded-sm bg-red-50 border border-red-200 flex gap-2 items-center animate-fade-in shadow-xs flex-nowrap";
+      if (alertIcon) alertIcon.className = "fas fa-circle-exclamation text-red-500 text-xs shrink-0";
+      alertText.className = "text-[12px] font-semibold text-red-700 leading-tight min-w-0 flex-1";
+    }
+    alertBox.style.display = 'flex';
+  }
+
+  async function submitAccountChoice() {
+    const btn = document.getElementById('btnContinueChoice');
+    const btnText = document.getElementById('choiceBtnText');
+    const iconSpin = document.getElementById('choiceIconSpin');
+    const iconChev = document.getElementById('choiceIconChevron');
+
+    if (btn) btn.disabled = true;
+    if (btnText) btnText.textContent = 'PROCESSING...';
+    if (iconSpin) {
+      iconSpin.className = 'fas fa-spinner fa-spin text-xs';
+      iconSpin.classList.remove('hidden');
+    }
+    if (iconChev) iconChev.classList.add('hidden');
+
+    try {
+      const payload = {
+        block: targetBlock,
+        flat_no: targetFlat,
+        next: nextTargetUrl
+      };
+
+      if (selectedChoice === 'bachelor') {
+        payload.direct_vendor = true;
+      } else {
+        payload.send_owner_otp = true;
+      }
+
+      const res = await fetch('/api/khata/request-approval', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+
+      if (selectedChoice === 'family') {
+        if (data.requires_owner_otp && data.redirect_url) {
+          window.location.href = data.redirect_url;
+          return;
+        }
+      }
+
+      if (data.success) {
+        showChoiceAlert('✓ Request submitted directly to Store Manager! Taking you back...', true);
+        setTimeout(() => {
+          let dest = nextTargetUrl || '/my-khata';
+          if (dest.includes('/address')) {
+            dest = dest + (dest.includes('?') ? '&' : '?') + 'khata_pending=1';
+          }
+          window.location.href = dest;
+        }, 1200);
+      } else {
+        showChoiceAlert(data.error || 'Failed to submit request. Please try again.');
+        if (btn) btn.disabled = false;
+        if (btnText) btnText.textContent = 'CONTINUE';
+        if (iconSpin) iconSpin.classList.add('hidden');
+        if (iconChev) iconChev.classList.remove('hidden');
+      }
+    } catch (err) {
+      showChoiceAlert('Network error submitting request. Please try again.');
+      if (btn) btn.disabled = false;
+      if (btnText) btnText.textContent = 'CONTINUE';
+      if (iconSpin) iconSpin.classList.add('hidden');
+      if (iconChev) iconChev.classList.remove('hidden');
+    }
+  }
+</script>
+{% endblock %}

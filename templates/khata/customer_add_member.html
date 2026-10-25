@@ -1,0 +1,610 @@
+{% extends "base.html" %}
+
+{% block title %}Add Household Member | Store Credit | Jippy Store{% endblock %}
+
+{% block extra_head %}
+<style>
+  body, input, button, select, textarea {
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  }
+
+  /* Sharp Input Focus */
+  .sharp-input:focus {
+    border-color: #2874f0 !important;
+    outline: none !important;
+    box-shadow: 0 0 0 1px #2874f0 !important;
+    background-color: #ffffff !important;
+  }
+
+  /* OTP Visual Box Highlight */
+  .otp-box.active-box {
+    border-color: #2874f0 !important;
+    box-shadow: 0 0 0 2px rgba(40, 116, 240, 0.25) !important;
+    background-color: #ffffff !important;
+  }
+  .otp-box.filled-box {
+    border-color: #2874f0 !important;
+    background-color: #f8faff !important;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-xl mx-auto px-2 sm:px-4 py-2.5 sm:py-3 pb-24 space-y-2.5 sm:space-y-3 font-['Plus_Jakarta_Sans']">
+
+  <!-- ======================================================== -->
+  <!-- 1. HEADER CARD (Compact, Instant Load)                   -->
+  <!-- ======================================================== -->
+  <div class="bg-gradient-to-r from-[#2874f0] via-[#1f6ced] to-[#145ecc] text-white rounded-none sm:rounded-sm p-3 sm:p-4 shadow-sm relative overflow-hidden">
+    <div class="flex items-center justify-between gap-2.5">
+      <div class="flex items-center gap-2.5 min-w-0 flex-1">
+        <a href="/my-khata" data-turbo="false"
+          class="w-8 h-8 flex items-center justify-center text-white hover:bg-white/15 active:scale-90 rounded-full transition-all shrink-0 cursor-pointer"
+          title="Back to Passbook">
+          <i class="fas fa-arrow-left text-sm"></i>
+        </a>
+        <div class="min-w-0 flex-1">
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <span class="text-[9px] font-black uppercase tracking-wider bg-white/20 px-1.5 py-0.5 rounded-xs shrink-0 whitespace-nowrap">
+              Passbook
+            </span>
+            <span class="text-[10px] text-blue-100 font-bold truncate">
+              Flat {{ khata_user.block }} - {{ khata_user.flat_no }}
+            </span>
+          </div>
+          <h1 class="text-sm sm:text-base font-black text-white mt-0.5 leading-tight truncate">
+            Add Family Member
+          </h1>
+        </div>
+      </div>
+      <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white/15 border border-white/20 flex items-center justify-center text-white text-xs sm:text-sm shrink-0">
+        <i class="fas fa-user-plus"></i>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- REAL INTERACTIVE CONTENT                                 -->
+  <!-- ======================================================== -->
+  <div id="pageRealContent" class="space-y-2.5 sm:space-y-3">
+
+    <!-- Step Progress Indicator -->
+    <div class="bg-white border border-[#e0e0e0] rounded-none sm:rounded-sm px-3.5 py-2 shadow-2xs flex items-center justify-between text-xs font-bold">
+      <div class="flex items-center gap-1.5 shrink-0" id="stepIndicator1">
+        <div class="w-5 h-5 rounded-full bg-[#2874f0] text-white flex items-center justify-center text-[10px] font-black shrink-0" id="stepBadge1">
+          1
+        </div>
+        <span class="text-[#212121] text-[11px] sm:text-xs whitespace-nowrap" id="stepText1">Enter Details</span>
+      </div>
+      <div class="flex-1 h-0.5 bg-slate-200 mx-2.5 sm:mx-4" id="stepDivider"></div>
+      <div class="flex items-center gap-1.5 shrink-0 opacity-50" id="stepIndicator2">
+        <div class="w-5 h-5 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-[10px] font-black shrink-0" id="stepBadge2">
+          2
+        </div>
+        <span class="text-[#878787] text-[11px] sm:text-xs whitespace-nowrap" id="stepText2">Verify OTP</span>
+      </div>
+    </div>
+
+    <!-- Alert Box -->
+    <div id="addMemberAlert" class="hidden p-2.5 rounded-none sm:rounded-xs text-xs font-bold border transition-all text-center"></div>
+
+    <!-- ======================================================== -->
+    <!-- STEP 1: MEMBER DETAILS FORM                              -->
+    <!-- ======================================================== -->
+    <div id="stepDetailsContainer" class="bg-white border border-[#e0e0e0] rounded-none sm:rounded-sm p-3.5 sm:p-4 shadow-2xs space-y-3.5">
+      
+      <div class="border-b border-[#f0f0f0] pb-2">
+        <h2 class="text-xs sm:text-[13px] font-black uppercase tracking-wider text-[#212121] leading-tight">
+          Member Details
+        </h2>
+        <p class="text-[11px] text-[#878787] font-medium mt-0.5 leading-snug">
+          A 6-digit WhatsApp verification code will be sent to their mobile.
+        </p>
+      </div>
+
+      <!-- Member Full Name -->
+      <div class="space-y-1">
+        <label class="block text-[11px] font-bold text-[#878787] uppercase tracking-wider whitespace-nowrap">
+          Full Name <span class="text-rose-500">*</span>
+        </label>
+        <div class="relative flex items-center">
+          <span class="absolute left-3 text-slate-400 text-xs">
+            <i class="fas fa-user"></i>
+          </span>
+          <input type="text" id="inputMemberName" placeholder="e.g. Pooja Sachan"
+            autocomplete="name"
+            class="sharp-input w-full pl-8 sm:pl-9 pr-3 h-10 sm:h-11 bg-white border border-[#e0e0e0] rounded-none sm:rounded-xs text-xs sm:text-[13px] font-bold text-[#212121] transition-all placeholder:font-normal placeholder:text-[#878787]" />
+        </div>
+      </div>
+
+      <!-- WhatsApp Mobile Number -->
+      <div class="space-y-1">
+        <label class="block text-[11px] font-bold text-[#878787] uppercase tracking-wider whitespace-nowrap">
+          WhatsApp Number <span class="text-rose-500">*</span>
+        </label>
+        <div class="relative flex items-center">
+          <div class="absolute left-2.5 flex items-center gap-1 select-none pointer-events-none">
+            <span class="text-xs font-bold text-[#212121]">+91</span>
+            <span class="text-slate-300">|</span>
+          </div>
+          <input type="tel" id="inputMemberPhone" maxlength="10" placeholder="10-digit number"
+            inputmode="numeric" pattern="[0-9]*" autocomplete="tel"
+            oninput="handlePhoneInput(this)"
+            class="sharp-input w-full pl-12 pr-8 h-10 sm:h-11 bg-white border border-[#e0e0e0] rounded-none sm:rounded-xs text-xs sm:text-[13px] font-bold text-[#212121] transition-all tracking-wider placeholder:font-normal placeholder:text-[#878787] placeholder:tracking-normal" />
+          <div id="phoneCheckIcon" class="absolute right-2.5 text-emerald-600 hidden text-xs sm:text-sm">
+            <i class="fas fa-check-circle"></i>
+          </div>
+        </div>
+        <p class="text-[10px] text-[#878787]">
+          Must be active on WhatsApp to receive the code.
+        </p>
+      </div>
+
+      <!-- Primary Action CTA Button -->
+      <button type="button" onclick="triggerSendOtp()" id="btnSendOtp"
+        class="w-full h-10 sm:h-11 bg-[#fb641b] hover:bg-[#f45b10] active:scale-[0.99] text-white text-xs sm:text-[13px] font-black rounded-none sm:rounded-xs shadow-2xs transition-all flex items-center justify-center gap-2 uppercase tracking-wider cursor-pointer mt-1">
+        <i class="fab fa-whatsapp text-sm" id="sendOtpIcon"></i>
+        <span id="sendOtpText">CONTINUE</span>
+      </button>
+
+      <p class="text-[9.5px] text-center text-[#878787] leading-snug pt-0.5">
+        By continuing, you grant grocery store credit access for Flat {{ khata_user.block }} - {{ khata_user.flat_no }}. You can unlink anytime.
+      </p>
+
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- STEP 2: 6-DIGIT OTP VERIFICATION (Single Real Input Box)  -->
+    <!-- ======================================================== -->
+    <div id="stepOtpContainer" class="hidden bg-white border border-[#e0e0e0] rounded-none sm:rounded-sm p-3.5 sm:p-4 shadow-2xs space-y-3.5">
+      
+      <div class="text-center space-y-1 pb-2 border-b border-[#f0f0f0]">
+        <div class="w-10 h-10 rounded-none sm:rounded-xs bg-emerald-50 text-emerald-600 border border-emerald-200 mx-auto flex items-center justify-center text-base">
+          <i class="fab fa-whatsapp"></i>
+        </div>
+        <h2 class="text-sm font-extrabold text-[#212121] leading-tight">Verify WhatsApp OTP</h2>
+        <p class="text-[11px] text-[#878787] flex items-center justify-center gap-1 flex-wrap">
+          <span>Code sent to</span>
+          <span class="font-extrabold text-[#212121] font-mono text-xs whitespace-nowrap" id="labelTargetPhone">+91 XXXXX XXXXX</span>
+          <button type="button" onclick="editPhone()" class="text-[#2874f0] hover:underline font-bold text-xs inline-block cursor-pointer whitespace-nowrap">
+            (Change)
+          </button>
+        </p>
+      </div>
+
+      <!-- 6 Visual Boxes with 1 Underlying Pure-Number Input (Auto-Fills Automatically) -->
+      <div class="py-1">
+        <label class="block text-[10.5px] font-bold text-[#878787] uppercase tracking-wider text-center mb-2">
+          Type 6-Digit Code
+        </label>
+        
+        <div class="relative max-w-[270px] sm:max-w-xs mx-auto cursor-pointer" onclick="focusOtpInput()">
+          <!-- Real Native Input: Opens ONLY number keyboard, supports paste & WhatsApp autofill -->
+          <input type="tel" 
+                 id="nativeOtpInput" 
+                 maxlength="6" 
+                 inputmode="numeric" 
+                 pattern="[0-9]*" 
+                 autocomplete="one-time-code"
+                 class="absolute inset-0 w-full h-full opacity-0 z-20 cursor-pointer text-transparent selection:bg-transparent" 
+                 style="caret-color: transparent;"
+                 oninput="handleOtpChange(this)"
+                 onfocus="updateVisualOtp()"
+                 onblur="updateVisualOtp()" />
+
+          <!-- 6 Visual Display Boxes (Grid) -->
+          <div class="grid grid-cols-6 gap-1.5 sm:gap-2.5 pointer-events-none select-none" id="otpCellsWrapper">
+            <div class="otp-box w-full aspect-square sm:h-12 bg-white border border-[#e0e0e0] rounded-none sm:rounded-xs flex items-center justify-center text-lg sm:text-xl font-black text-[#2874f0] transition-all" data-index="0"></div>
+            <div class="otp-box w-full aspect-square sm:h-12 bg-white border border-[#e0e0e0] rounded-none sm:rounded-xs flex items-center justify-center text-lg sm:text-xl font-black text-[#2874f0] transition-all" data-index="1"></div>
+            <div class="otp-box w-full aspect-square sm:h-12 bg-white border border-[#e0e0e0] rounded-none sm:rounded-xs flex items-center justify-center text-lg sm:text-xl font-black text-[#2874f0] transition-all" data-index="2"></div>
+            <div class="otp-box w-full aspect-square sm:h-12 bg-white border border-[#e0e0e0] rounded-none sm:rounded-xs flex items-center justify-center text-lg sm:text-xl font-black text-[#2874f0] transition-all" data-index="3"></div>
+            <div class="otp-box w-full aspect-square sm:h-12 bg-white border border-[#e0e0e0] rounded-none sm:rounded-xs flex items-center justify-center text-lg sm:text-xl font-black text-[#2874f0] transition-all" data-index="4"></div>
+            <div class="otp-box w-full aspect-square sm:h-12 bg-white border border-[#e0e0e0] rounded-none sm:rounded-xs flex items-center justify-center text-lg sm:text-xl font-black text-[#2874f0] transition-all" data-index="5"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Verify CTA -->
+      <button type="button" onclick="triggerVerifyOtp()" id="btnVerifyOtp"
+        class="w-full h-10 sm:h-11 bg-[#fb641b] hover:bg-[#f45b10] active:scale-[0.99] text-white text-xs sm:text-[13px] font-black rounded-none sm:rounded-xs shadow-2xs transition-all flex items-center justify-center gap-2 uppercase tracking-wider cursor-pointer">
+        <i class="fas fa-check-circle text-sm" id="verifyOtpIcon"></i>
+        <span id="verifyOtpText">VERIFY &amp; LINK MEMBER</span>
+      </button>
+
+      <!-- Timer & Resend Controls -->
+      <div class="flex items-center justify-between text-xs pt-0.5 px-0.5">
+        <button type="button" onclick="editPhone()" class="text-[#878787] hover:text-[#2874f0] font-semibold transition-colors cursor-pointer flex items-center gap-1 whitespace-nowrap">
+          <i class="fas fa-arrow-left text-[9px]"></i>
+          <span>Change</span>
+        </button>
+        <div class="whitespace-nowrap">
+          <span id="resendCountdownText" class="text-[#878787] font-medium text-[11px] sm:text-xs">Resend in <b id="countdownTimer" class="font-mono text-[#212121] font-bold">30s</b></span>
+          <button type="button" id="btnResendOtp" onclick="triggerResendOtp()" class="hidden text-[#2874f0] hover:underline font-bold text-[11px] sm:text-xs transition-colors cursor-pointer whitespace-nowrap">
+            Resend Code
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- STEP 3: SUCCESS STATE                                    -->
+    <!-- ======================================================== -->
+    <div id="stepSuccessContainer" class="hidden bg-white border border-emerald-300 rounded-none sm:rounded-sm p-5 shadow-2xs text-center space-y-2.5">
+      <div class="w-11 h-11 rounded-full bg-emerald-100 text-emerald-600 mx-auto flex items-center justify-center text-xl">
+        <i class="fas fa-check"></i>
+      </div>
+      <h2 class="text-sm font-extrabold text-[#212121]">Member Linked Successfully!</h2>
+      <p class="text-xs text-[#878787] max-w-xs mx-auto leading-relaxed" id="successDesc">
+        Your family member can now place store credit grocery orders directly to your flat passbook.
+      </p>
+      <div class="pt-1">
+        <div class="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-[#2874f0] text-[11px] font-bold rounded-xs border border-blue-200">
+          <i class="fas fa-spinner fa-spin text-[10px]"></i>
+          <span>Redirecting to Passbook...</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- PASSBOOK ASSURANCE & BENEFIT TILES                       -->
+    <!-- ======================================================== -->
+    <div class="bg-white border border-[#e0e0e0] rounded-none sm:rounded-sm p-3 sm:p-3.5 shadow-2xs space-y-2.5">
+      <div class="flex items-center justify-between border-b border-[#f0f0f0] pb-1.5">
+        <h3 class="text-[11px] sm:text-xs font-black uppercase tracking-wider text-[#212121] flex items-center gap-1.5 whitespace-nowrap">
+          <i class="fas fa-shield-alt text-[#2874f0] text-xs"></i>
+          <span>Store Credit Benefits</span>
+        </h3>
+        <span class="text-[9.5px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-xs border border-emerald-200 shrink-0 whitespace-nowrap">
+          100% Safe
+        </span>
+      </div>
+
+      <div class="space-y-2 text-xs text-[#212121]">
+        <div class="flex items-start gap-2">
+          <div class="w-5 h-5 rounded-xs bg-blue-50 text-[#2874f0] flex items-center justify-center shrink-0 mt-0.5 text-[10px] border border-blue-200">
+            <i class="fas fa-bolt"></i>
+          </div>
+          <div class="leading-snug">
+            <strong class="font-bold text-[#212121]">1-Click Checkout:</strong> No OTP needed on daily milk and grocery orders.
+          </div>
+        </div>
+
+        <div class="flex items-start gap-2">
+          <div class="w-5 h-5 rounded-xs bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 mt-0.5 text-[10px] border border-emerald-200">
+            <i class="fab fa-whatsapp"></i>
+          </div>
+          <div class="leading-snug">
+            <strong class="font-bold text-[#212121]">WhatsApp Invoices:</strong> Instant bill copy sent to your WhatsApp on every order.
+          </div>
+        </div>
+
+        <div class="flex items-start gap-2">
+          <div class="w-5 h-5 rounded-xs bg-amber-50 text-amber-700 flex items-center justify-center shrink-0 mt-0.5 text-[10px] border border-amber-200">
+            <i class="fas fa-user-shield"></i>
+          </div>
+          <div class="leading-snug">
+            <strong class="font-bold text-[#212121]">Full Control:</strong> Unlink or remove any member anytime with 1 tap.
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- ======================================================== -->
+<!-- JAVASCRIPT: ROBUST NATIVE NUMBER KEYPAD OTP CONTROLLER   -->
+<!-- ======================================================== -->
+<script>
+  let activePhone = '';
+  let resendTimerInterval = null;
+
+  // 1. Safe Instant Initialization
+  function initAddMemberPage() {
+    const nameInput = document.getElementById('inputMemberName');
+    if (nameInput) {
+      setTimeout(() => { nameInput.focus(); }, 50);
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initAddMemberPage);
+  } else {
+    initAddMemberPage();
+  }
+  document.addEventListener('turbo:load', initAddMemberPage);
+  document.addEventListener('turbo:render', initAddMemberPage);
+
+  // 2. Alert Box Helper
+  function showAlert(msg, isError = true) {
+    const box = document.getElementById('addMemberAlert');
+    if (!box) return;
+    box.textContent = msg;
+    box.className = isError 
+      ? 'p-2 rounded-none sm:rounded-xs text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200 text-center block'
+      : 'p-2 rounded-none sm:rounded-xs text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 text-center block';
+    box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function hideAlert() {
+    const box = document.getElementById('addMemberAlert');
+    if (box) box.classList.add('hidden');
+  }
+
+  // 3. Phone Input Handler with Live Checkmark
+  function handlePhoneInput(el) {
+    let clean = el.value.replace(/\D/g, '');
+    if (clean.length > 10) clean = clean.slice(0, 10);
+    el.value = clean;
+
+    const checkIcon = document.getElementById('phoneCheckIcon');
+    if (checkIcon) {
+      if (clean.length === 10) {
+        checkIcon.classList.remove('hidden');
+      } else {
+        checkIcon.classList.add('hidden');
+      }
+    }
+  }
+
+  // 4. Send OTP Request
+  async function triggerSendOtp(isResend = false) {
+    hideAlert();
+    const nameInput = document.getElementById('inputMemberName');
+    const phoneInput = document.getElementById('inputMemberPhone');
+    const btn = isResend ? document.getElementById('btnResendOtp') : document.getElementById('btnSendOtp');
+    const icon = document.getElementById('sendOtpIcon');
+    const text = document.getElementById('sendOtpText');
+
+    const rawName = (nameInput ? nameInput.value : '').trim();
+    const phone = (phoneInput ? phoneInput.value : '').replace(/\D/g, '');
+
+    if (!rawName) {
+      showAlert("Please enter the member's full name.", true);
+      if (nameInput) nameInput.focus();
+      return;
+    }
+
+    if (!phone || phone.length !== 10) {
+      showAlert("Please enter a valid 10-digit WhatsApp number.", true);
+      if (phoneInput) phoneInput.focus();
+      return;
+    }
+
+    // Loading State
+    if (!isResend && btn) {
+      btn.disabled = true;
+      if (icon) icon.className = 'fas fa-circle-notch fa-spin text-sm text-white';
+      if (text) text.textContent = 'SENDING CODE...';
+    } else if (isResend && btn) {
+      btn.innerText = 'Sending...';
+      btn.disabled = true;
+    }
+
+    try {
+      const resp = await fetch('/api/my-khata/family/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: rawName, phone: phone })
+      });
+      const data = await resp.json();
+
+      if (data.success) {
+        activePhone = phone;
+        switchToStep2(phone);
+        showAlert(data.message || `Code sent to +91 ${phone} via WhatsApp.`, false);
+        startResendTimer(30);
+      } else {
+        showAlert(data.error || "Failed to dispatch verification code.", true);
+      }
+    } catch (e) {
+      showAlert("Network error. Please check your internet connection.", true);
+    } finally {
+      if (!isResend && btn) {
+        btn.disabled = false;
+        if (icon) icon.className = 'fab fa-whatsapp text-sm';
+        if (text) text.textContent = 'CONTINUE';
+      }
+    }
+  }
+
+  // 5. Switch to Step 2 (Auto-focuses native single input to open dialpad)
+  function switchToStep2(phone) {
+    const step1 = document.getElementById('stepDetailsContainer');
+    const step2 = document.getElementById('stepOtpContainer');
+    const label = document.getElementById('labelTargetPhone');
+
+    if (label) label.textContent = `+91 ${phone.slice(0, 5)} ${phone.slice(5)}`;
+
+    if (step1) step1.classList.add('hidden');
+    if (step2) step2.classList.remove('hidden');
+
+    // Update Step Indicators
+    const b1 = document.getElementById('stepBadge1');
+    const t1 = document.getElementById('stepText1');
+    const b2 = document.getElementById('stepBadge2');
+    const t2 = document.getElementById('stepText2');
+    const ind2 = document.getElementById('stepIndicator2');
+
+    if (b1) {
+      b1.className = 'w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px] font-black shrink-0';
+      b1.innerHTML = '<i class="fas fa-check text-[9px]"></i>';
+    }
+    if (b2) {
+      b2.className = 'w-5 h-5 rounded-full bg-[#2874f0] text-white flex items-center justify-center text-[10px] font-black shrink-0';
+    }
+    if (t2) t2.className = 'text-[#212121] text-[11px] sm:text-xs whitespace-nowrap';
+    if (ind2) ind2.classList.remove('opacity-50');
+
+    // Clear old values and focus pure number pad
+    const nativeInput = document.getElementById('nativeOtpInput');
+    if (nativeInput) nativeInput.value = '';
+    updateVisualOtp();
+
+    setTimeout(() => {
+      focusOtpInput();
+    }, 120);
+  }
+
+  // 6. Edit Phone
+  function editPhone() {
+    hideAlert();
+    const step1 = document.getElementById('stepDetailsContainer');
+    const step2 = document.getElementById('stepOtpContainer');
+
+    if (step2) step2.classList.add('hidden');
+    if (step1) step1.classList.remove('hidden');
+
+    const b1 = document.getElementById('stepBadge1');
+    const b2 = document.getElementById('stepBadge2');
+    const t2 = document.getElementById('stepText2');
+    const ind2 = document.getElementById('stepIndicator2');
+
+    if (b1) {
+      b1.className = 'w-5 h-5 rounded-full bg-[#2874f0] text-white flex items-center justify-center text-[10px] font-black shrink-0';
+      b1.textContent = '1';
+    }
+    if (b2) {
+      b2.className = 'w-5 h-5 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-[10px] font-black shrink-0';
+    }
+    if (t2) t2.className = 'text-[#878787] text-[11px] sm:text-xs whitespace-nowrap';
+    if (ind2) ind2.classList.add('opacity-50');
+
+    const nativeInput = document.getElementById('nativeOtpInput');
+    if (nativeInput) nativeInput.value = '';
+    updateVisualOtp();
+  }
+
+  // 7. ROBUST SINGLE-INPUT NATIVE DIALPAD & AUTO-FILL HANDLER
+  function focusOtpInput() {
+    const input = document.getElementById('nativeOtpInput');
+    if (input) {
+      input.focus();
+      updateVisualOtp();
+    }
+  }
+
+  function handleOtpChange(el) {
+    let val = el.value.replace(/\D/g, '');
+    if (val.length > 6) val = val.slice(0, 6);
+    el.value = val;
+    updateVisualOtp();
+
+    // Auto-verify as soon as 6th digit is entered or pasted
+    if (val.length === 6) {
+      triggerVerifyOtp();
+    }
+  }
+
+  function updateVisualOtp() {
+    const input = document.getElementById('nativeOtpInput');
+    if (!input) return;
+    const val = input.value || '';
+    const isFocused = (document.activeElement === input);
+    const boxes = document.querySelectorAll('.otp-box');
+
+    boxes.forEach((box, i) => {
+      const char = val[i] || '';
+      box.textContent = char;
+
+      box.classList.remove('active-box', 'filled-box');
+      if (char) {
+        box.classList.add('filled-box');
+      } else if (isFocused && i === val.length) {
+        box.classList.add('active-box');
+      }
+    });
+  }
+
+  function getCombinedOtp() {
+    const input = document.getElementById('nativeOtpInput');
+    return input ? (input.value || '').replace(/\D/g, '') : '';
+  }
+
+  // 8. Verify OTP Request
+  async function triggerVerifyOtp() {
+    hideAlert();
+    const otp = getCombinedOtp();
+    const btn = document.getElementById('btnVerifyOtp');
+    const icon = document.getElementById('verifyOtpIcon');
+    const text = document.getElementById('verifyOtpText');
+
+    if (otp.length !== 6) {
+      showAlert("Please enter all 6 digits of the code.", true);
+      return;
+    }
+
+    if (btn) btn.disabled = true;
+    if (icon) icon.className = 'fas fa-spinner fa-spin text-sm';
+    if (text) text.textContent = 'VERIFYING...';
+
+    try {
+      const resp = await fetch('/api/my-khata/family/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: activePhone, otp: otp })
+      });
+      const data = await resp.json();
+
+      if (data.success) {
+        const step2 = document.getElementById('stepOtpContainer');
+        const successView = document.getElementById('stepSuccessContainer');
+        const desc = document.getElementById('successDesc');
+
+        if (step2) step2.classList.add('hidden');
+        if (successView) successView.classList.remove('hidden');
+        if (desc && data.message) desc.textContent = data.message;
+
+        setTimeout(() => {
+          window.location.href = '/my-khata';
+        }, 1100);
+      } else {
+        showAlert(data.error || "Incorrect code. Please try again.", true);
+        if (btn) {
+          btn.disabled = false;
+          if (icon) icon.className = 'fas fa-check-circle text-sm';
+          if (text) text.textContent = 'VERIFY & LINK MEMBER';
+        }
+      }
+    } catch (e) {
+      showAlert("Network error during verification. Please retry.", true);
+      if (btn) {
+        btn.disabled = false;
+        if (icon) icon.className = 'fas fa-check-circle text-sm';
+        if (text) text.textContent = 'VERIFY & LINK MEMBER';
+      }
+    }
+  }
+
+  // 9. Resend Timer (30s format)
+  function startResendTimer(seconds = 30) {
+    clearInterval(resendTimerInterval);
+    const countdownText = document.getElementById('resendCountdownText');
+    const timerVal = document.getElementById('countdownTimer');
+    const resendBtn = document.getElementById('btnResendOtp');
+
+    if (countdownText) countdownText.classList.remove('hidden');
+    if (resendBtn) resendBtn.classList.add('hidden');
+
+    let rem = seconds;
+    if (timerVal) timerVal.textContent = `${rem}s`;
+
+    resendTimerInterval = setInterval(() => {
+      rem -= 1;
+      if (timerVal) timerVal.textContent = `${rem}s`;
+
+      if (rem <= 0) {
+        clearInterval(resendTimerInterval);
+        if (countdownText) countdownText.classList.add('hidden');
+        if (resendBtn) resendBtn.classList.remove('hidden');
+      }
+    }, 1000);
+  }
+
+  function triggerResendOtp() {
+    triggerSendOtp(true);
+  }
+</script>
+{% endblock %}

@@ -1,0 +1,441 @@
+{% extends "base_vendor.html" %}
+
+{% block title %}Stock & Catalog | {{ shop_name }} | Jippy Store Seller Hub{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-3 sm:space-y-4 pb-16 font-['Plus_Jakarta_Sans']">
+
+  <!-- ======================================================== -->
+  <!-- 1. MOBILE APP HEADER: Back + Title + Live Counters       -->
+  <!-- ======================================================== -->
+  <div class="bg-white border border-[#e0e0e0] rounded-xl sm:rounded-2xl p-3 sm:p-4 shadow-2xs">
+    <div class="flex items-center justify-between gap-2.5">
+      <div class="flex items-center gap-2.5 min-w-0">
+        <a href="{{ url_for('vendor_dashboard') }}" 
+           class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[#f1f3f6] hover:bg-slate-200 text-slate-700 flex items-center justify-center transition-all active:scale-95 shrink-0"
+           title="Back to Dashboard">
+          <i class="fas fa-arrow-left text-sm"></i>
+        </a>
+        <div class="min-w-0">
+          <h1 class="text-sm sm:text-base font-extrabold text-[#212121] leading-tight truncate flex items-center gap-1.5">
+            <i class="fas fa-boxes-stacked text-[#2874f0]"></i>
+            <span>Catalog & Stock Control</span>
+          </h1>
+          <p class="text-[10.5px] sm:text-xs text-[#878787] truncate">
+            Tap any item switch to turn In/Out of Stock instantly
+          </p>
+        </div>
+      </div>
+
+      <!-- Quick Total Items Chip -->
+      <div class="shrink-0 text-right">
+        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-50 text-[#2874f0] border border-blue-200 font-extrabold text-[11px] sm:text-xs">
+          <span>{{ total_products_count }}</span>
+          <span class="text-[9.5px] font-bold text-blue-600 uppercase tracking-tight">Items</span>
+        </span>
+      </div>
+    </div>
+
+    <!-- Stock KPI Filter Tabs (Segmented Phone Control) -->
+    <div class="grid grid-cols-3 gap-1.5 sm:gap-2 mt-3 pt-3 border-t border-[#f0f0f0]">
+      <!-- Tab 1: All -->
+      <button type="button" 
+              onclick="setStockStatusFilter('all')" 
+              id="filter-tab-all"
+              class="stock-status-tab flex flex-col sm:flex-row items-center justify-center gap-1 py-1.5 sm:py-2 px-2 rounded-lg text-xs font-bold transition-all border shadow-2xs bg-[#2874f0] text-white border-[#2874f0]" 
+              data-status="all">
+        <span class="text-[11px] sm:text-xs">All Items</span>
+        <span class="text-[10px] sm:text-[11px] font-black opacity-90">({{ total_products_count }})</span>
+      </button>
+
+      <!-- Tab 2: In Stock -->
+      <button type="button" 
+              onclick="setStockStatusFilter('in_stock')" 
+              id="filter-tab-in_stock"
+              class="stock-status-tab flex flex-col sm:flex-row items-center justify-center gap-1 py-1.5 sm:py-2 px-2 rounded-lg text-xs font-bold transition-all border shadow-2xs bg-[#f8f9fa] text-slate-700 border-[#e0e0e0] hover:bg-slate-100" 
+              data-status="in_stock">
+        <span class="flex items-center gap-1 text-[11px] sm:text-xs">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> In Stock
+        </span>
+        <span id="inv-in-stock-count" class="text-[10px] sm:text-[11px] font-black text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded-xs border border-emerald-200">
+          {{ in_stock_count }}
+        </span>
+      </button>
+
+      <!-- Tab 3: Out of Stock -->
+      <button type="button" 
+              onclick="setStockStatusFilter('oos')" 
+              id="filter-tab-oos"
+              class="stock-status-tab flex flex-col sm:flex-row items-center justify-center gap-1 py-1.5 sm:py-2 px-2 rounded-lg text-xs font-bold transition-all border shadow-2xs bg-[#f8f9fa] text-slate-700 border-[#e0e0e0] hover:bg-slate-100" 
+              data-status="oos">
+        <span class="flex items-center gap-1 text-[11px] sm:text-xs">
+          <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span> OOS
+        </span>
+        <span id="inv-oos-count" class="text-[10px] sm:text-[11px] font-black text-rose-700 bg-rose-50 px-1.5 py-0.2 rounded-xs border border-rose-200">
+          {{ oos_count }}
+        </span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- 2. STICKY SEARCH & CATEGORY CHIPS BAR                    -->
+  <!-- ======================================================== -->
+  <div class="sticky top-[56px] sm:top-[60px] z-30 bg-[#f1f3f6]/95 backdrop-blur-md pt-0.5 pb-1 space-y-2">
+    <!-- Phone Search Box -->
+    <div class="relative flex items-center bg-white rounded-xl border border-[#e0e0e0] shadow-2xs focus-within:border-[#2874f0] focus-within:ring-2 focus-within:ring-blue-100 transition-all">
+      <i class="fas fa-magnifying-glass ml-3.5 text-[#878787] text-xs"></i>
+      <input type="text" 
+             id="stock-search-input" 
+             oninput="filterStockTable()" 
+             placeholder="Search product, category or brand..." 
+             class="w-full pl-3 pr-9 py-2.5 sm:py-3 bg-transparent text-[#212121] text-xs sm:text-[13px] font-medium outline-none placeholder:text-[#878787]"
+             autocomplete="off">
+      <button type="button" 
+              id="clear-search-btn"
+              onclick="clearSearchInput()" 
+              class="absolute right-2.5 p-1 text-[#878787] hover:text-rose-600 hidden transition-colors"
+              title="Clear search">
+        <i class="fas fa-times-circle text-sm"></i>
+      </button>
+    </div>
+
+    <!-- Phone Horizontal Category Chips Slider (One-Thumb Swipe) -->
+    <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar scroll-smooth py-0.5 px-0.5" id="category-chips-slider">
+      <!-- All Categories Chip -->
+      <button type="button" 
+              onclick="setCategoryFilter('')"
+              class="category-chip px-3 py-1.5 rounded-full text-[11px] font-bold whitespace-nowrap shrink-0 transition-all active:scale-95 shadow-2xs bg-[#2874f0] text-white border border-[#2874f0]"
+              data-cat="">
+        <i class="fas fa-layer-group text-[9px] mr-1"></i> All Categories
+      </button>
+      {% for cat in categories %}
+      <button type="button" 
+              onclick="setCategoryFilter('{{ cat|lower }}')"
+              class="category-chip px-3 py-1.5 rounded-full text-[11px] font-bold whitespace-nowrap shrink-0 transition-all active:scale-95 shadow-2xs bg-white text-slate-700 border border-[#e0e0e0] hover:bg-slate-100"
+              data-cat="{{ cat|lower }}">
+        {{ cat }}
+      </button>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- 3. MOBILE-OPTIMIZED PRODUCT CARDS LIST                   -->
+  <!-- ======================================================== -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3" id="stock-products-container">
+    {% for p in catalog_products %}
+    <div class="stock-item-row group bg-white border {{ 'border-rose-200 bg-rose-50/20' if p.is_oos else 'border-[#e0e0e0]' }} rounded-xl p-3 shadow-2xs hover:shadow-xs transition-all relative flex flex-col justify-between"
+         id="product-card-{{ p.id }}"
+         data-name="{{ p.name|lower }}"
+         data-cat="{{ p.category|lower }}"
+         data-brand="{{ p.brand|lower if p.brand else '' }}"
+         data-oos="{{ 'true' if p.is_oos else 'false' }}">
+
+      <!-- Card Top: Thumbnail + Details -->
+      <div class="flex items-start gap-3">
+        <!-- Product Thumbnail with subtle status indicator -->
+        <div class="relative w-16 h-16 sm:w-20 sm:h-20 rounded-lg bg-white border border-[#f0f0f0] p-1 shrink-0 overflow-hidden flex items-center justify-center">
+          {% if p.image %}
+          <img src="{{ p.image }}" 
+               alt="{{ p.name }}" 
+               class="max-w-full max-h-full object-contain product-thumb-img {{ 'grayscale opacity-60' if p.is_oos else '' }} transition-all"
+               onerror="this.onerror=null; this.src='https://placehold.co/120x120?text=Item';">
+          {% else %}
+          <div class="w-full h-full flex items-center justify-center text-[#878787] bg-slate-50">
+            <i class="fas fa-image text-sm"></i>
+          </div>
+          {% endif %}
+
+          <!-- Mini Corner Badge on Image -->
+          <div class="absolute top-0.5 right-0.5 w-2.5 h-2.5 rounded-full border border-white shadow-xs {{ 'bg-rose-500' if p.is_oos else 'bg-emerald-500' }}"
+               id="img-badge-{{ p.id }}"
+               title="{{ 'Out of Stock' if p.is_oos else 'In Stock' }}">
+          </div>
+        </div>
+
+        <!-- Product Text Info -->
+        <div class="flex-1 min-w-0 pr-0.5">
+          <div class="flex items-center gap-1.5 flex-wrap mb-1">
+            <span class="px-2 py-0.5 rounded-xs bg-[#f1f3f6] text-[#212121] text-[9.5px] sm:text-[10px] font-bold uppercase tracking-tight truncate max-w-[150px]">
+              {{ p.category }}
+            </span>
+            {% if p.unit %}
+            <span class="text-[10px] text-[#878787] font-medium">• {{ p.unit }}</span>
+            {% endif %}
+          </div>
+
+          <h3 class="text-xs sm:text-[13px] font-bold text-[#212121] leading-snug line-clamp-2">
+            {{ p.name }}
+          </h3>
+
+          <div class="flex items-baseline gap-1.5 mt-1">
+            <span class="text-sm sm:text-base font-extrabold text-[#212121] font-mono-code">
+              ₹{{ '%.2f'|format(p.discount_price if p.discount_price and p.discount_price < p.price else p.price) }}
+            </span>
+            {% if p.discount_price and p.discount_price < p.price %}
+            <span class="text-[10.5px] text-[#878787] line-through font-mono-code">
+              ₹{{ '%.2f'|format(p.price) }}
+            </span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Card Bottom: App Style Quick Stock Toggle Bar -->
+      <div class="mt-3 pt-2.5 border-t border-[#f0f0f0] flex items-center justify-between gap-2">
+        <!-- Live Status Label -->
+        <div class="flex items-center gap-1.5 min-w-0">
+          <span id="stock-pill-{{ p.id }}" 
+                class="inline-flex items-center gap-1 px-2 py-0.5 rounded-xs text-[10px] font-extrabold uppercase tracking-wider {{ 'bg-red-50 text-red-700 border border-red-200' if p.is_oos else 'bg-emerald-50 text-emerald-800 border border-emerald-200' }}">
+            <span class="w-1.5 h-1.5 rounded-full {{ 'bg-red-500' if p.is_oos else 'bg-emerald-500' }}"></span>
+            <span>{{ 'Out of Stock' if p.is_oos else 'In Stock' }}</span>
+          </span>
+        </div>
+
+        <!-- Phone-friendly Toggle Switch Button -->
+        <button type="button" 
+                id="stock-btn-{{ p.id }}"
+                onclick="toggleStockAjax('{{ p.id }}', this)" 
+                class="stock-toggle-action-btn flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all active:scale-95 shadow-2xs cursor-pointer select-none {{ 'bg-emerald-600 hover:bg-emerald-700 text-white' if p.is_oos else 'bg-rose-600 hover:bg-rose-700 text-white' }}"
+                title="Tap to change stock availability">
+          <!-- Toggle Knob Visual -->
+          <div class="w-6 h-3.5 rounded-full p-0.5 flex items-center transition-all {{ 'bg-white/30 justify-start' if p.is_oos else 'bg-white/40 justify-end' }}" id="switch-track-{{ p.id }}">
+            <div class="w-2.5 h-2.5 rounded-full bg-white shadow-2xs"></div>
+          </div>
+          <span id="switch-label-{{ p.id }}">{{ 'Turn ON' if p.is_oos else 'Turn OFF' }}</span>
+        </button>
+      </div>
+
+    </div>
+    {% else %}
+    <div class="col-span-full p-10 text-center bg-white border border-[#e0e0e0] rounded-xl text-xs text-[#878787]">
+      <i class="fas fa-boxes-stacked text-3xl text-slate-300 mb-2"></i>
+      <p class="font-bold text-slate-700">Catalog is empty</p>
+      <p class="text-[11px] text-slate-400 mt-0.5">No products assigned to this shop catalog yet.</p>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Empty Search Results Placeholder -->
+  <div id="no-search-results" class="hidden p-8 sm:p-12 text-center bg-white border border-dashed border-[#e0e0e0] rounded-xl shadow-2xs">
+    <div class="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-2 text-base">
+      <i class="fas fa-magnifying-glass"></i>
+    </div>
+    <h3 class="text-sm font-extrabold text-[#212121]">No Products Found</h3>
+    <p class="text-xs text-[#878787] mt-0.5">Try searching with a different product name, brand or category</p>
+    <button type="button" 
+            onclick="resetAllFilters()" 
+            class="mt-3.5 px-4 py-2 bg-[#2874f0] text-white text-xs font-bold rounded-lg shadow-2xs hover:bg-blue-600 active:scale-95 transition-all">
+      Reset All Filters
+    </button>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  let currentStockFilter = 'all';
+  let currentCategoryFilter = '';
+
+  // 1. Stock Status Segment Filter (All / In Stock / OOS)
+  function setStockStatusFilter(status) {
+    currentStockFilter = status;
+    document.querySelectorAll('.stock-status-tab').forEach(tab => {
+      const isSelected = tab.dataset.status === status;
+      if (isSelected) {
+        tab.className = "stock-status-tab flex flex-col sm:flex-row items-center justify-center gap-1 py-1.5 sm:py-2 px-2 rounded-lg text-xs font-bold transition-all border shadow-2xs bg-[#2874f0] text-white border-[#2874f0]";
+      } else {
+        tab.className = "stock-status-tab flex flex-col sm:flex-row items-center justify-center gap-1 py-1.5 sm:py-2 px-2 rounded-lg text-xs font-bold transition-all border shadow-2xs bg-[#f8f9fa] text-slate-700 border-[#e0e0e0] hover:bg-slate-100";
+      }
+    });
+    filterStockTable();
+  }
+
+  // 2. Horizontal Category Chips Filter
+  function setCategoryFilter(cat) {
+    currentCategoryFilter = (cat || '').toLowerCase().trim();
+    document.querySelectorAll('.category-chip').forEach(chip => {
+      const chipCat = (chip.dataset.cat || '').toLowerCase().trim();
+      const isSelected = (chipCat === currentCategoryFilter);
+      if (isSelected) {
+        chip.className = "category-chip px-3 py-1.5 rounded-full text-[11px] font-bold whitespace-nowrap shrink-0 transition-all active:scale-95 shadow-2xs bg-[#2874f0] text-white border border-[#2874f0]";
+        // Scroll active chip into view smoothly
+        try {
+          chip.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        } catch(e) {}
+      } else {
+        chip.className = "category-chip px-3 py-1.5 rounded-full text-[11px] font-bold whitespace-nowrap shrink-0 transition-all active:scale-95 shadow-2xs bg-white text-slate-700 border border-[#e0e0e0] hover:bg-slate-100";
+      }
+    });
+    filterStockTable();
+  }
+
+  // 3. Clear Search Input
+  function clearSearchInput() {
+    const input = document.getElementById('stock-search-input');
+    if (input) {
+      input.value = '';
+      input.focus();
+    }
+    filterStockTable();
+  }
+
+  // 4. Reset All Filters
+  function resetAllFilters() {
+    const input = document.getElementById('stock-search-input');
+    if (input) input.value = '';
+    setStockStatusFilter('all');
+    setCategoryFilter('');
+  }
+
+  // 5. Master Filter Controller (Instant Client-side filtering)
+  function filterStockTable() {
+    const searchVal = (document.getElementById('stock-search-input')?.value || '').toLowerCase().trim();
+    const clearBtn = document.getElementById('clear-search-btn');
+    if (clearBtn) {
+      clearBtn.classList.toggle('hidden', searchVal.length === 0);
+    }
+
+    const cards = document.querySelectorAll('.stock-item-row');
+    let visibleCount = 0;
+
+    cards.forEach(card => {
+      const name = card.dataset.name || '';
+      const cat = card.dataset.cat || '';
+      const brand = card.dataset.brand || '';
+      const isOos = card.dataset.oos === 'true';
+
+      const matchesSearch = !searchVal || name.includes(searchVal) || cat.includes(searchVal) || brand.includes(searchVal);
+      const matchesCat = !currentCategoryFilter || cat === currentCategoryFilter;
+      let matchesStatus = true;
+      if (currentStockFilter === 'in_stock') matchesStatus = !isOos;
+      if (currentStockFilter === 'oos') matchesStatus = isOos;
+
+      if (matchesSearch && matchesCat && matchesStatus) {
+        card.classList.remove('hidden');
+        visibleCount++;
+      } else {
+        card.classList.add('hidden');
+      }
+    });
+
+    const noResults = document.getElementById('no-search-results');
+    if (noResults) {
+      noResults.classList.toggle('hidden', !(visibleCount === 0 && cards.length > 0));
+    }
+  }
+
+  // 6. Instant Phone-Friendly Stock Toggle AJAX
+  function toggleStockAjax(productId, btnElement) {
+    if (!productId) return;
+    btnElement.disabled = true;
+
+    // Haptic feedback for tactile phone feel
+    if (window.navigator && window.navigator.vibrate) {
+      try { window.navigator.vibrate(25); } catch(e) {}
+    }
+
+    const labelEl = document.getElementById(`switch-label-${productId}`);
+    const originalLabel = labelEl ? labelEl.textContent : btnElement.textContent;
+    if (labelEl) labelEl.textContent = 'Updating...';
+
+    fetch(`/vendor/api/toggle-stock/${productId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    })
+    .then(r => r.json())
+    .then(data => {
+      btnElement.disabled = false;
+      if (data.success) {
+        const isOos = Boolean(data.is_oos);
+        const card = document.getElementById(`product-card-${productId}`) || btnElement.closest('.stock-item-row');
+        const pill = document.getElementById(`stock-pill-${productId}`);
+        const imgBadge = document.getElementById(`img-badge-${productId}`);
+        const switchTrack = document.getElementById(`switch-track-${productId}`);
+        const thumbImg = card ? card.querySelector('.product-thumb-img') : null;
+
+        if (card) {
+          card.dataset.oos = isOos ? 'true' : 'false';
+          if (isOos) {
+            card.classList.add('border-rose-200', 'bg-rose-50/20');
+            card.classList.remove('border-[#e0e0e0]');
+          } else {
+            card.classList.remove('border-rose-200', 'bg-rose-50/20');
+            card.classList.add('border-[#e0e0e0]');
+          }
+        }
+
+        if (thumbImg) {
+          if (isOos) {
+            thumbImg.classList.add('grayscale', 'opacity-60');
+          } else {
+            thumbImg.classList.remove('grayscale', 'opacity-60');
+          }
+        }
+
+        if (imgBadge) {
+          imgBadge.className = `absolute top-0.5 right-0.5 w-2.5 h-2.5 rounded-full border border-white shadow-xs ${isOos ? 'bg-rose-500' : 'bg-emerald-500'}`;
+        }
+
+        if (pill) {
+          pill.className = `inline-flex items-center gap-1 px-2 py-0.5 rounded-xs text-[10px] font-extrabold uppercase tracking-wider ${isOos ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-emerald-50 text-emerald-800 border border-emerald-200'}`;
+          pill.innerHTML = `<span class="w-1.5 h-1.5 rounded-full ${isOos ? 'bg-red-500' : 'bg-emerald-500'}"></span><span>${isOos ? 'Out of Stock' : 'In Stock'}</span>`;
+        }
+
+        if (switchTrack) {
+          switchTrack.className = `w-6 h-3.5 rounded-full p-0.5 flex items-center transition-all ${isOos ? 'bg-white/30 justify-start' : 'bg-white/40 justify-end'}`;
+        }
+
+        if (labelEl) {
+          labelEl.textContent = isOos ? 'Turn ON' : 'Turn OFF';
+        }
+
+        if (isOos) {
+          btnElement.className = 'stock-toggle-action-btn flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all active:scale-95 shadow-2xs cursor-pointer select-none bg-emerald-600 hover:bg-emerald-700 text-white';
+        } else {
+          btnElement.className = 'stock-toggle-action-btn flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all active:scale-95 shadow-2xs cursor-pointer select-none bg-rose-600 hover:bg-rose-700 text-white';
+        }
+
+        // Live KPI Counters Update
+        const inStockEl = document.getElementById('inv-in-stock-count');
+        const oosEl = document.getElementById('inv-oos-count');
+        if (inStockEl && oosEl) {
+          let inCount = parseInt(inStockEl.textContent) || 0;
+          let oosCount = parseInt(oosEl.textContent) || 0;
+          if (isOos) {
+            inStockEl.textContent = Math.max(0, inCount - 1);
+            oosEl.textContent = oosCount + 1;
+          } else {
+            inStockEl.textContent = inCount + 1;
+            oosEl.textContent = Math.max(0, oosCount - 1);
+          }
+        }
+
+        // If currently viewing filtered tab (e.g. In Stock only and just turned OOS), re-evaluate filter
+        if (currentStockFilter !== 'all') {
+          filterStockTable();
+        }
+
+        if (typeof showToast === 'function') {
+          showToast(data.message || (isOos ? 'Marked Out of Stock' : 'Marked In Stock'), isOos ? 'info' : 'success');
+        }
+      } else {
+        if (labelEl) labelEl.textContent = originalLabel;
+        if (typeof showToast === 'function') {
+          showToast(data.message || 'Error updating stock', 'error');
+        }
+      }
+    })
+    .catch(e => {
+      console.error(e);
+      btnElement.disabled = false;
+      if (labelEl) labelEl.textContent = originalLabel;
+      if (typeof showToast === 'function') {
+        showToast('Network error while toggling stock', 'error');
+      }
+    });
+  }
+</script>
+{% endblock %}
