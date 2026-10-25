@@ -959,13 +959,20 @@
         }
       }
 
-      // ⚡ INSTANT reaction: The exact frame the user taps any link or card
-      document.addEventListener('click', function(e) {
+      // ⚡ INSTANT reaction: The exact frame the user touches/clicks any link or tab
+      function handleInstantTrigger(e) {
         const a = e.target.closest('a');
         if (a && a.href && !a.href.startsWith('javascript:') && !a.href.startsWith('#') && !a.target && a.origin === window.location.origin) {
           showInstantShimmer(a.href);
         }
-      }, true);
+      }
+      document.addEventListener('touchstart', handleInstantTrigger, { passive: true, capture: true });
+      document.addEventListener('click', handleInstantTrigger, true);
+
+      // ⚡ Instant shimmer when tab/page reload starts
+      window.addEventListener('beforeunload', function() {
+        showInstantShimmer();
+      });
 
       document.addEventListener('turbo:visit', function(e) {
         const url = (e && e.detail && e.detail.url) ? e.detail.url : '';
@@ -976,6 +983,12 @@
         showInstantShimmer(url);
       });
       document.addEventListener('turbo:before-fetch-request', function() {
+        showInstantShimmer();
+      });
+      document.addEventListener('turbo:request-start', function() {
+        showInstantShimmer();
+      });
+      document.addEventListener('turbo:submit-start', function() {
         showInstantShimmer();
       });
 
