@@ -467,12 +467,14 @@
 
     const name = document.getElementById('name').value;
     const email = document.getElementById('email').value;
+    const phone = document.getElementById('phone').value.trim();
 
     fetch('/api/verify-whatsapp-otp', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
         code: code, 
+        phone: phone,
         action: 'register',
         name: name,
         email: email
