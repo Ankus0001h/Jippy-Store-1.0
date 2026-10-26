@@ -1005,6 +1005,67 @@
       window.hideGlobalShimmer = hideInstantShimmer;
     })();
   </script>
+
+  <!-- 📡 Instant Real-Time No Internet Screen (Web & App Fallback) -->
+  <div id="jippy-web-offline-overlay"
+    style="display:none;position:fixed;inset:0;z-index:2147483646;background:linear-gradient(to bottom, #ffffff, #f0fdf4, #e8f5e9);align-items:center;justify-content:center;padding:24px;font-family:'Plus Jakarta Sans',sans-serif;">
+    <div style="max-width:380px;width:100%;text-align:center;display:flex;flex-direction:column;align-items:center;">
+      <div style="background:#dcfce7;border-radius:20px;padding:6px 14px;display:inline-flex;align-items:center;gap:7px;margin-bottom:24px;">
+        <span style="width:7px;height:7px;border-radius:50%;background:#ef4444;display:inline-block;"></span>
+        <span style="font-size:11.5px;font-weight:700;color:#166534;">Jippy Store • 10-15 Min Delivery</span>
+      </div>
+      
+      <div style="width:120px;height:120px;border-radius:50%;background:#dcfce7;display:flex;align-items:center;justify-content:center;border:2px solid #86efac;box-shadow:0 10px 25px -5px rgba(22,163,74,0.2);margin-bottom:24px;">
+        <span style="font-size:48px;">📡</span>
+      </div>
+
+      <h2 style="font-size:22px;font-weight:800;color:#1e293b;margin:0 0 8px 0;letter-spacing:-0.3px;">No Internet Connection</h2>
+      <p style="font-size:13.5px;color:#64748b;line-height:1.5;margin:0 0 28px 0;">Your fresh groceries & daily essentials are waiting. Please check your Wi-Fi or mobile data network.</p>
+
+      <button type="button" onclick="window.location.reload();" style="width:100%;height:52px;background:#16a34a;color:#ffffff;border:none;border-radius:14px;font-size:16px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 8px 16px -4px rgba(22,163,74,0.3);">
+        <span>Try Again</span> <span>🔄</span>
+      </button>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      const offlineOverlay = document.getElementById('jippy-web-offline-overlay');
+      let isCurrentlyOffline = false;
+
+      function triggerOffline() {
+        if (isCurrentlyOffline) return;
+        isCurrentlyOffline = true;
+        if (offlineOverlay) offlineOverlay.style.display = 'flex';
+        if (window.AndroidApp && typeof window.AndroidApp.onNetworkLost === 'function') {
+          try { window.AndroidApp.onNetworkLost(); } catch(e) {}
+        }
+      }
+
+      function triggerOnline() {
+        if (!isCurrentlyOffline) return;
+        isCurrentlyOffline = false;
+        if (offlineOverlay) offlineOverlay.style.display = 'none';
+        if (window.AndroidApp && typeof window.AndroidApp.onNetworkRestored === 'function') {
+          try { window.AndroidApp.onNetworkRestored(); } catch(e) {}
+        }
+        window.location.reload();
+      }
+
+      window.addEventListener('offline', triggerOffline);
+      window.addEventListener('online', triggerOnline);
+
+      if (navigator.onLine === false) {
+        triggerOffline();
+      }
+
+      document.addEventListener('turbo:fetch-request-error', function() {
+        if (navigator.onLine === false) {
+          triggerOffline();
+        }
+      });
+    })();
+  </script>
 </body>
 
 </html>
